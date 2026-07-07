@@ -82,6 +82,9 @@ def parse_desktop_entry(desktop_file):
     if entry.getboolean("Hidden", fallback=False):
         return None
 
+    if entry.getboolean("NoDisplay", fallback=False):
+        return None
+
     name = entry.get("Name", "").strip()
     exec_value = entry.get("Exec", "").strip()
 
