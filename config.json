@@ -1,0 +1,13 @@
+{
+    "device": "Logitech G502 HERO Gaming Mouse",
+    "desktop_profile": 0,
+    "check_interval": 2,
+    "applications": [
+        {
+            "name": "Warframe",
+            "process": "Warframe.x64.exe",
+            "profile": 2,
+            "priority": 100
+        }
+    ]
+}
