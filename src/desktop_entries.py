@@ -8,6 +8,7 @@ que posteriormente utilizará el clasificador de procesos.
 from dataclasses import dataclass
 from pathlib import Path
 import configparser
+import shlex
 
 DESKTOP_DIRECTORIES = (
     Path.home() / ".local/share/applications",
@@ -20,6 +21,7 @@ DESKTOP_DIRECTORIES = (
 class DesktopEntry:
     name: str
     executable: str
+    exec_value: str
     desktop_file: str
 
 
@@ -27,15 +29,32 @@ def extract_exec_name(exec_value):
     """
     Extrae el nombre del ejecutable desde el campo Exec de un archivo .desktop.
 
-    Por ahora realiza una extracción básica.
+    Soporta comandos directos y comandos env con asignaciones
+    de variables de entorno antes del ejecutable real.
     """
 
     if not exec_value:
         return None
 
-    executable = exec_value.split(maxsplit=1)[0]
+    try:
+        tokens = shlex.split(exec_value)
+    except ValueError:
+        return None
 
-    return Path(executable).name
+    if not tokens:
+        return None
+
+    if tokens[0] == "env":
+        tokens = tokens[1:]
+
+        while tokens and "=" in tokens[0]:
+            tokens = tokens[1:]
+
+        if not tokens:
+            return None
+
+    return Path(tokens[0]).name
+
 
 def parse_desktop_entry(desktop_file):
     """
@@ -77,8 +96,10 @@ def parse_desktop_entry(desktop_file):
     return DesktopEntry(
         name=name,
         executable=executable,
+        exec_value=exec_value,
         desktop_file=str(desktop_file),
     )
+
 
 def discover_desktop_entries():
     """
