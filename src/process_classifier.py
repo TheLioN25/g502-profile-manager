@@ -39,7 +39,7 @@ def uses_windows_path(process):
     S:\\common\\Warframe\\Warframe.x64.exe
     """
 
-    executable_path = process.command.split(maxsplit=1)[0]
+    executable_path = process.executable_path
 
     return (
         len(executable_path) >= 3

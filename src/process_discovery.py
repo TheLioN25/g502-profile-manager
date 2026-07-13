@@ -34,6 +34,8 @@ IGNORED_COMMAND_PARTS = {
 class ProcessInfo:
     pid: int
     name: str
+    executable_path: str
+    real_executable_path: str
     command: str
 
 def read_process(pid_path):
@@ -49,6 +51,7 @@ def read_process(pid_path):
 
         comm_file = pid_path / "comm"
         cmdline_file = pid_path / "cmdline"
+        exe_file = pid_path / "exe"
 
         name = comm_file.read_text(
             encoding="utf-8",
@@ -56,6 +59,21 @@ def read_process(pid_path):
         ).strip()
 
         raw_cmdline = cmdline_file.read_bytes()
+
+        raw_arguments = raw_cmdline.split(b"\x00")
+
+        if raw_arguments and raw_arguments[-1] == b"":
+            raw_arguments.pop()
+
+        if not raw_arguments:
+            return None
+
+        executable_path = raw_arguments[0].decode(
+            "utf-8",
+            errors="replace",
+        )
+
+        real_executable_path = str(exe_file.resolve())
 
     except (
         ValueError,
@@ -82,6 +100,8 @@ def read_process(pid_path):
     return ProcessInfo(
         pid=pid,
         name=name,
+        executable_path=executable_path,
+        real_executable_path=real_executable_path,
         command=command,
     )
 
@@ -178,20 +198,35 @@ def search_processes(query, processes=None):
         )
 ]
 
+
+def get_effective_executable_path(process):
+    """
+    Devuelve la ruta más útil para identificar el ejecutable.
+
+    Usa la ruta real cuando argv[0] es /proc/self/exe.
+    En los demás casos conserva argv[0], necesario para Wine/Proton.
+    """
+
+    if process.executable_path == "/proc/self/exe":
+        return process.real_executable_path
+
+    return process.executable_path
+
+
 def extract_executable_name(process):
     """
     Extrae el nombre del ejecutable desde argv[0].
 
-    Soporta rutas Linux y rutas Windows usadas por Wine/Proton.
+    Soporta rutas Linux y rutas Windows usadas por Wine/Proton,
+    incluso cuando contienen espacios.
     """
 
-    executable = process.command.split(maxsplit=1)[0]
-
     return (
-        executable
+        get_effective_executable_path(process)
         .replace("\\", "/")
         .rsplit("/", maxsplit=1)[-1]
     )
+
 
 def process_name_is_running(process_name, processes=None):
     """
