@@ -4,8 +4,16 @@ import subprocess
 import time
 from pathlib import Path
 
-from application_resolver import resolve_steam_applications
+from application_resolver import (
+    combine_active_applications,
+    resolve_active_applications,
+    resolve_steam_applications,
+)
 from config_manager import ConfigError, load_config
+from desktop_entries import (
+    discover_desktop_entries,
+    parse_desktop_entry,
+)
 from process_discovery import discover_processes
 from steam_discovery import discover_active_steam_apps
 
@@ -125,6 +133,12 @@ def main():
     check_interval = config["check_interval"]
     applications = config["applications"]
 
+    desktop_entries = [
+        entry
+        for desktop_file in discover_desktop_entries()
+        if (entry := parse_desktop_entry(desktop_file)) is not None
+    ]
+
     print("Configuración cargada correctamente.")
     print(f"Aplicaciones configuradas: {len(applications)}")
 
@@ -145,6 +159,11 @@ def main():
 
             processes = discover_processes()
 
+            desktop_applications = resolve_active_applications(
+                processes,
+                desktop_entries,
+            )
+
             steam_applications = resolve_steam_applications(
                 discover_active_steam_apps(
                     processes,
@@ -153,9 +172,16 @@ def main():
                 )
             )
 
+            active_applications = combine_active_applications(
+                (
+                    desktop_applications,
+                    steam_applications,
+                )
+            )
+
             application = find_active_application(
                 applications,
-                steam_applications,
+                active_applications,
             )
 
             if application:
