@@ -8,10 +8,11 @@ la construcción del catálogo y su relación con la configuración persistente.
 from pathlib import Path
 
 from application_catalog import (
+    ApplicationCatalogEntry,
     build_steam_catalog,
     relate_catalog_to_config,
 )
-from config_manager import list_applications
+from config_manager import add_application, list_applications
 from steam_discovery import discover_installed_steam_apps
 
 
@@ -44,4 +45,24 @@ def list_configurable_applications(
     return relate_catalog_to_config(
         catalog_entries,
         configured_applications,
+    )
+
+
+def configure_application(catalog_entry, profile, priority):
+    """
+    Crea una asociación persistente para una aplicación del catálogo.
+    """
+
+    if not isinstance(catalog_entry, ApplicationCatalogEntry):
+        raise TypeError(
+            "catalog_entry debe ser una instancia "
+            "de ApplicationCatalogEntry."
+        )
+
+    add_application(
+        name=catalog_entry.name,
+        application_id=catalog_entry.application_id,
+        source=catalog_entry.source,
+        profile=profile,
+        priority=priority,
     )
