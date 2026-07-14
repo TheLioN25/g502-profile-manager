@@ -161,3 +161,40 @@ def resolve_steam_applications(steam_applications):
             application.application_id.casefold(),
         ),
     )
+
+
+def combine_active_applications(application_groups):
+    """
+    Combina aplicaciones activas procedentes de distintas fuentes.
+
+    Conserva una única aplicación por source + application_id.
+    """
+
+    applications_by_identity = {}
+
+    for application_group in application_groups:
+        for application in application_group:
+            if not isinstance(application, ActiveApplication):
+                raise TypeError(
+                    "application_groups debe contener instancias "
+                    "de ActiveApplication."
+                )
+
+            key = (
+                application.source.casefold(),
+                application.application_id.casefold(),
+            )
+
+            applications_by_identity.setdefault(
+                key,
+                application,
+            )
+
+    return sorted(
+        applications_by_identity.values(),
+        key=lambda application: (
+            application.name.casefold(),
+            application.source.casefold(),
+            application.application_id.casefold(),
+        ),
+    )
