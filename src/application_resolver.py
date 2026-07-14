@@ -14,6 +14,8 @@ from process_discovery import ProcessInfo, extract_executable_name
 @dataclass(frozen=True)
 class ActiveApplication:
     name: str
+    application_id: str
+    source: str
     executable: str
     desktop_files: tuple[str, ...]
     process_ids: tuple[int, ...]
@@ -103,6 +105,8 @@ def resolve_active_applications(processes, desktop_entries):
         active_applications.append(
             ActiveApplication(
                 name=" / ".join(names),
+                application_id=process_group["executable"],
+                source="desktop",
                 executable=process_group["executable"],
                 desktop_files=desktop_files,
                 process_ids=process_ids,
@@ -115,5 +119,45 @@ def resolve_active_applications(processes, desktop_entries):
         key=lambda application: (
             application.name.casefold(),
             application.executable.casefold(),
+        ),
+    )
+
+
+def resolve_steam_applications(steam_applications):
+    """
+    Convierte aplicaciones Steam activas al modelo ActiveApplication.
+    """
+
+    from steam_discovery import ActiveSteamApplication
+
+    active_applications = []
+
+    for steam_application in steam_applications:
+        if not isinstance(steam_application, ActiveSteamApplication):
+            raise TypeError(
+                "steam_applications debe contener instancias "
+                "de ActiveSteamApplication."
+            )
+
+        launch = steam_application.launch
+        manifest = steam_application.manifest
+
+        active_applications.append(
+            ActiveApplication(
+                name=manifest.name,
+                application_id=f"steam:{manifest.app_id}",
+                source="steam",
+                executable="",
+                desktop_files=(),
+                process_ids=(launch.supervisor_pid,),
+                ambiguous=False,
+            )
+        )
+
+    return sorted(
+        active_applications,
+        key=lambda application: (
+            application.name.casefold(),
+            application.application_id.casefold(),
         ),
     )

@@ -34,6 +34,12 @@ class SteamAppManifest:
     library_path: str
 
 
+@dataclass(frozen=True)
+class ActiveSteamApplication:
+    launch: SteamLaunch
+    manifest: SteamAppManifest
+
+
 def extract_steam_app_id(process):
     """
     Extrae el AppID de un proceso supervisor de lanzamiento de Steam.
@@ -232,6 +238,11 @@ def discover_active_steam_apps(processes, libraryfolders_file):
         if manifest.app_id != launch.app_id:
             continue
 
-        active_apps.append(manifest)
+        active_apps.append(
+            ActiveSteamApplication(
+                launch=launch,
+                manifest=manifest,
+            )
+        )
 
     return active_apps
