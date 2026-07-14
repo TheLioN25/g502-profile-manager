@@ -209,6 +209,47 @@ def parse_steam_app_manifest(manifest_file):
         library_path=str(library_path),
     )
 
+
+def discover_installed_steam_apps(libraryfolders_file):
+    """
+    Descubre las aplicaciones instaladas en las bibliotecas de Steam.
+
+    Lee todos los appmanifest disponibles y devuelve sus metadatos,
+    ordenados por nombre y AppID.
+    """
+
+    libraries = discover_steam_libraries(libraryfolders_file)
+    applications_by_app_id = {}
+
+    for library in libraries:
+        steamapps_directory = Path(library) / "steamapps"
+
+        try:
+            manifest_files = steamapps_directory.glob("appmanifest_*.acf")
+
+            for manifest_file in manifest_files:
+                manifest = parse_steam_app_manifest(manifest_file)
+
+                if manifest is None:
+                    continue
+
+                applications_by_app_id.setdefault(
+                    manifest.app_id,
+                    manifest,
+                )
+
+        except OSError:
+            continue
+
+    return sorted(
+        applications_by_app_id.values(),
+        key=lambda application: (
+            application.name.casefold(),
+            application.app_id,
+        ),
+    )
+
+
 def discover_active_steam_apps(processes, libraryfolders_file):
     """
     Descubre las aplicaciones de Steam actualmente activas.
