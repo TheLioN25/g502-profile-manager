@@ -2,9 +2,12 @@
 
 import subprocess
 import time
+from pathlib import Path
 
+from application_resolver import resolve_steam_applications
 from config_manager import ConfigError, load_config
-from process_discovery import process_name_is_running
+from process_discovery import discover_processes
+from steam_discovery import discover_active_steam_apps
 
 def run_command(command):
     """Ejecuta un comando del sistema y devuelve el resultado."""
@@ -72,17 +75,30 @@ def set_profile(device, profile):
     return result.returncode == 0
 
 
-def find_active_application(applications):
+def find_active_application(applications, active_applications):
     """
-    Devuelve la aplicación ejecutándose con mayor prioridad.
+    Devuelve la aplicación configurada activa con mayor prioridad.
+
+    Compara la identidad estable source + application_id.
     """
 
-    running_applications = []
+    active_identities = {
+        (
+            application.source.casefold(),
+            application.application_id.casefold(),
+        )
+        for application in active_applications
+    }
 
-    for application in applications:
-
-        if process_name_is_running(application["process"]):
-            running_applications.append(application)
+    running_applications = [
+        application
+        for application in applications
+        if (
+            application["source"].casefold(),
+            application["application_id"].casefold(),
+        )
+        in active_identities
+    ]
 
     if not running_applications:
         return None
@@ -127,7 +143,20 @@ def main():
 
         while True:
 
-            application = find_active_application(applications)
+            processes = discover_processes()
+
+            steam_applications = resolve_steam_applications(
+                discover_active_steam_apps(
+                    processes,
+                    Path.home()
+                    / ".local/share/Steam/steamapps/libraryfolders.vdf",
+                )
+            )
+
+            application = find_active_application(
+                applications,
+                steam_applications,
+            )
 
             if application:
 

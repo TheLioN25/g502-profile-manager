@@ -5,7 +5,8 @@
     "applications": [
         {
             "name": "Warframe",
-            "process": "Warframe.x64.exe",
+            "application_id": "steam:230410",
+            "source": "steam",
             "profile": 2,
             "priority": 100
         }

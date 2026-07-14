@@ -16,7 +16,8 @@ REQUIRED_CONFIG_KEYS = {
 
 REQUIRED_APPLICATION_KEYS = {
     "name",
-    "process",
+    "application_id",
+    "source",
     "profile",
     "priority",
 }
@@ -44,11 +45,17 @@ def validate_application(application):
     if not application["name"].strip():
         raise ConfigError("'name' no puede estar vacío.")
 
-    if not isinstance(application["process"], str):
-        raise ConfigError("'process' debe ser texto.")
+    if not isinstance(application["application_id"], str):
+        raise ConfigError("'application_id' debe ser texto.")
 
-    if not application["process"].strip():
-        raise ConfigError("'process' no puede estar vacío.")
+    if not application["application_id"].strip():
+        raise ConfigError("'application_id' no puede estar vacío.")
+
+    if not isinstance(application["source"], str):
+        raise ConfigError("'source' debe ser texto.")
+
+    if not application["source"].strip():
+        raise ConfigError("'source' no puede estar vacío.")
 
     if not isinstance(application["profile"], int):
         raise ConfigError("'profile' debe ser un número entero.")
@@ -148,12 +155,19 @@ def list_applications():
     return deepcopy(config["applications"])
 
 
-def add_application(name, process, profile, priority):
+def add_application(
+    name,
+    application_id,
+    source,
+    profile,
+    priority,
+):
     config = load_config()
 
     new_application = {
         "name": name.strip(),
-        "process": process.strip(),
+        "application_id": application_id.strip(),
+        "source": source.strip(),
         "profile": profile,
         "priority": priority,
     }
@@ -166,9 +180,16 @@ def add_application(name, process, profile, priority):
                 f"Ya existe una aplicación llamada '{new_application['name']}'."
             )
 
-        if application["process"].casefold() == new_application["process"].casefold():
+        if (
+            application["source"].casefold()
+            == new_application["source"].casefold()
+            and application["application_id"].casefold()
+            == new_application["application_id"].casefold()
+        ):
             raise ConfigError(
-                f"El proceso '{new_application['process']}' ya está asociado."
+                "La identidad de aplicación "
+                f"'{new_application['source']} / "
+                f"{new_application['application_id']}' ya está asociada."
             )
 
     config["applications"].append(new_application)
@@ -190,10 +211,13 @@ def remove_application(name):
         raise ConfigError(f"No existe la aplicación '{name}'.")
 
     save_config(config)
+
+
 def update_application(
     current_name,
     new_name,
-    new_process,
+    new_application_id,
+    new_source,
     new_profile,
     new_priority,
 ):
@@ -201,7 +225,8 @@ def update_application(
 
     updated_application = {
         "name": new_name.strip(),
-        "process": new_process.strip(),
+        "application_id": new_application_id.strip(),
+        "source": new_source.strip(),
         "profile": new_profile,
         "priority": new_priority,
     }
@@ -234,12 +259,15 @@ def update_application(
             )
 
         if (
-            application["process"].casefold()
-            == updated_application["process"].casefold()
+            application["source"].casefold()
+            == updated_application["source"].casefold()
+            and application["application_id"].casefold()
+            == updated_application["application_id"].casefold()
         ):
             raise ConfigError(
-                f"El proceso '{updated_application['process']}' "
-                "ya está asociado."
+                "La identidad de aplicación "
+                f"'{updated_application['source']} / "
+                f"{updated_application['application_id']}' ya está asociada."
             )
 
     target_application.update(updated_application)
