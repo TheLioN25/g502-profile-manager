@@ -196,7 +196,7 @@ def add_application(
     save_config(config)
 
 
-def remove_application(name):
+def remove_application(application_id, source):
     config = load_config()
 
     original_length = len(config["applications"])
@@ -204,11 +204,18 @@ def remove_application(name):
     config["applications"] = [
         application
         for application in config["applications"]
-        if application["name"].casefold() != name.casefold()
+        if not (
+            application["source"].casefold() == source.casefold()
+            and application["application_id"].casefold()
+            == application_id.casefold()
+        )
     ]
 
     if len(config["applications"]) == original_length:
-        raise ConfigError(f"No existe la aplicación '{name}'.")
+        raise ConfigError(
+            "No existe la identidad de aplicación "
+            f"'{source} / {application_id}'."
+        )
 
     save_config(config)
 
