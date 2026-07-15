@@ -15,7 +15,6 @@ REQUIRED_CONFIG_KEYS = {
 }
 
 REQUIRED_APPLICATION_KEYS = {
-    "name",
     "application_id",
     "source",
     "profile",
@@ -38,12 +37,6 @@ def validate_application(application):
             "Faltan campos obligatorios: "
             + ", ".join(sorted(missing))
         )
-
-    if not isinstance(application["name"], str):
-        raise ConfigError("'name' debe ser texto.")
-
-    if not application["name"].strip():
-        raise ConfigError("'name' no puede estar vacío.")
 
     if not isinstance(application["application_id"], str):
         raise ConfigError("'application_id' debe ser texto.")
@@ -156,16 +149,15 @@ def list_applications():
 
 
 def add_application(
-    name,
     application_id,
     source,
     profile,
     priority,
 ):
+
     config = load_config()
 
     new_application = {
-        "name": name.strip(),
         "application_id": application_id.strip(),
         "source": source.strip(),
         "profile": profile,
@@ -175,11 +167,6 @@ def add_application(
     validate_application(new_application)
 
     for application in config["applications"]:
-        if application["name"].casefold() == new_application["name"].casefold():
-            raise ConfigError(
-                f"Ya existe una aplicación llamada '{new_application['name']}'."
-            )
-
         if (
             application["source"].casefold()
             == new_application["source"].casefold()

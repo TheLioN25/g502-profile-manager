@@ -60,7 +60,6 @@ def configure_application(catalog_entry, profile, priority):
         )
 
     add_application(
-        name=catalog_entry.name,
         application_id=catalog_entry.application_id,
         source=catalog_entry.source,
         profile=profile,

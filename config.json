@@ -4,7 +4,6 @@
     "check_interval": 2,
     "applications": [
         {
-            "name": "Warframe",
             "application_id": "steam:230410",
             "source": "steam",
             "profile": 2,
