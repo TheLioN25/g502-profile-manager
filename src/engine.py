@@ -9,11 +9,17 @@ from application_resolver import (
     resolve_active_applications,
     resolve_steam_applications,
 )
+
+from application_manager import (
+    list_configurable_applications,
+)
+
 from config_manager import ConfigError, load_config
 from desktop_entries import (
     discover_desktop_entries,
     parse_desktop_entry,
 )
+
 from process_discovery import discover_processes
 from steam_discovery import discover_active_steam_apps
 
@@ -102,8 +108,8 @@ def find_active_application(applications, active_applications):
         application
         for application in applications
         if (
-            application["source"].casefold(),
-            application["application_id"].casefold(),
+            application.catalog_entry.source.casefold(),
+            application.catalog_entry.application_id.casefold(),
         )
         in active_identities
     ]
@@ -113,7 +119,7 @@ def find_active_application(applications, active_applications):
 
     return max(
         running_applications,
-        key=lambda application: application["priority"],
+        key=lambda application: application.priority,
     )
 
 
@@ -131,7 +137,11 @@ def main():
     device = config["device"]
     desktop_profile = config["desktop_profile"]
     check_interval = config["check_interval"]
-    applications = config["applications"]
+    applications = [
+        application
+        for application in list_configurable_applications()
+        if application.configured
+    ]
 
     desktop_entries = [
         entry
@@ -186,8 +196,8 @@ def main():
 
             if application:
 
-                mode = application["name"]
-                target_profile = application["profile"]
+                mode = application.catalog_entry.name
+                target_profile = application.profile
 
             else:
 

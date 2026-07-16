@@ -12,7 +12,12 @@ from application_catalog import (
     build_steam_catalog,
     relate_catalog_to_config,
 )
-from config_manager import add_application, list_applications
+
+from config_manager import (
+    add_application,
+    list_applications,
+)
+
 from steam_discovery import discover_installed_steam_apps
 
 
