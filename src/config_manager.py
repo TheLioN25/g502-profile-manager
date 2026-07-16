@@ -208,62 +208,33 @@ def remove_application(application_id, source):
 
 
 def update_application(
-    current_name,
-    new_name,
-    new_application_id,
-    new_source,
-    new_profile,
-    new_priority,
+    application_id,
+    source,
+    profile,
+    priority,
 ):
     config = load_config()
-
-    updated_application = {
-        "name": new_name.strip(),
-        "application_id": new_application_id.strip(),
-        "source": new_source.strip(),
-        "profile": new_profile,
-        "priority": new_priority,
-    }
-
-    validate_application(updated_application)
 
     target_application = None
 
     for application in config["applications"]:
-        if application["name"].casefold() == current_name.casefold():
+        if (
+            application["source"].casefold() == source.casefold()
+            and application["application_id"].casefold()
+            == application_id.casefold()
+        ):
             target_application = application
             break
 
     if target_application is None:
         raise ConfigError(
-            f"No existe la aplicación '{current_name}'."
+            "No existe la identidad de aplicación "
+            f"'{source} / {application_id}'."
         )
 
-    for application in config["applications"]:
-        if application is target_application:
-            continue
+    target_application["profile"] = profile
+    target_application["priority"] = priority
 
-        if (
-            application["name"].casefold()
-            == updated_application["name"].casefold()
-        ):
-            raise ConfigError(
-                f"Ya existe una aplicación llamada "
-                f"'{updated_application['name']}'."
-            )
-
-        if (
-            application["source"].casefold()
-            == updated_application["source"].casefold()
-            and application["application_id"].casefold()
-            == updated_application["application_id"].casefold()
-        ):
-            raise ConfigError(
-                "La identidad de aplicación "
-                f"'{updated_application['source']} / "
-                f"{updated_application['application_id']}' ya está asociada."
-            )
-
-    target_application.update(updated_application)
+    validate_application(target_application)
 
     save_config(config)
