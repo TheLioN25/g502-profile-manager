@@ -7,12 +7,25 @@ from application_manager import list_configurable_applications
 def list_applications(args):
     applications = list_configurable_applications()
 
+    total = len(applications)
+    configured = sum(
+        application.configured
+        for application in applications
+    )
+
+    print("Aplicaciones disponibles")
+    print("========================")
+    print(f"Total: {total}")
+    print(f"Configuradas: {configured}")
+    print()
+
     print_applications(applications)
 
 
 def print_applications(applications):
     for application in applications:
         print_application(application)
+        print()
 
 
 def print_application(application):
@@ -23,11 +36,13 @@ def print_application(application):
 
 
 def print_configured_application(application):
-    print(application)
+    print(f"[X] {application.catalog_entry.name}")
+    print(f"    Perfil: {application.profile}")
+    print(f"    Prioridad: {application.priority}")
 
 
 def print_unconfigured_application(application):
-    print(application)
+    print(f"[ ] {application.catalog_entry.name}")
 
 
 def not_implemented(args):
