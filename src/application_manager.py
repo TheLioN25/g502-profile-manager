@@ -53,6 +53,30 @@ def list_configurable_applications(
     )
 
 
+def get_configurable_application(
+	name,
+	libraryfolders_file=DEFAULT_STEAM_LIBRARYFOLDERS_FILE,
+):
+	"""
+	Devuelve una aplicación configurable a partir de su nombre.
+
+	La búsqueda es insensible a mayúsculas y minúsculas.
+	Devuelve None si no existe una coincidencia.
+	"""
+
+	applications = list_configurable_applications(
+		libraryfolders_file,
+	)
+
+	name = name.casefold()
+
+	for application in applications:
+		if application.catalog_entry.name.casefold() == name:
+			return application
+
+	return None
+
+
 def configure_application(catalog_entry, profile, priority):
     """
     Crea una asociación persistente para una aplicación del catálogo.
