@@ -1,0 +1,128 @@
+{
+  "application_id": "steam:1284210",
+  "name": "Guild Wars 2",
+  "executable": "Gw2-64.exe",
+  "description": "MMORPG de acción y combate dinámico.",
+  "actions": [
+    {
+      "action_id": "gw2_skill_1",
+      "name": "Habilidad 1 (Auto-attack)",
+      "category": "Armas",
+      "description": "Primera habilidad de arma básica",
+      "binding_type": "key",
+      "binding_value": "1"
+    },
+    {
+      "action_id": "gw2_skill_2",
+      "name": "Habilidad 2",
+      "category": "Armas",
+      "description": "Segunda habilidad de arma",
+      "binding_type": "key",
+      "binding_value": "2"
+    },
+    {
+      "action_id": "gw2_skill_3",
+      "name": "Habilidad 3",
+      "category": "Armas",
+      "description": "Tercera habilidad de arma",
+      "binding_type": "key",
+      "binding_value": "3"
+    },
+    {
+      "action_id": "gw2_skill_4",
+      "name": "Habilidad 4",
+      "category": "Armas",
+      "description": "Cuarta habilidad de arma secundaria",
+      "binding_type": "key",
+      "binding_value": "4"
+    },
+    {
+      "action_id": "gw2_skill_5",
+      "name": "Habilidad 5",
+      "category": "Armas",
+      "description": "Quinta habilidad de arma secundaria",
+      "binding_type": "key",
+      "binding_value": "5"
+    },
+    {
+      "action_id": "gw2_weapon_swap",
+      "name": "Cambiar Conjunto de Armas",
+      "category": "Armas",
+      "description": "Alternar entre primer y segundo set de armas",
+      "binding_type": "key",
+      "binding_value": "grave"
+    },
+    {
+      "action_id": "gw2_heal",
+      "name": "Curación (Slot 6)",
+      "category": "Apoyo y Élite",
+      "description": "Habilidad de curación de emergencia",
+      "binding_type": "key",
+      "binding_value": "6"
+    },
+    {
+      "action_id": "gw2_utility_1",
+      "name": "Utilidad 1 (Slot 7)",
+      "category": "Apoyo y Élite",
+      "description": "Primera habilidad de utilidad de profesión",
+      "binding_type": "key",
+      "binding_value": "7"
+    },
+    {
+      "action_id": "gw2_utility_2",
+      "name": "Utilidad 2 (Slot 8)",
+      "category": "Apoyo y Élite",
+      "description": "Segunda habilidad de utilidad de profesión",
+      "binding_type": "key",
+      "binding_value": "8"
+    },
+    {
+      "action_id": "gw2_utility_3",
+      "name": "Utilidad 3 (Slot 9)",
+      "category": "Apoyo y Élite",
+      "description": "Tercera habilidad de utilidad de profesión",
+      "binding_type": "key",
+      "binding_value": "9"
+    },
+    {
+      "action_id": "gw2_elite",
+      "name": "Habilidad de Élite (Slot 0)",
+      "category": "Apoyo y Élite",
+      "description": "Habilidad definitiva de élite",
+      "binding_type": "key",
+      "binding_value": "0"
+    },
+    {
+      "action_id": "gw2_dodge",
+      "name": "Esquivar (Dodge Roll)",
+      "category": "Movimiento",
+      "description": "Maniobra evasiva con frames de invulnerabilidad",
+      "binding_type": "key",
+      "binding_value": "v"
+    },
+    {
+      "action_id": "gw2_mount",
+      "name": "Montar / Desmontar",
+      "category": "Movimiento",
+      "description": "Montar en la montura predeterminada",
+      "binding_type": "key",
+      "binding_value": "x"
+    },
+    {
+      "action_id": "gw2_interact",
+      "name": "Interactuar",
+      "category": "Interfaz",
+      "description": "Hablar con NPCs, saquear o activar objetos",
+      "binding_type": "key",
+      "binding_value": "f"
+    },
+    {
+      "action_id": "gw2_special_action",
+      "name": "Acción Especial (SAB/Raid)",
+      "category": "Interfaz",
+      "description": "Botón de acción contextual de mecánicas de mapa",
+      "binding_type": "key",
+      "binding_value": "n"
+    }
+  ]
+}

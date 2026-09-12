@@ -135,19 +135,29 @@ PRESETS: dict[str, list[dict[str, str]]] = {
 }
 
 
+from services.action_catalog import ActionCatalogService
+
+_catalog_service = ActionCatalogService()
+
+
 def get_preset_actions_for_application(application_id: str) -> tuple[Action, ...]:
     """
     Devuelve las acciones predefinidas disponibles para una aplicación.
+    Consulta el servicio de catálogos y presets JSON modulares.
     """
     if not isinstance(application_id, str):
         return ()
 
+    actions = _catalog_service.get_actions_for_application(application_id)
+    if actions:
+        return actions
+
     app_key = application_id.strip().casefold()
     raw_actions = PRESETS.get(app_key, [])
 
-    actions = []
+    result = []
     for item in raw_actions:
-        actions.append(
+        result.append(
             Action(
                 action_id=item["action_id"],
                 name=item["name"],
@@ -155,10 +165,11 @@ def get_preset_actions_for_application(application_id: str) -> tuple[Action, ...
                 description=item.get("description", ""),
                 binding_type=item.get("binding_type", "key"),
                 binding_value=item.get("binding_value", ""),
+                category=item.get("category", "General"),
             )
         )
 
-    return tuple(actions)
+    return tuple(result)
 
 
 def populate_application_actions(application: Application) -> int:
@@ -169,11 +180,4 @@ def populate_application_actions(application: Application) -> int:
     if not isinstance(application, Application):
         raise TypeError("application debe ser una instancia de Application.")
 
-    preset_actions = get_preset_actions_for_application(application.application_id)
-    added = 0
-    for action in preset_actions:
-        if not application.has_action(action.action_id):
-            application.add_action(action)
-            added += 1
-
-    return added
+    return _catalog_service.populate_application_actions(application)

@@ -1,0 +1,87 @@
+{
+  "application_id": "desktop:general",
+  "name": "Escritorio y Productividad",
+  "description": "Atajos generales para navegación, oficina y multimedia en Linux.",
+  "actions": [
+    {
+      "action_id": "gen_copy",
+      "name": "Copiar",
+      "category": "Portapapeles",
+      "description": "Copiar selección al portapapeles (Ctrl+C)",
+      "binding_type": "macro",
+      "binding_value": "ctrl+c"
+    },
+    {
+      "action_id": "gen_paste",
+      "name": "Pegar",
+      "category": "Portapapeles",
+      "description": "Pegar contenido del portapapeles (Ctrl+V)",
+      "binding_type": "macro",
+      "binding_value": "ctrl+v"
+    },
+    {
+      "action_id": "gen_cut",
+      "name": "Cortar",
+      "category": "Portapapeles",
+      "description": "Cortar selección al portapapeles (Ctrl+X)",
+      "binding_type": "macro",
+      "binding_value": "ctrl+x"
+    },
+    {
+      "action_id": "gen_undo",
+      "name": "Deshacer",
+      "category": "Portapapeles",
+      "description": "Deshacer última acción (Ctrl+Z)",
+      "binding_type": "macro",
+      "binding_value": "ctrl+z"
+    },
+    {
+      "action_id": "gen_redo",
+      "name": "Rehacer",
+      "category": "Portapapeles",
+      "description": "Rehacer última acción deshecha (Ctrl+Y)",
+      "binding_type": "macro",
+      "binding_value": "ctrl+y"
+    },
+    {
+      "action_id": "gen_next_tab",
+      "name": "Pestaña Siguiente",
+      "category": "Navegación",
+      "description": "Avanzar a la siguiente pestaña en navegador o IDE (Ctrl+Tab)",
+      "binding_type": "macro",
+      "binding_value": "ctrl+tab"
+    },
+    {
+      "action_id": "gen_prev_tab",
+      "name": "Pestaña Anterior",
+      "category": "Navegación",
+      "description": "Retroceder a la pestaña anterior (Ctrl+Shift+Tab)",
+      "binding_type": "macro",
+      "binding_value": "ctrl+shift+tab"
+    },
+    {
+      "action_id": "gen_close_tab",
+      "name": "Cerrar Pestaña",
+      "category": "Navegación",
+      "description": "Cerrar la pestaña activa (Ctrl+W)",
+      "binding_type": "macro",
+      "binding_value": "ctrl+w"
+    },
+    {
+      "action_id": "gen_vol_mute",
+      "name": "Silenciar Audio",
+      "category": "Multimedia",
+      "description": "Alternar silencio del volumen maestro",
+      "binding_type": "special",
+      "binding_value": "mute"
+    },
+    {
+      "action_id": "gen_play_pause",
+      "name": "Reproducir / Pausar",
+      "category": "Multimedia",
+      "description": "Alternar reproducción de música o video",
+      "binding_type": "special",
+      "binding_value": "play-pause"
+    }
+  ]
+}

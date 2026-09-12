@@ -27,6 +27,7 @@ class Action:
     description: str = ""
     binding_type: str = "key"
     binding_value: str = ""
+    category: str = "General"
 
     def __post_init__(self):
         if not isinstance(self.action_id, str) or not self.action_id.strip():
@@ -46,6 +47,11 @@ class Action:
             if isinstance(self.binding_value, str)
             else ""
         )
+        cat = (
+            self.category.strip()
+            if isinstance(self.category, str) and self.category.strip()
+            else "General"
+        )
 
         object.__setattr__(self, "action_id", self.action_id.strip())
         object.__setattr__(self, "name", self.name.strip())
@@ -53,6 +59,7 @@ class Action:
         object.__setattr__(self, "description", self.description.strip())
         object.__setattr__(self, "binding_type", b_type)
         object.__setattr__(self, "binding_value", b_val)
+        object.__setattr__(self, "category", cat)
 
 
 class Application:

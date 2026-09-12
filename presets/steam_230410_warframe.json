@@ -1,0 +1,128 @@
+{
+  "application_id": "steam:230410",
+  "name": "Warframe",
+  "executable": "Warframe.x64.exe",
+  "description": "Looter-shooter espacial en tercera persona de ritmo rápido.",
+  "actions": [
+    {
+      "action_id": "wf_ability_1",
+      "name": "Habilidad 1",
+      "category": "Habilidades",
+      "description": "Lanza la primera habilidad del Warframe",
+      "binding_type": "key",
+      "binding_value": "1"
+    },
+    {
+      "action_id": "wf_ability_2",
+      "name": "Habilidad 2",
+      "category": "Habilidades",
+      "description": "Lanza la segunda habilidad del Warframe",
+      "binding_type": "key",
+      "binding_value": "2"
+    },
+    {
+      "action_id": "wf_ability_3",
+      "name": "Habilidad 3",
+      "category": "Habilidades",
+      "description": "Lanza la tercera habilidad del Warframe",
+      "binding_type": "key",
+      "binding_value": "3"
+    },
+    {
+      "action_id": "wf_ability_4",
+      "name": "Habilidad 4 (Ultimate)",
+      "category": "Habilidades",
+      "description": "Lanza la habilidad definitiva",
+      "binding_type": "key",
+      "binding_value": "4"
+    },
+    {
+      "action_id": "wf_ability_transference",
+      "name": "Transferencia / Operador",
+      "category": "Habilidades",
+      "description": "Cambiar a modo Operador / Drifter",
+      "binding_type": "key",
+      "binding_value": "5"
+    },
+    {
+      "action_id": "wf_melee",
+      "name": "Ataque Cuerpo a Cuerpo",
+      "category": "Combate",
+      "description": "Ataque cuerpo a cuerpo rápido",
+      "binding_type": "key",
+      "binding_value": "e"
+    },
+    {
+      "action_id": "wf_heavy_melee",
+      "name": "Ataque Pesado Cuerpo a Cuerpo",
+      "category": "Combate",
+      "description": "Ataque cargado cuerpo a cuerpo (Rueda central)",
+      "binding_type": "special",
+      "binding_value": "button 3"
+    },
+    {
+      "action_id": "wf_reload",
+      "name": "Recargar Arma",
+      "category": "Combate",
+      "description": "Recargar cartucho del arma actual",
+      "binding_type": "key",
+      "binding_value": "r"
+    },
+    {
+      "action_id": "wf_switch_weapon",
+      "name": "Cambiar Arma",
+      "category": "Combate",
+      "description": "Alternar entre arma primaria y secundaria",
+      "binding_type": "key",
+      "binding_value": "f"
+    },
+    {
+      "action_id": "wf_crouch",
+      "name": "Agacharse / Deslizarse",
+      "category": "Movimiento",
+      "description": "Agacharse o iniciar deslizamiento",
+      "binding_type": "key",
+      "binding_value": "leftctrl"
+    },
+    {
+      "action_id": "wf_bullet_jump",
+      "name": "Salto Bala (Macro)",
+      "category": "Movimiento",
+      "description": "Deslizarse y saltar inmediatamente para propulsión",
+      "binding_type": "macro",
+      "binding_value": "+KEY_LEFTCTRL t30 +KEY_SPACE -KEY_SPACE -KEY_LEFTCTRL"
+    },
+    {
+      "action_id": "wf_sprint_roll",
+      "name": "Correr / Rodar",
+      "category": "Movimiento",
+      "description": "Correr o esquivar rodando",
+      "binding_type": "key",
+      "binding_value": "leftshift"
+    },
+    {
+      "action_id": "wf_interact",
+      "name": "Contextual / Interactuar",
+      "category": "Interacción",
+      "description": "Abrir puertas, hackear consolas o revivir aliados",
+      "binding_type": "key",
+      "binding_value": "x"
+    },
+    {
+      "action_id": "wf_gear_menu",
+      "name": "Rueda de Herramientas (Gear)",
+      "category": "Interacción",
+      "description": "Abrir el menú radial de consumibles y herramientas",
+      "binding_type": "key",
+      "binding_value": "q"
+    },
+    {
+      "action_id": "wf_map",
+      "name": "Mapa Completo",
+      "category": "Interacción",
+      "description": "Alternar vista de mapa superpuesto en pantalla",
+      "binding_type": "key",
+      "binding_value": "m"
+    }
+  ]
+}

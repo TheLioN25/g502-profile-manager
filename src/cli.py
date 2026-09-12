@@ -22,7 +22,7 @@ from adapters import (
 )
 from domain import Action, Button, DpiConfiguration
 from engine import AutomationEngine, DEFAULT_PROFILES_FILE
-from services import ProfileManager
+from services import ActionCatalogService, ProfileManager
 from storage import JsonProfileRepository
 
 
@@ -31,52 +31,42 @@ def get_services():
     manager = ProfileManager(repo)
     discovery = ApplicationDiscoveryAdapter()
     adapter = RatbagDeviceAdapter()
-    return repo, manager, discovery, adapter
+    catalog = ActionCatalogService()
+    return repo, manager, discovery, adapter, catalog
 
 
 def cmd_list(args):
-    _, manager, discovery, _ = get_services()
+    _, manager, discovery, _, catalog = get_services()
 
     print("\nDescubriendo aplicaciones instaladas...")
-    apps = discovery.discover_all_applications()
+    desktop_apps = discovery.discover_desktop_applications()
+    steam_apps = discovery.discover_steam_applications()
+    all_apps = discovery.combine_discovered(desktop_apps, steam_apps)
 
-    total = len(apps)
-    configured_apps = [
-        app for app in apps if manager.get_profiles_for_application(app.application_id)
-    ]
-
-    print("==================================================")
-    print(f" Total detectadas: {total} | Con perfiles: {len(configured_apps)}")
-    print("==================================================\n")
-
-    for app in apps:
+    print(f"Total aplicaciones detectadas: {len(all_apps)}\n")
+    for app in all_apps:
         profiles = manager.get_profiles_for_application(app.application_id)
-        if profiles:
-            default_prof = manager.get_default_profile(app.application_id)
-            default_str = f" [Predeterminado: '{default_prof.name}']" if default_prof else ""
-            print(f"[X] {app.name} ({app.application_id})")
-            print(f"    Perfiles configurados: {len(profiles)}{default_str}")
-            for p in profiles:
-                print(f"      - ID: {p.id[:8]}.. | '{p.name}' | DPI: {p.dpi.dpi} | Asignaciones: {len(p.list_assignments())}")
-        else:
-            has_presets = len(get_preset_actions_for_application(app.application_id)) > 0
-            preset_str = " (Presets disponibles)" if has_presets else ""
-            print(f"[ ] {app.name} ({app.application_id}){preset_str}")
+        has_preset = "✓ Presets disponibles" if catalog.has_catalog(app.application_id) else "—"
+        print(f"• [{app.application_id}] {app.name}")
+        print(f"  Ejecutable: {app.executable_or_path}")
+        print(f"  Perfiles: {len(profiles)} configurados | {has_preset}")
+        print()
 
 
 def cmd_profiles(args):
-    repo, manager, _, _ = get_services()
-    all_profiles = repo.list_all()
+    repo, _, _, _, _ = get_services()
+    profiles = repo.list_all()
 
-    print("\nPerfiles guardados en el sistema:")
-    print("==================================")
-    if not all_profiles:
-        print("No hay perfiles creados todavía. Usa 'g502-profile create' para crear uno.")
+    if not profiles:
+        print("\nNo hay perfiles configurados.")
+        print("Crea uno nuevo con: g502-profile create <app_id> <name>\n")
         return
 
-    for p in all_profiles:
-        is_default = manager.get_default_profile(p.application_id)
-        tag = " [PREDETERMINADO]" if is_default and is_default.id == p.id else ""
+    print(f"\nPerfiles configurados ({len(profiles)}):")
+    print("=========================================")
+    for p in profiles:
+        is_default = repo.get_default_profile_id(p.application_id) == p.id
+        tag = " [PREDETERMINADO]" if is_default else ""
         led = f" | LED: {p.led_color}" if p.led_color else ""
         print(f"• ID: {p.id}")
         print(f"  Nombre: '{p.name}'{tag}")
@@ -89,7 +79,7 @@ def cmd_profiles(args):
 
 
 def cmd_create(args):
-    _, manager, _, _ = get_services()
+    _, manager, _, _, catalog = get_services()
 
     dpi_config = DpiConfiguration(dpi=args.dpi, shift_dpi=args.shift_dpi)
     profile = manager.create_profile(
@@ -106,21 +96,78 @@ def cmd_create(args):
     if profile.led_color:
         print(f"Color LED: {profile.led_color}")
 
+    # Indicar si el catálogo cargó acciones disponibles
+    actions = catalog.get_actions_for_application(args.app_id)
+    if actions:
+        categories = catalog.get_categories_for_application(args.app_id)
+        print(f"\nCatálogo disponible: {len(actions)} acciones en {len(categories)} categorías.")
+        print(f"Usa 'g502-profile presets {args.app_id}' para ver todas las acciones asignables.")
+
 
 def cmd_presets(args):
-    presets = get_preset_actions_for_application(args.app_id)
-    if not presets:
-        print(f"No hay presets predefinidos para '{args.app_id}'.")
+    _, _, _, _, catalog = get_services()
+
+    if not args.app_id or args.app_id.strip() == "list":
+        # Mostrar todas las aplicaciones con catálogo soportado
+        catalogs = catalog.list_supported_applications()
+        print("\nJuegos y aplicaciones con catálogo de acciones predefinidas:")
+        print("============================================================")
+        for cat in catalogs:
+            print(f"• [{cat['application_id']}] {cat['name']} ({cat['action_count']} acciones)")
+            if cat['description']:
+                print(f"  {cat['description']}")
+        print("\nPara ver el detalle de un juego: g502-profile presets <app_id>\n")
         return
 
-    print(f"\nAcciones predefinidas disponibles para '{args.app_id}':")
-    print("=========================================================")
-    for a in presets:
-        print(f"• {a.action_id}: {a.name} -> Tecla: '{a.binding_value}' ({a.description})")
+    categories = catalog.get_categories_for_application(args.app_id)
+    if not categories:
+        print(f"No hay catálogo predefinido para '{args.app_id}'.")
+        print(f"Puedes agregar acciones personalizadas con: g502-profile add-action {args.app_id} <action_id> <name> <key>")
+        return
+
+    app_name = catalog.get_application_name(args.app_id) or args.app_id
+    total_actions = sum(len(acts) for acts in categories.values())
+
+    print(f"\nCatálogo de acciones para '{app_name}' ({args.app_id}) - {total_actions} acciones:")
+    print("================================================================================")
+    for category_name, actions in categories.items():
+        print(f"\n[{category_name.upper()}]")
+        for a in actions:
+            val = f"'{a.binding_value}'" if a.binding_value else "(sin asignar)"
+            desc = f" — {a.description}" if a.description else ""
+            print(f"  • {a.action_id:<22} : {a.name:<25} -> {val:<15} ({a.binding_type}){desc}")
+    print()
+
+
+def cmd_add_action(args):
+    _, _, _, _, catalog = get_services()
+
+    action = Action(
+        action_id=args.action_id,
+        name=args.name,
+        application_id=args.app_id,
+        description=args.desc,
+        binding_type=args.type,
+        binding_value=args.key,
+        category=args.category,
+    )
+
+    success = catalog.register_custom_action(
+        application_id=args.app_id,
+        action=action,
+        persist_user_preset=True,
+    )
+
+    if success:
+        print(f"\nAcción personalizada '{action.name}' añadida con éxito a '{args.app_id}'.")
+        print(f"Categoría: {action.category} | Tecla: '{action.binding_value}' | Tipo: {action.binding_type}")
+        print(f"Persistida en ~/.config/g502-profile-manager/presets/\n")
+    else:
+        print(f"Error al registrar la acción personalizada.")
 
 
 def cmd_assign(args):
-    repo, manager, _, _ = get_services()
+    repo, manager, _, _, catalog = get_services()
     profile = manager.get_profile(args.profile_id)
     if not profile:
         # Buscar por prefijo de ID
@@ -205,9 +252,22 @@ def create_parser():
     create_p.add_argument("--shift-dpi", type=int, default=None, help="DPI para botón sniper.")
     create_p.add_argument("--led", default=None, help="Color LED en hexadecimal (ej. '#00E5FF').")
 
-    # presets
+    # presets / catalog
     preset_p = subparsers.add_parser("presets", help="Muestra las acciones predefinidas para una aplicación.")
-    preset_p.add_argument("app_id", help="Identificador de la aplicación (ej. steam:230410).")
+    preset_p.add_argument("app_id", nargs="?", default="list", help="Identificador de la aplicación o vacío para ver todos.")
+
+    catalog_p = subparsers.add_parser("catalog", help="Alias para 'presets'.")
+    catalog_p.add_argument("app_id", nargs="?", default="list", help="Identificador de la aplicación o vacío para ver todos.")
+
+    # add-action
+    add_action_p = subparsers.add_parser("add-action", help="Añade una acción personalizada para una aplicación.")
+    add_action_p.add_argument("app_id", help="Identificador de la aplicación (ej. steam:230410).")
+    add_action_p.add_argument("action_id", help="ID único de la acción (ej. mi_atajo).")
+    add_action_p.add_argument("name", help="Nombre descriptivo (ej. 'Disparo Secundario').")
+    add_action_p.add_argument("key", help="Tecla o código de entrada (ej. 'e', 'space').")
+    add_action_p.add_argument("--category", default="Personalizado", help="Categoría de la acción (ej. Combate).")
+    add_action_p.add_argument("--desc", default="", help="Descripción detallada de la acción.")
+    add_action_p.add_argument("--type", default="key", choices=["key", "macro", "special"], help="Tipo de binding.")
 
     # assign
     assign_p = subparsers.add_parser("assign", help="Asigna una acción a un botón del ratón.")
@@ -240,6 +300,8 @@ def main():
         "profiles": cmd_profiles,
         "create": cmd_create,
         "presets": cmd_presets,
+        "catalog": cmd_presets,
+        "add-action": cmd_add_action,
         "assign": cmd_assign,
         "reset": cmd_reset,
         "run": cmd_run,
