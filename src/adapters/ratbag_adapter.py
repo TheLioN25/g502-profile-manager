@@ -128,7 +128,7 @@ class RatbagDeviceAdapter:
         """
         Ajusta el valor de DPI en el mouse.
         """
-        cmd = ["ratbagctl"]
+        cmd = ["ratbagctl", device]
         if slot is not None:
             cmd.extend(["profile", str(slot)])
         cmd.extend(["dpi", "set", str(dpi)])
@@ -150,12 +150,12 @@ class RatbagDeviceAdapter:
         if len(color_clean) != 6:
             return False
 
-        cmd_mode = ["ratbagctl"]
+        cmd_mode = ["ratbagctl", device]
         if slot is not None:
             cmd_mode.extend(["profile", str(slot)])
         cmd_mode.extend(["led", str(led_index), "set", "mode", "on"])
 
-        cmd_color = ["ratbagctl"]
+        cmd_color = ["ratbagctl", device]
         if slot is not None:
             cmd_color.extend(["profile", str(slot)])
         cmd_color.extend(["led", str(led_index), "set", "color", color_clean])
@@ -179,7 +179,7 @@ class RatbagDeviceAdapter:
             return False
 
         btn_index = G502_BUTTON_INDEX_MAP[btn_key]
-        cmd = ["ratbagctl"]
+        cmd = ["ratbagctl", device]
         if slot is not None:
             cmd.extend(["profile", str(slot)])
 
@@ -219,7 +219,8 @@ class RatbagDeviceAdapter:
 
         # 2. Configurar LED si está definido
         if profile.led_color:
-            self.set_led_color(device, profile.led_color, slot=slot)
+            if not self.set_led_color(device, profile.led_color, slot=slot):
+                success = False
 
         # 3. Configurar botones asignados
         for assignment in profile.list_assignments():

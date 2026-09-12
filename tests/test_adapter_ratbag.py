@@ -77,7 +77,7 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
         self.assertTrue(success)
         self.assertEqual(
             executed_commands,
-            [["ratbagctl", "profile", "1", "dpi", "set", "1600"]],
+            [["ratbagctl", "warbling-mara", "profile", "1", "dpi", "set", "1600"]],
         )
 
     def test_set_led_color(self):
@@ -94,8 +94,8 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
         self.assertEqual(
             executed_commands,
             [
-                ["ratbagctl", "profile", "2", "led", "0", "set", "mode", "on"],
-                ["ratbagctl", "profile", "2", "led", "0", "set", "color", "00e5ff"],
+                ["ratbagctl", "warbling-mara", "profile", "2", "led", "0", "set", "mode", "on"],
+                ["ratbagctl", "warbling-mara", "profile", "2", "led", "0", "set", "color", "00e5ff"],
             ],
         )
 
@@ -129,9 +129,9 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
 
         # Debe haber ejecutado DPI, LED y el botón G5 (que mapea a button 4)
         flattened = [" ".join(cmd) for cmd in executed_commands]
-        self.assertIn("ratbagctl profile 0 dpi set 1200", flattened)
-        self.assertIn("ratbagctl profile 0 led 0 set color 00ff00", flattened)
-        self.assertIn("ratbagctl profile 0 button 4 action set key KEY_1", flattened)
+        self.assertIn("ratbagctl warbling-mara profile 0 dpi set 1200", flattened)
+        self.assertIn("ratbagctl warbling-mara profile 0 led 0 set color 00ff00", flattened)
+        self.assertIn("ratbagctl warbling-mara profile 0 button 4 action set key KEY_1", flattened)
 
 
 if __name__ == "__main__":
