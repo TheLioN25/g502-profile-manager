@@ -80,6 +80,18 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
             [["ratbagctl", "warbling-mara", "profile", "1", "dpi", "set", "1600"]],
         )
 
+    def test_get_led_count(self):
+        def mock_runner(cmd: list[str]) -> subprocess.CompletedProcess:
+            return subprocess.CompletedProcess(
+                cmd,
+                returncode=0,
+                stdout="warbling-mara - Logitech G502 HERO\nNumber of Leds: 2\n",
+                stderr="",
+            )
+
+        adapter = RatbagDeviceAdapter(command_runner=mock_runner)
+        self.assertEqual(adapter.get_led_count("warbling-mara"), 2)
+
     def test_set_led_color(self):
         executed_commands = []
 
@@ -98,6 +110,25 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
                 ["ratbagctl", "warbling-mara", "profile", "2", "led", "0", "set", "color", "00e5ff"],
             ],
         )
+
+    def test_set_led_color_all_zones(self):
+        executed_commands = []
+
+        def mock_runner(cmd: list[str]) -> subprocess.CompletedProcess:
+            executed_commands.append(cmd)
+            if "info" in cmd:
+                return subprocess.CompletedProcess(
+                    cmd, returncode=0, stdout="Number of Leds: 2\n", stderr=""
+                )
+            return subprocess.CompletedProcess(cmd, returncode=0, stdout="", stderr="")
+
+        adapter = RatbagDeviceAdapter(command_runner=mock_runner)
+        success = adapter.set_led_color("warbling-mara", "#00E5FF", slot=1, led_index=None)
+
+        self.assertTrue(success)
+        flattened = [" ".join(cmd) for cmd in executed_commands]
+        self.assertIn("ratbagctl warbling-mara profile 1 led 0 set color 00e5ff", flattened)
+        self.assertIn("ratbagctl warbling-mara profile 1 led 1 set color 00e5ff", flattened)
 
     def test_apply_profile(self):
         executed_commands = []

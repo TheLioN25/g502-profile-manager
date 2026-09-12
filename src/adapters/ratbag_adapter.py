@@ -136,33 +136,60 @@ class RatbagDeviceAdapter:
         result = self._runner(cmd)
         return result.returncode == 0
 
+    def get_led_count(self, device: str) -> int:
+        """
+        Obtiene la cantidad de zonas LED configurables del dispositivo.
+        """
+        result = self._runner(["ratbagctl", device, "info"])
+        if result.returncode == 0 and result.stdout:
+            for line in result.stdout.splitlines():
+                if "number of leds:" in line.casefold():
+                    try:
+                        return int(line.split(":")[-1].strip())
+                    except ValueError:
+                        pass
+        return 2
+
     def set_led_color(
         self,
         device: str,
         hex_color: str,
         slot: int | None = None,
-        led_index: int = 0,
+        led_index: int | None = None,
     ) -> bool:
         """
         Configura el color de iluminación LED en formato hexadecimal RRGGBB.
+        Si led_index es None, aplica el color a todas las zonas LED del ratón
+        (tanto el logo 'G' como los indicadores DPI).
         """
         color_clean = hex_color.lstrip("#").strip().lower()
         if len(color_clean) != 6:
             return False
 
-        cmd_mode = ["ratbagctl", device]
-        if slot is not None:
-            cmd_mode.extend(["profile", str(slot)])
-        cmd_mode.extend(["led", str(led_index), "set", "mode", "on"])
+        indices = (
+            [led_index]
+            if led_index is not None
+            else list(range(self.get_led_count(device)))
+        )
+        all_success = True
 
-        cmd_color = ["ratbagctl", device]
-        if slot is not None:
-            cmd_color.extend(["profile", str(slot)])
-        cmd_color.extend(["led", str(led_index), "set", "color", color_clean])
+        for idx in indices:
+            cmd_mode = ["ratbagctl", device]
+            if slot is not None:
+                cmd_mode.extend(["profile", str(slot)])
+            cmd_mode.extend(["led", str(idx), "set", "mode", "on"])
 
-        self._runner(cmd_mode)
-        res_color = self._runner(cmd_color)
-        return res_color.returncode == 0
+            cmd_color = ["ratbagctl", device]
+            if slot is not None:
+                cmd_color.extend(["profile", str(slot)])
+            cmd_color.extend(["led", str(idx), "set", "color", color_clean])
+
+            self._runner(cmd_mode)
+            res_color = self._runner(cmd_color)
+            if res_color.returncode != 0:
+                all_success = False
+
+        return all_success
 
     def apply_button_action(
         self,
