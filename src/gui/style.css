@@ -23,20 +23,23 @@
     color: var(--accent-cyan);
     font-weight: bold;
     font-family: monospace;
-    font-size: 0.9rem;
-    padding: 4px 10px;
+    font-size: 0.85rem;
+    padding: 3px 8px;
     border-radius: 6px;
     border: 1px solid rgba(0, 229, 255, 0.35);
+    max-width: 170px;
+    text-overflow: ellipsis;
 }
 
 .action-chip-empty {
     background-color: rgba(255, 255, 255, 0.05);
     color: alpha(currentColor, 0.4);
     font-style: italic;
-    font-size: 0.85rem;
-    padding: 4px 8px;
+    font-size: 0.8rem;
+    padding: 3px 8px;
     border-radius: 6px;
     border: 1px dashed rgba(255, 255, 255, 0.2);
+    max-width: 120px;
 }
 
 .app-badge-active {

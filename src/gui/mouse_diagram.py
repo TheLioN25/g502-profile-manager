@@ -117,9 +117,12 @@ class G502MouseDiagram(Gtk.DrawingArea):
             cr.stroke()
 
         # Centro del ratón en la vista
-        cx = width * 0.52
-        cy = height * 0.52
-        scale = min(width / 440.0, height / 580.0) * 0.95
+        cx = width * 0.50
+        cy = height * 0.50
+        natural_w = 390.0
+        natural_h = 420.0
+        scale = min(width / natural_w, height / natural_h) * 0.90
+        scale = max(0.65, min(scale, 2.5))
 
         cr.save()
         cr.translate(cx, cy)
@@ -283,26 +286,29 @@ class G502MouseDiagram(Gtk.DrawingArea):
 
         # Coordenadas físicas en el ratón (x, y) y posición de la etiqueta exterior (tag_x, tag_y)
         button_coords: dict[str, tuple[float, float, float, float]] = {
-            # Laterales izquierdos
-            "G8": (-48, -135, -170, -145),
-            "G7": (-52, -105, -170, -105),
-            "G5": (-64, -25, -170, -65),
-            "G4": (-66, 30, -170, -25),
-            "SNIPER": (-80, 5, -170, 15),
+            # Laterales izquierdos (pin_x, pin_y, tag_x, tag_y)
+            "G8": (-48, -135, -178, -145),
+            "G7": (-52, -105, -178, -105),
+            "G5": (-64, -25, -178, -65),
+            "G4": (-66, 30, -178, -25),
+            "SNIPER": (-80, 5, -178, 15),
 
             # Superiores y Rueda
-            "LEFT": (-26, -165, -170, -185),
-            "RIGHT": (26, -165, 80, -185),
-            "MIDDLE": (0, -115, 80, -145),
-            "WHEEL_LEFT": (-14, -115, -170, -145),   # Mapeado conjunto
-            "WHEEL_RIGHT": (14, -115, 80, -110),
-            "G9": (0, -25, 80, -65),
+            "LEFT": (-26, -165, -178, -185),
+            "RIGHT": (26, -165, 76, -185),
+            "MIDDLE": (0, -115, 76, -145),
+            "WHEEL_LEFT": (-14, -115, -178, -145),
+            "WHEEL_RIGHT": (14, -115, 76, -110),
+            "G9": (0, -25, 76, -65),
         }
 
         # Ignorar WHEEL_LEFT separado en vista compacta para evitar saturación
         draw_keys = ["LEFT", "RIGHT", "MIDDLE", "G8", "G7", "G5", "G4", "SNIPER", "G9"]
 
         r_accent, g_accent, b_accent = (0.0, 0.898, 1.0)  # Cian de acento
+
+        tag_w = 104
+        tag_h = 24
 
         for btn_id in draw_keys:
             pin_x, pin_y, tag_x, tag_y = button_coords[btn_id]
@@ -337,18 +343,17 @@ class G502MouseDiagram(Gtk.DrawingArea):
             else:
                 cr.set_source_rgba(0.4, 0.5, 0.6, 0.45)
 
-            # Punto de quiebre estético
-            mid_x = tag_x + (25 if tag_x < 0 else -15)
+            # Conexión limpia al borde de la tarjeta
+            connect_x = (tag_x + tag_w) if tag_x < 0 else tag_x
+            mid_x = (pin_x + connect_x) * 0.5
             cr.move_to(pin_x, pin_y)
-            cr.line_to(mid_x, tag_y + 10)
-            cr.line_to(tag_x + (90 if tag_x < 0 else 0), tag_y + 10)
+            cr.line_to(mid_x, tag_y + 12)
+            cr.line_to(connect_x, tag_y + 12)
             cr.stroke()
             cr.restore()
 
             # 3. Etiqueta / Tarjeta de asignación
-            tag_w = 95
-            tag_h = 24
-            box_x = tag_x if tag_x > 0 else (tag_x)
+            box_x = tag_x
 
             # Registrar caja delimitadora para colisiones de clic y hover en coordenadas de ventana
             screen_x1 = cx + (box_x * scale)
@@ -404,7 +409,10 @@ class G502MouseDiagram(Gtk.DrawingArea):
             cr.select_font_face("Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
             if action:
                 cr.set_source_rgb(0.0, 0.898, 1.0)
-                txt = f"[{action.binding_value}] {action.name[:8]}"
+                name_disp = action.name
+                if len(name_disp) > 10:
+                    name_disp = name_disp[:9] + "…"
+                txt = f"[{action.binding_value}] {name_disp}"
             else:
                 cr.set_source_rgba(0.6, 0.65, 0.7, 0.5)
                 txt = "Sin asignar"

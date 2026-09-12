@@ -10,7 +10,7 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, Gdk, GLib, Gtk
+from gi.repository import Adw, Gdk, GLib, Gtk, Pango
 
 from adapters.application_discovery_adapter import ApplicationDiscoveryAdapter
 from adapters.ratbag_adapter import RatbagDeviceAdapter
@@ -73,9 +73,10 @@ class MainWindow(Adw.ApplicationWindow):
         super().__init__(
             application=app,
             title="G502 Profile Manager",
-            default_width=1160,
-            default_height=740,
+            default_width=1240,
+            default_height=780,
         )
+        self.set_size_request(880, 560)
 
         self._profile_manager = profile_manager
         self._catalog_service = catalog_service
@@ -229,20 +230,29 @@ class MainWindow(Adw.ApplicationWindow):
     # Vistas de Contenido: Botones (Esquema Visual + Lista de Preferencias)
     # -------------------------------------------------------------------------
     def _build_buttons_view(self) -> Gtk.Widget:
-        container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
-        container.set_margin_start(16)
-        container.set_margin_end(16)
-        container.set_margin_top(12)
-        container.set_margin_bottom(12)
+        paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
+        paned.set_margin_start(16)
+        paned.set_margin_end(16)
+        paned.set_margin_top(12)
+        paned.set_margin_bottom(12)
+        paned.set_position(520)
+        paned.set_shrink_start_child(False)
+        paned.set_shrink_end_child(False)
+        paned.set_resize_start_child(True)
+        paned.set_resize_end_child(True)
 
         # Columna Izquierda: Esquema Visual del Ratón Logitech G502 HERO
         diagram_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        diagram_box.set_size_request(440, -1)
+        diagram_box.set_size_request(380, -1)
+        diagram_box.set_hexpand(True)
+        diagram_box.set_vexpand(True)
         diagram_box.add_css_class("card")
 
         diagram_header = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-        diagram_header.set_margin_start(12)
-        diagram_header.set_margin_top(8)
+        diagram_header.set_margin_start(16)
+        diagram_header.set_margin_end(16)
+        diagram_header.set_margin_top(12)
+        diagram_header.set_margin_bottom(4)
 
         diagram_title = Gtk.Label(label="Esquema Interactivo G502 HERO", xalign=0)
         diagram_title.add_css_class("heading")
@@ -255,13 +265,17 @@ class MainWindow(Adw.ApplicationWindow):
         diagram_box.append(diagram_header)
 
         self._mouse_diagram = G502MouseDiagram(on_button_clicked=self._open_assign_dialog)
+        self._mouse_diagram.set_hexpand(True)
+        self._mouse_diagram.set_vexpand(True)
         diagram_box.append(self._mouse_diagram)
-        container.append(diagram_box)
+        paned.set_start_child(diagram_box)
 
         # Columna Derecha: Lista de Botones por Preferencias
         scrolled = Gtk.ScrolledWindow()
         scrolled.set_vexpand(True)
         scrolled.set_hexpand(True)
+        scrolled.set_min_content_width(360)
+        scrolled.set_margin_start(12)
 
         pref_page = Adw.PreferencesPage()
         scrolled.set_child(pref_page)
@@ -272,6 +286,8 @@ class MainWindow(Adw.ApplicationWindow):
 
             for btn_id, btn_name, icon_name in buttons:
                 row = Adw.ActionRow(title=btn_name, subtitle=f"ID: {btn_id}")
+                row.set_title_lines(1)
+                row.set_subtitle_lines(1)
                 row.add_prefix(Gtk.Image.new_from_icon_name(icon_name))
 
                 # Pasar el cursor por la fila resalta el botón en el esquema del ratón
@@ -284,6 +300,8 @@ class MainWindow(Adw.ApplicationWindow):
                 chip = Gtk.Label(label="Sin asignar")
                 chip.add_css_class("action-chip-empty")
                 chip.set_valign(Gtk.Align.CENTER)
+                chip.set_ellipsize(Pango.EllipsizeMode.END)
+                chip.set_max_width_chars(18)
                 row.add_suffix(chip)
 
                 # Botón para asignar/cambiar
@@ -295,8 +313,8 @@ class MainWindow(Adw.ApplicationWindow):
                 group.add(row)
                 self._button_rows[btn_id] = (row, chip)
 
-        container.append(scrolled)
-        return container
+        paned.set_end_child(scrolled)
+        return paned
 
     # -------------------------------------------------------------------------
     # Vistas de Contenido: Rendimiento (DPI)
@@ -530,11 +548,14 @@ class MainWindow(Adw.ApplicationWindow):
             assignment = self._current_profile.get_assignment_for_button(btn_id)
             if assignment:
                 action = assignment.action
-                chip.set_text(f"{action.name} [{action.binding_value}]")
+                text = f"{action.name} [{action.binding_value}]"
+                chip.set_text(text)
+                chip.set_tooltip_text(text)
                 chip.remove_css_class("action-chip-empty")
                 chip.add_css_class("action-chip")
             else:
                 chip.set_text("Sin asignar")
+                chip.set_tooltip_text("Sin acción asignada")
                 chip.remove_css_class("action-chip")
                 chip.add_css_class("action-chip-empty")
 
