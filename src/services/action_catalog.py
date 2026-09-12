@@ -19,11 +19,55 @@ from domain import Action, Application
 DEFAULT_BUILTIN_DIR = Path(__file__).resolve().parent.parent.parent / "presets"
 DEFAULT_USER_DIR = Path.home() / ".config" / "g502-profile-manager" / "presets"
 
+IGNORED_GAME_PATTERNS = (
+    "proton",
+    "steam linux runtime",
+    "steamworks common",
+    "steam controller",
+    "soundtrack",
+    "dedicated server",
+)
+
+
+def generate_default_game_actions(app_id: str, game_name: str) -> list[Action]:
+    """
+    Genera automáticamente un catálogo estándar de acciones categorizadas para juegos
+    (Combate, Movimiento, Habilidades, Interacción) cuando se descarga un juego nuevo
+    de Steam o Epic Games.
+    """
+    safe_prefix = "".join(c if c.isalnum() else "_" for c in game_name.lower())[:8].strip("_") or "game"
+    return [
+        # Combate
+        Action(f"{safe_prefix}_fire", "Disparo Principal", app_id, "Acción de ataque o disparo primario", "special", "button 1", "Combate"),
+        Action(f"{safe_prefix}_aim", "Apuntar / Secundario", app_id, "Apuntar con mira o ataque alternativo", "special", "button 2", "Combate"),
+        Action(f"{safe_prefix}_melee", "Ataque Cuerpo a Cuerpo", app_id, "Golpe cuerpo a cuerpo rápido", "key", "e", "Combate"),
+        Action(f"{safe_prefix}_reload", "Recargar", app_id, "Recargar munición", "key", "r", "Combate"),
+        Action(f"{safe_prefix}_weapon_switch", "Cambiar Arma", app_id, "Alternar armamento", "key", "q", "Combate"),
+
+        # Habilidades
+        Action(f"{safe_prefix}_skill_1", "Habilidad 1", app_id, "Primera habilidad", "key", "1", "Habilidades"),
+        Action(f"{safe_prefix}_skill_2", "Habilidad 2", app_id, "Segunda habilidad", "key", "2", "Habilidades"),
+        Action(f"{safe_prefix}_skill_3", "Habilidad 3", app_id, "Tercera habilidad", "key", "3", "Habilidades"),
+        Action(f"{safe_prefix}_ultimate", "Habilidad Definitiva (Ult)", app_id, "Habilidad de élite o definitiva", "key", "4", "Habilidades"),
+
+        # Movimiento
+        Action(f"{safe_prefix}_jump", "Saltar", app_id, "Saltar obstáculo", "key", "space", "Movimiento"),
+        Action(f"{safe_prefix}_crouch", "Agacharse / Deslizarse", app_id, "Agacharse o deslizarse", "key", "leftctrl", "Movimiento"),
+        Action(f"{safe_prefix}_sprint", "Correr", app_id, "Correr a gran velocidad", "key", "leftshift", "Movimiento"),
+        Action(f"{safe_prefix}_dodge", "Esquivar", app_id, "Rodar o esquivar", "key", "c", "Movimiento"),
+
+        # Interacción
+        Action(f"{safe_prefix}_interact", "Usar / Interactuar", app_id, "Abrir, saquear o interactuar", "key", "f", "Interacción"),
+        Action(f"{safe_prefix}_map", "Mapa", app_id, "Abrir mapa de navegación", "key", "m", "Interacción"),
+        Action(f"{safe_prefix}_inventory", "Inventario", app_id, "Abrir mochila o inventario", "key", "tab", "Interacción"),
+        Action(f"{safe_prefix}_voice", "Chat de Voz (VoIP)", app_id, "Hablar con el equipo", "key", "v", "Interacción"),
+    ]
+
 
 class ActionCatalogService:
     """
     Gestiona el descubrimiento, categorización y carga de bibliotecas de acciones
-    para videojuegos y aplicaciones de software.
+    para videojuegos y aplicaciones de software (Steam, Epic Games y escritorio).
     """
 
     def __init__(self, search_paths: Sequence[Path] | None = None):
@@ -32,7 +76,7 @@ class ActionCatalogService:
         else:
             self._search_paths = [Path(p) for p in search_paths]
 
-        # Estructura: app_id (casefold) -> {"name": str, "description": str, "actions": list[Action]}
+        # Estructura: app_id (casefold) -> {"name": str, "description": str, "actions": dict[str, Action]}
         self._catalogs: dict[str, dict] = {}
         self.reload()
 
@@ -205,6 +249,41 @@ class ActionCatalogService:
         with open(file_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
 
+    def sync_with_installed_applications(
+        self,
+        installed_apps: Iterable[Application],
+        auto_generate_for_games: bool = True,
+        persist: bool = True,
+    ) -> list[str]:
+        """
+        Sincroniza el catálogo con los juegos/apps instalados en el sistema (Steam y Epic Games).
+        Si se detecta un juego recién descargado que aún no tiene catálogo,
+        genera dinámicamente sus acciones en el acto para que estén disponibles inmediatamente.
+        Retorna los application_ids de los catálogos nuevos generados.
+        """
+        newly_added = []
+        for app in installed_apps:
+            app_key = app.application_id.strip().casefold()
+            if app_key not in self._catalogs:
+                is_game = app.application_id.startswith("steam:") or app.application_id.startswith("epic:")
+                if is_game and auto_generate_for_games:
+                    name_lower = app.name.strip().casefold()
+                    if any(ignored in name_lower for ignored in IGNORED_GAME_PATTERNS):
+                        continue
+
+                    actions = generate_default_game_actions(app.application_id, app.name)
+                    self._catalogs[app_key] = {
+                        "application_id": app.application_id,
+                        "name": app.name,
+                        "description": f"Catálogo dinámico generado para {app.name}",
+                        "actions": {a.action_id: a for a in actions},
+                    }
+                    if persist:
+                        self._save_user_custom_preset(app.application_id)
+                    newly_added.append(app.application_id)
+
+        return newly_added
+
     def populate_application_actions(self, application: Application) -> int:
         """
         Rellena una instancia de dominio Application con todas las acciones
@@ -223,15 +302,26 @@ class ActionCatalogService:
 
         return added
 
-    def list_supported_applications(self) -> list[dict[str, str | int]]:
+    def list_supported_applications(
+        self,
+        installed_app_ids: set[str] | None = None,
+    ) -> list[dict[str, str | int]]:
         """
-        Lista todas las aplicaciones con catálogo disponible en el sistema.
+        Lista las aplicaciones con catálogo disponible.
+        Si se especifica installed_app_ids, filtra para mostrar ÚNICAMENTE
+        las aplicaciones que efectivamente están instaladas en el sistema.
         """
         result = []
         for cat in self._catalogs.values():
+            app_id = cat["application_id"]
+            if installed_app_ids is not None:
+                installed_lower = {i.casefold() for i in installed_app_ids}
+                if app_id != "desktop:general" and app_id.casefold() not in installed_lower:
+                    continue
+
             result.append(
                 {
-                    "application_id": cat["application_id"],
+                    "application_id": app_id,
                     "name": cat["name"],
                     "description": cat["description"],
                     "action_count": len(cat["actions"]),

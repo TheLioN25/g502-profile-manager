@@ -14,6 +14,10 @@ from desktop_entries import (
     parse_desktop_entry,
 )
 from domain import Application
+from epic_discovery import (
+    EpicAppManifest,
+    discover_all_installed_epic_apps,
+)
 from steam_discovery import (
     SteamAppManifest,
     discover_installed_steam_apps,
@@ -27,7 +31,7 @@ DEFAULT_STEAM_LIBRARYFOLDERS_FILE = (
 class ApplicationDiscoveryAdapter:
     """
     Coordina el descubrimiento de aplicaciones instaladas procedentes de diversas fuentes
-    y las transforma en entidades de dominio 'Application'.
+    (Steam, Epic Games y entradas .desktop) y las transforma en entidades de dominio 'Application'.
     """
 
     def __init__(
@@ -62,6 +66,27 @@ class ApplicationDiscoveryAdapter:
 
         return sorted(applications, key=lambda a: a.name.casefold())
 
+    def discover_epic_applications(
+        self,
+        finder: Callable[[], list[EpicAppManifest]] = discover_all_installed_epic_apps,
+    ) -> list[Application]:
+        """
+        Descubre juegos de Epic Games instalados en Linux (Heroic, Legendary, Lutris)
+        y los transforma en entidades Application.
+        """
+        epic_apps = finder()
+        applications: list[Application] = []
+
+        for app in epic_apps:
+            applications.append(
+                Application(
+                    application_id=app.app_id,
+                    name=app.title,
+                )
+            )
+
+        return sorted(applications, key=lambda a: a.name.casefold())
+
     def discover_desktop_applications(
         self,
         finder: Callable[..., list[Path]] = discover_desktop_entries,
@@ -90,18 +115,25 @@ class ApplicationDiscoveryAdapter:
 
     def discover_all_applications(self) -> tuple[Application, ...]:
         """
-        Devuelve el conjunto completo de aplicaciones descubiertas (Steam + Desktop),
+        Devuelve el conjunto completo de aplicaciones descubiertas (Steam + Epic Games + Desktop),
         desduplicadas por application_id.
         """
         steam_apps = self.discover_steam_applications()
+        epic_apps = self.discover_epic_applications()
         desktop_apps = self.discover_desktop_applications()
 
         combined: dict[str, Application] = {}
 
-        # Priorizar Steam para juegos de Steam
+        # 1. Priorizar Steam para juegos de Steam
         for app in steam_apps:
             combined[app.application_id] = app
 
+        # 2. Priorizar Epic Games
+        for app in epic_apps:
+            if app.application_id not in combined:
+                combined[app.application_id] = app
+
+        # 3. Aplicaciones de escritorio
         for app in desktop_apps:
             if app.application_id not in combined:
                 combined[app.application_id] = app

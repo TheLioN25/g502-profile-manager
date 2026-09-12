@@ -104,7 +104,7 @@ def parse_desktop_entry(desktop_file):
     )
 
 
-def discover_desktop_entries():
+def discover_desktop_entries(directories=DESKTOP_DIRECTORIES):
     """
     Descubre archivos .desktop instalados en el sistema.
 
@@ -113,10 +113,11 @@ def discover_desktop_entries():
 
     desktop_files = []
 
-    for directory in DESKTOP_DIRECTORIES:
-        if not directory.is_dir():
+    for directory in directories:
+        dir_path = Path(directory)
+        if not dir_path.is_dir():
             continue
 
-        desktop_files.extend(directory.glob("*.desktop"))
+        desktop_files.extend(dir_path.glob("*.desktop"))
 
     return desktop_files

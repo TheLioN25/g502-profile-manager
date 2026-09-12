@@ -16,6 +16,8 @@ from typing import Callable
 from adapters import (
     ApplicationDiscoveryAdapter,
     RatbagDeviceAdapter,
+    discover_active_epic_apps,
+    resolve_epic_applications,
 )
 from application_resolver import (
     combine_active_applications,
@@ -29,7 +31,7 @@ from desktop_entries import (
 )
 from domain import Profile
 from process_discovery import discover_processes
-from services import ProfileManager
+from services import ActionCatalogService, ProfileManager
 from steam_discovery import (
     discover_active_steam_apps,
 )
@@ -44,7 +46,8 @@ DEFAULT_PROFILES_FILE = Path.home() / ".config/g502-profiles.json"
 
 class AutomationEngine:
     """
-    Orquestador en tiempo real que reacciona a los cambios de aplicaciones activas.
+    Motor reactivo que supervisa los procesos del sistema y conmutadores de perfiles.
+    Soporta Steam, Epic Games y aplicaciones de escritorio de Linux.
     """
 
     def __init__(
@@ -55,6 +58,8 @@ class AutomationEngine:
         steam_libraryfolders_file: Path | str = DEFAULT_STEAM_LIBRARYFOLDERS_FILE,
         target_device_name: str = "Logitech G502 HERO Gaming Mouse",
         desktop_profile_slot: int = 0,
+        catalog_service: ActionCatalogService | None = None,
+        discovery_adapter: ApplicationDiscoveryAdapter | None = None,
         logger: Callable[[str], None] = print,
     ):
         self._profile_manager = profile_manager
@@ -63,11 +68,14 @@ class AutomationEngine:
         self._steam_file = Path(steam_libraryfolders_file).expanduser().resolve()
         self._target_device_name = target_device_name
         self._desktop_profile_slot = desktop_profile_slot
+        self._catalog_service = catalog_service or ActionCatalogService()
+        self._discovery = discovery_adapter or ApplicationDiscoveryAdapter(steam_libraryfolders_file=self._steam_file)
         self._log = logger
 
         self._device_id: str | None = None
         self._current_profile_id: str | None = None
         self._desktop_entries_cache = None
+        self._tick_counter: int = 0
 
     @property
     def current_profile_id(self) -> str | None:
@@ -76,7 +84,8 @@ class AutomationEngine:
 
     def initialize(self) -> bool:
         """
-        Verifica la conexión con el hardware del ratón y cachea las entradas de escritorio.
+        Verifica la conexión con el hardware del ratón, sincroniza catálogos
+        con las descargas instaladas y cachea las entradas de escritorio.
         """
         self._device_id = self._device_adapter.find_device(self._target_device_name)
         if not self._device_id:
@@ -92,15 +101,33 @@ class AutomationEngine:
             if (entry := parse_desktop_entry(desktop_file)) is not None
         ]
 
+        # Sincronizar catálogo con aplicaciones instaladas (Steam y Epic Games)
+        self._sync_catalogs_with_installed()
+
         return True
+
+    def _sync_catalogs_with_installed(self) -> None:
+        """Comprueba e inicializa al vuelo los catálogos para juegos descargados."""
+        all_apps = self._discovery.discover_all_applications()
+        new_catalogs = self._catalog_service.sync_with_installed_applications(all_apps)
+        for app_id in new_catalogs:
+            self._log(f"[CATÁLOGO] ¡Nuevo juego detectado e instalado! Catálogo generado al vuelo para '{app_id}'.")
 
     def step(self) -> bool:
         """
-        Ejecuta una iteración de detección y conmutación.
+        Ciclo de inspección y reacción:
+        1. Comprueba si hay nuevas aplicaciones/juegos descargados periódicamente.
+        2. Detecta procesos activos (Steam, Epic Games, Desktop).
+        3. Aplica o restaura el perfil adecuado en el mouse G502 HERO.
         Devuelve True si la iteración se completó con éxito.
         """
         if not self._device_id:
             return False
+
+        # Cada 15 ciclos (~30s), revisar si se terminó de descargar un juego nuevo
+        self._tick_counter += 1
+        if self._tick_counter % 15 == 0:
+            self._sync_catalogs_with_installed()
 
         processes = discover_processes()
 
@@ -114,10 +141,14 @@ class AutomationEngine:
         steam_active = discover_active_steam_apps(processes, self._steam_file)
         steam_apps = resolve_steam_applications(steam_active)
 
-        # 3. Combinar identidades activas
-        active_applications = combine_active_applications((desktop_apps, steam_apps))
+        # 3. Resolver juegos de Epic Games
+        epic_active = discover_active_epic_apps(processes)
+        epic_apps = resolve_epic_applications(epic_active)
 
-        # 4. Buscar si alguna aplicación activa tiene un perfil configurado
+        # 4. Combinar identidades activas
+        active_applications = combine_active_applications((desktop_apps, steam_apps, epic_apps))
+
+        # 5. Buscar si alguna aplicación activa tiene un perfil configurado
         target_profile: Profile | None = None
         detected_app_name: str = "Escritorio"
 

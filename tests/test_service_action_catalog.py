@@ -21,15 +21,17 @@ class TestActionCatalogService(unittest.TestCase):
         self.catalog = ActionCatalogService()
 
     def test_load_builtin_catalogs(self):
+        # Solo juegos/aplicaciones realmente presentes
         self.assertTrue(self.catalog.has_catalog("steam:230410"))  # Warframe
         self.assertTrue(self.catalog.has_catalog("steam:1284210"))  # GW2
-        self.assertTrue(self.catalog.has_catalog("steam:730"))  # CS2
-        self.assertTrue(self.catalog.has_catalog("steam:570"))  # Dota 2
         self.assertTrue(self.catalog.has_catalog("desktop:general"))
+        # CS2 y Dota 2 eliminados por no estar instalados
+        self.assertFalse(self.catalog.has_catalog("steam:730"))
+        self.assertFalse(self.catalog.has_catalog("steam:570"))
 
     def test_get_application_name(self):
         self.assertEqual(self.catalog.get_application_name("steam:230410"), "Warframe")
-        self.assertEqual(self.catalog.get_application_name("steam:730"), "Counter-Strike 2")
+        self.assertEqual(self.catalog.get_application_name("steam:1284210"), "Guild Wars 2")
         self.assertIsNone(self.catalog.get_application_name("unknown:app"))
 
     def test_get_actions_warframe(self):
@@ -61,22 +63,36 @@ class TestActionCatalogService(unittest.TestCase):
         self.assertEqual(self.catalog.get_actions_for_application("steam:999999"), ())
         self.assertEqual(self.catalog.get_categories_for_application("steam:999999"), {})
 
+    def test_sync_with_installed_applications_dynamic_generation(self):
+        # Simula un nuevo juego descargado desde Epic Games
+        new_epic_game = Application(application_id="epic:Fortnite", name="Fortnite")
+        self.assertFalse(self.catalog.has_catalog("epic:Fortnite"))
+
+        newly_synced = self.catalog.sync_with_installed_applications([new_epic_game], persist=False)
+        self.assertIn("epic:Fortnite", newly_synced)
+        self.assertTrue(self.catalog.has_catalog("epic:Fortnite"))
+
+        categories = self.catalog.get_categories_for_application("epic:Fortnite")
+        self.assertIn("Combate", categories)
+        self.assertIn("Movimiento", categories)
+        self.assertIn("Habilidades", categories)
+
     def test_populate_application_actions(self):
-        app = Application(application_id="steam:730", name="CS2")
+        app = Application(application_id="steam:230410", name="Warframe")
         added = self.catalog.populate_application_actions(app)
         self.assertGreaterEqual(added, 10)
-        self.assertTrue(app.has_action("cs2_reload"))
+        self.assertTrue(app.has_action("wf_melee"))
 
         # Segunda llamada no debe duplicar
         added_second = self.catalog.populate_application_actions(app)
         self.assertEqual(added_second, 0)
 
-    def test_list_supported_applications(self):
-        apps = self.catalog.list_supported_applications()
-        self.assertGreaterEqual(len(apps), 5)
+    def test_list_supported_applications_filtered(self):
+        apps = self.catalog.list_supported_applications(installed_app_ids={"steam:230410"})
         app_ids = [a["application_id"] for a in apps]
         self.assertIn("steam:230410", app_ids)
         self.assertIn("desktop:general", app_ids)
+        self.assertNotIn("steam:1284210", app_ids)
 
     def test_custom_action_isolated_directory(self):
         with tempfile.TemporaryDirectory() as temp_dir:

@@ -105,13 +105,18 @@ def cmd_create(args):
 
 
 def cmd_presets(args):
-    _, _, _, _, catalog = get_services()
+    _, _, discovery, _, catalog = get_services()
+
+    # Sincronizar catálogo al vuelo con aplicaciones instaladas en Steam y Epic Games
+    installed_apps = discovery.discover_all_applications()
+    catalog.sync_with_installed_applications(installed_apps)
+    installed_ids = {a.application_id for a in installed_apps}
 
     if not args.app_id or args.app_id.strip() == "list":
-        # Mostrar todas las aplicaciones con catálogo soportado
-        catalogs = catalog.list_supported_applications()
-        print("\nJuegos y aplicaciones con catálogo de acciones predefinidas:")
-        print("============================================================")
+        # Mostrar únicamente las aplicaciones con catálogo instaladas en tu equipo
+        catalogs = catalog.list_supported_applications(installed_app_ids=installed_ids)
+        print("\nJuegos y aplicaciones con catálogo de acciones (detectados en tu sistema):")
+        print("=========================================================================")
         for cat in catalogs:
             print(f"• [{cat['application_id']}] {cat['name']} ({cat['action_count']} acciones)")
             if cat['description']:
