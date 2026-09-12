@@ -42,6 +42,9 @@ class ProfileRepository(Protocol):
         ...
 
 
+DEFAULT_PROFILES_FILE = Path.home() / ".config/g502-profiles.json"
+
+
 class JsonProfileRepository:
     """
     Implementación de persistencia local basada en archivos JSON.
@@ -50,7 +53,9 @@ class JsonProfileRepository:
     y serializa limpiamente hacia y desde entidades puras de dominio.
     """
 
-    def __init__(self, file_path: str | Path):
+    def __init__(self, file_path: str | Path | None = None):
+        if file_path is None:
+            file_path = DEFAULT_PROFILES_FILE
         self._file_path = Path(file_path).expanduser().resolve()
         self._profiles: dict[str, Profile] = {}
         self._default_profiles: dict[str, str] = {}  # application_id -> profile_id

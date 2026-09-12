@@ -18,7 +18,7 @@ from adapters.ratbag_adapter import RatbagDeviceAdapter
 from gui.window import MainWindow
 from services.action_catalog import ActionCatalogService
 from services.profile_manager import ProfileManager
-from storage.profile_repository import JsonProfileRepository
+from storage.profile_repository import DEFAULT_PROFILES_FILE, JsonProfileRepository
 
 
 class G502Application(Adw.Application):
@@ -55,7 +55,7 @@ class G502Application(Adw.Application):
 
     def do_activate(self):
         if not self._window:
-            repository = JsonProfileRepository()
+            repository = JsonProfileRepository(DEFAULT_PROFILES_FILE)
             profile_manager = ProfileManager(repository=repository)
             catalog_service = ActionCatalogService()
             discovery_adapter = ApplicationDiscoveryAdapter()
