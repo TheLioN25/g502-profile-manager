@@ -16,6 +16,7 @@ from adapters.application_discovery_adapter import ApplicationDiscoveryAdapter
 from adapters.ratbag_adapter import RatbagDeviceAdapter
 from domain import Action, Application, Button, Profile
 from gui.dialogs import ActionPickerDialog
+from gui.mouse_diagram import G502MouseDiagram
 from services.action_catalog import ActionCatalogService
 from services.profile_manager import ProfileManager
 
@@ -72,8 +73,8 @@ class MainWindow(Adw.ApplicationWindow):
         super().__init__(
             application=app,
             title="G502 Profile Manager",
-            default_width=1020,
-            default_height=700,
+            default_width=1160,
+            default_height=740,
         )
 
         self._profile_manager = profile_manager
@@ -225,11 +226,42 @@ class MainWindow(Adw.ApplicationWindow):
         return box
 
     # -------------------------------------------------------------------------
-    # Vistas de Contenido: Botones
+    # Vistas de Contenido: Botones (Esquema Visual + Lista de Preferencias)
     # -------------------------------------------------------------------------
     def _build_buttons_view(self) -> Gtk.Widget:
+        container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
+        container.set_margin_start(16)
+        container.set_margin_end(16)
+        container.set_margin_top(12)
+        container.set_margin_bottom(12)
+
+        # Columna Izquierda: Esquema Visual del Ratón Logitech G502 HERO
+        diagram_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        diagram_box.set_size_request(440, -1)
+        diagram_box.add_css_class("card")
+
+        diagram_header = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        diagram_header.set_margin_start(12)
+        diagram_header.set_margin_top(8)
+
+        diagram_title = Gtk.Label(label="Esquema Interactivo G502 HERO", xalign=0)
+        diagram_title.add_css_class("heading")
+        diagram_subtitle = Gtk.Label(label="Haz clic en cualquier botón del ratón para asignar una acción", xalign=0)
+        diagram_subtitle.add_css_class("caption")
+        diagram_subtitle.add_css_class("dim-label")
+
+        diagram_header.append(diagram_title)
+        diagram_header.append(diagram_subtitle)
+        diagram_box.append(diagram_header)
+
+        self._mouse_diagram = G502MouseDiagram(on_button_clicked=self._open_assign_dialog)
+        diagram_box.append(self._mouse_diagram)
+        container.append(diagram_box)
+
+        # Columna Derecha: Lista de Botones por Preferencias
         scrolled = Gtk.ScrolledWindow()
         scrolled.set_vexpand(True)
+        scrolled.set_hexpand(True)
 
         pref_page = Adw.PreferencesPage()
         scrolled.set_child(pref_page)
@@ -242,6 +274,12 @@ class MainWindow(Adw.ApplicationWindow):
                 row = Adw.ActionRow(title=btn_name, subtitle=f"ID: {btn_id}")
                 row.add_prefix(Gtk.Image.new_from_icon_name(icon_name))
 
+                # Pasar el cursor por la fila resalta el botón en el esquema del ratón
+                motion = Gtk.EventControllerMotion()
+                motion.connect("enter", lambda _c, _x, _y, bid=btn_id: self._mouse_diagram.highlight_button(bid))
+                motion.connect("leave", lambda _c, bid=btn_id: self._mouse_diagram.highlight_button(None))
+                row.add_controller(motion)
+
                 # Chip que muestra la acción asignada
                 chip = Gtk.Label(label="Sin asignar")
                 chip.add_css_class("action-chip-empty")
@@ -251,13 +289,14 @@ class MainWindow(Adw.ApplicationWindow):
                 # Botón para asignar/cambiar
                 assign_btn = Gtk.Button(label="Cambiar")
                 assign_btn.set_valign(Gtk.Align.CENTER)
-                assign_btn.connect("clicked", self._make_assign_button_handler(btn_id, btn_name))
+                assign_btn.connect("clicked", lambda _b, bid=btn_id, bname=btn_name: self._open_assign_dialog(bid, bname))
                 row.add_suffix(assign_btn)
 
                 group.add(row)
                 self._button_rows[btn_id] = (row, chip)
 
-        return scrolled
+        container.append(scrolled)
+        return container
 
     # -------------------------------------------------------------------------
     # Vistas de Contenido: Rendimiento (DPI)
@@ -499,37 +538,37 @@ class MainWindow(Adw.ApplicationWindow):
                 chip.remove_css_class("action-chip")
                 chip.add_css_class("action-chip-empty")
 
-    def _make_assign_button_handler(self, btn_id: str, btn_name: str):
-        def handler(_btn):
-            if not self._selected_app or not self._current_profile:
-                return
+        if hasattr(self, "_mouse_diagram"):
+            self._mouse_diagram.set_profile(self._current_profile)
 
-            categories = self._catalog_service.get_categories_for_application(self._selected_app.application_id)
-            assignment = self._current_profile.get_assignment_for_button(btn_id)
-            current_action = assignment.action if assignment else None
+    def _open_assign_dialog(self, btn_id: str, btn_name: str):
+        if not self._selected_app or not self._current_profile:
+            return
 
-            def on_action_selected(action: Action | None):
-                if action:
-                    self._current_profile.assign(Button(button_id=btn_id, name=btn_name), action)
-                    self._show_toast(f"Asignado '{action.name}' al {btn_name}")
-                else:
-                    self._current_profile.unassign_button(btn_id)
-                    self._show_toast(f"Quitada asignación de {btn_name}")
-                self._refresh_button_assignments()
+        categories = self._catalog_service.get_categories_for_application(self._selected_app.application_id)
+        assignment = self._current_profile.get_assignment_for_button(btn_id)
+        current_action = assignment.action if assignment else None
 
-            dialog = ActionPickerDialog(
-                parent_window=self,
-                button_id=btn_id,
-                button_name=btn_name,
-                app_id=self._selected_app.application_id,
-                app_name=self._selected_app.name,
-                categories=categories,
-                current_action=current_action,
-                on_action_selected=on_action_selected,
-            )
-            dialog.present()
+        def on_action_selected(action: Action | None):
+            if action:
+                self._current_profile.assign(Button(button_id=btn_id, name=btn_name), action)
+                self._show_toast(f"Asignado '{action.name}' al {btn_name}")
+            else:
+                self._current_profile.unassign_button(btn_id)
+                self._show_toast(f"Quitada asignación de {btn_name}")
+            self._refresh_button_assignments()
 
-        return handler
+        dialog = ActionPickerDialog(
+            parent_window=self,
+            button_id=btn_id,
+            button_name=btn_name,
+            app_id=self._selected_app.application_id,
+            app_name=self._selected_app.name,
+            categories=categories,
+            current_action=current_action,
+            on_action_selected=on_action_selected,
+        )
+        dialog.present()
 
     def _on_dpi_slider_changed(self, adjustment: Gtk.Adjustment):
         val = int(adjustment.get_value())
@@ -567,6 +606,8 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _update_color_preview(self, hex_code: str):
         self._apply_box_background(self._color_preview, hex_code)
+        if hasattr(self, "_mouse_diagram"):
+            self._mouse_diagram.set_led_color(hex_code)
 
     def _apply_box_background(self, widget: Gtk.Widget, hex_code: str):
         safe_class = f"color-swatch-{hex_code.replace('#', '').lower()}"
