@@ -191,7 +191,13 @@ class JsonProfileRepository:
             "id": profile.id,
             "name": profile.name,
             "application_id": profile.application_id,
-            "dpi": profile.dpi.dpi,
+            "dpi": {
+                "active": profile.dpi.dpi,
+                "shift": profile.dpi.shift_dpi,
+            },
+            "led_color": profile.led_color,
+            "created_at": profile.created_at,
+            "updated_at": profile.updated_at,
             "assignments": [
                 {
                     "button": {
@@ -203,6 +209,8 @@ class JsonProfileRepository:
                         "name": assignment.action.name,
                         "application_id": assignment.action.application_id,
                         "description": assignment.action.description,
+                        "binding_type": assignment.action.binding_type,
+                        "binding_value": assignment.action.binding_value,
                     },
                 }
                 for assignment in profile.list_assignments()
@@ -211,11 +219,25 @@ class JsonProfileRepository:
 
     @staticmethod
     def _deserialize_profile(item: dict) -> Profile:
+        dpi_raw = item["dpi"]
+        if isinstance(dpi_raw, int):
+            dpi_config = DpiConfiguration(dpi=dpi_raw)
+        elif isinstance(dpi_raw, dict):
+            dpi_config = DpiConfiguration(
+                dpi=dpi_raw.get("active", 800),
+                shift_dpi=dpi_raw.get("shift"),
+            )
+        else:
+            dpi_config = DpiConfiguration(800)
+
         profile = Profile(
             name=item["name"],
             application_id=item["application_id"],
-            dpi=DpiConfiguration(item["dpi"]),
+            dpi=dpi_config,
+            led_color=item.get("led_color"),
             profile_id=item["id"],
+            created_at=item.get("created_at"),
+            updated_at=item.get("updated_at"),
         )
 
         for assign_data in item.get("assignments", []):
@@ -231,6 +253,8 @@ class JsonProfileRepository:
                 name=act_data["name"],
                 application_id=act_data["application_id"],
                 description=act_data.get("description", ""),
+                binding_type=act_data.get("binding_type", "key"),
+                binding_value=act_data.get("binding_value", ""),
             )
             profile.assign(button, action)
 

@@ -24,6 +24,7 @@ class ProfileManager:
         name: str,
         application_id: str,
         dpi: int | DpiConfiguration = 800,
+        led_color: str | None = None,
     ) -> Profile:
         """
         Crea un nuevo perfil, lo persiste y lo establece automáticamente como
@@ -33,6 +34,7 @@ class ProfileManager:
             name=name,
             application_id=application_id,
             dpi=dpi,
+            led_color=led_color,
         )
 
         self._repository.save(profile)
@@ -75,6 +77,17 @@ class ProfileManager:
         """
         profile = self._get_required_profile(profile_id)
         profile.set_dpi(dpi)
+        self._repository.save(profile)
+        return profile
+
+    def set_profile_led_color(
+        self, profile_id: str, color: str | None
+    ) -> Profile:
+        """
+        Configura el color LED del perfil en formato '#RRGGBB' o None.
+        """
+        profile = self._get_required_profile(profile_id)
+        profile.set_led_color(color)
         self._repository.save(profile)
         return profile
 

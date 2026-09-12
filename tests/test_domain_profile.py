@@ -53,12 +53,24 @@ class TestDomainDpiConfiguration(unittest.TestCase):
     def test_valid_dpi(self):
         dpi = DpiConfiguration(1600)
         self.assertEqual(dpi.dpi, 1600)
+        self.assertIsNone(dpi.shift_dpi)
+
+    def test_valid_dpi_with_shift(self):
+        dpi = DpiConfiguration(1600, shift_dpi=400)
+        self.assertEqual(dpi.dpi, 1600)
+        self.assertEqual(dpi.shift_dpi, 400)
 
     def test_dpi_out_of_bounds(self):
         with self.assertRaises(ValueError):
             DpiConfiguration(50)  # menor a 100
         with self.assertRaises(ValueError):
             DpiConfiguration(30000)  # mayor a 25600
+
+    def test_shift_dpi_out_of_bounds(self):
+        with self.assertRaises(ValueError):
+            DpiConfiguration(1600, shift_dpi=50)
+        with self.assertRaises(TypeError):
+            DpiConfiguration(1600, shift_dpi="400")  # type: ignore
 
     def test_dpi_invalid_type(self):
         with self.assertRaises(TypeError):
@@ -180,6 +192,30 @@ class TestDomainProfile(unittest.TestCase):
         assignments = self.profile.list_assignments()
         self.assertEqual(len(assignments), 2)
         self.assertIsInstance(assignments, tuple)
+
+    def test_led_color_validation(self):
+        self.assertIsNone(self.profile.led_color)
+
+        self.profile.set_led_color("#00e5ff")
+        self.assertEqual(self.profile.led_color, "#00E5FF")
+
+        self.profile.set_led_color(None)
+        self.assertIsNone(self.profile.led_color)
+
+        with self.assertRaises(ValueError):
+            self.profile.set_led_color("rojo")
+        with self.assertRaises(ValueError):
+            self.profile.set_led_color("#FFF")
+        with self.assertRaises(TypeError):
+            self.profile.set_led_color(12345)  # type: ignore
+
+    def test_timestamps_present_and_update(self):
+        self.assertIsNotNone(self.profile.created_at)
+        self.assertIsNotNone(self.profile.updated_at)
+
+        original_updated = self.profile.updated_at
+        self.profile.change_name("Nuevo Saryn")
+        self.assertGreaterEqual(self.profile.updated_at, original_updated)
 
 
 if __name__ == "__main__":

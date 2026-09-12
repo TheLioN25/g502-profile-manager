@@ -25,11 +25,18 @@ class TestJsonProfileRepository(unittest.TestCase):
         self.profile = Profile(
             name="Saryn DPS",
             application_id=self.app_id,
-            dpi=1600,
+            dpi=DpiConfiguration(1600, shift_dpi=400),
+            led_color="#00E5FF",
             profile_id="p-1234",
         )
         self.btn_g5 = Button("G5", "G5 Button")
-        self.action_1 = Action("habilidad_1", "Habilidad 1", self.app_id)
+        self.action_1 = Action(
+            "habilidad_1",
+            "Habilidad 1",
+            self.app_id,
+            binding_type="key",
+            binding_value="1",
+        )
         self.profile.assign(self.btn_g5, self.action_1)
 
     def tearDown(self):
@@ -43,12 +50,18 @@ class TestJsonProfileRepository(unittest.TestCase):
         self.assertEqual(retrieved.name, "Saryn DPS")
         self.assertEqual(retrieved.application_id, self.app_id)
         self.assertEqual(retrieved.dpi.dpi, 1600)
+        self.assertEqual(retrieved.dpi.shift_dpi, 400)
+        self.assertEqual(retrieved.led_color, "#00E5FF")
+        self.assertIsNotNone(retrieved.created_at)
+        self.assertIsNotNone(retrieved.updated_at)
         self.assertEqual(len(retrieved.list_assignments()), 1)
 
         assignment = retrieved.get_assignment_for_button(self.btn_g5)
         self.assertIsNotNone(assignment)
         self.assertEqual(assignment.button.button_id, "G5")
         self.assertEqual(assignment.action.action_id, "habilidad_1")
+        self.assertEqual(assignment.action.binding_type, "key")
+        self.assertEqual(assignment.action.binding_value, "1")
 
     def test_persistence_across_instances(self):
         """Comprueba que una nueva instancia cargue exactamente los datos guardados en disco."""

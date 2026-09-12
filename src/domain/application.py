@@ -15,12 +15,18 @@ class Action:
 
     Las acciones pertenecen a la Application y pueden ser referenciadas
     por múltiples perfiles asociados a ella.
+
+    Extensiones:
+    - binding_type: Tipo de asignación de hardware (ej. 'key', 'macro', 'special').
+    - binding_value: Valor o tecla física a enviar (ej. '1', 'ctrl', 'alt+f4').
     """
 
     action_id: str
     name: str
     application_id: str
     description: str = ""
+    binding_type: str = "key"
+    binding_value: str = ""
 
     def __post_init__(self):
         if not isinstance(self.action_id, str) or not self.action_id.strip():
@@ -30,10 +36,23 @@ class Action:
         if not isinstance(self.application_id, str) or not self.application_id.strip():
             raise ValueError("application_id no puede estar vacío.")
 
+        b_type = (
+            self.binding_type.strip()
+            if isinstance(self.binding_type, str) and self.binding_type.strip()
+            else "key"
+        )
+        b_val = (
+            self.binding_value.strip()
+            if isinstance(self.binding_value, str)
+            else ""
+        )
+
         object.__setattr__(self, "action_id", self.action_id.strip())
         object.__setattr__(self, "name", self.name.strip())
         object.__setattr__(self, "application_id", self.application_id.strip())
         object.__setattr__(self, "description", self.description.strip())
+        object.__setattr__(self, "binding_type", b_type)
+        object.__setattr__(self, "binding_value", b_val)
 
 
 class Application:

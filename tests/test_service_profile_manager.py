@@ -67,6 +67,15 @@ class TestProfileManager(unittest.TestCase):
         saved = self.repo.get_by_id(profile.id)
         self.assertEqual(saved.dpi.dpi, 2400)
 
+    def test_set_profile_led_color(self):
+        profile = self.manager.create_profile("Perfil LED", self.app_id, 800, led_color="#FF0000")
+        self.assertEqual(profile.led_color, "#FF0000")
+
+        updated = self.manager.set_profile_led_color(profile.id, "#00FF00")
+        self.assertEqual(updated.led_color, "#00FF00")
+        saved = self.repo.get_by_id(profile.id)
+        self.assertEqual(saved.led_color, "#00FF00")
+
     def test_assign_and_unassign_button(self):
         profile = self.manager.create_profile("Perfil Asignaciones", self.app_id)
 

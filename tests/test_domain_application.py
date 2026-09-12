@@ -40,11 +40,15 @@ class TestDomainApplication(unittest.TestCase):
             action_id="ability_1",
             name="Habilidad 1",
             application_id="steam:230410",
+            binding_type="key",
+            binding_value="1",
         )
         app.add_action(act)
 
         self.assertTrue(app.has_action("ability_1"))
         self.assertEqual(app.get_action("ability_1"), act)
+        self.assertEqual(act.binding_type, "key")
+        self.assertEqual(act.binding_value, "1")
         self.assertEqual(len(app.list_actions()), 1)
 
     def test_cannot_add_action_from_another_application(self):
