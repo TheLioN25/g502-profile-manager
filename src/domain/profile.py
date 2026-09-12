@@ -194,6 +194,12 @@ class Profile:
         """
         return tuple(self._assignments.values())
 
+    def clear_assignments(self) -> None:
+        """
+        Elimina todas las asignaciones activas del perfil, restableciéndolo a un estado limpio.
+        """
+        self._assignments.clear()
+
     @staticmethod
     def _validate_application_id(application_id: str) -> str:
         if not isinstance(application_id, str) or not application_id.strip():
