@@ -122,6 +122,25 @@ class TestJsonProfileRepository(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.repo.set_default_profile_id(self.app_id, "p-blender")
 
+    def test_dynamic_reload_on_external_modification(self):
+        self.repo.save(self.profile)
+
+        # Simular otro proceso modificando el archivo JSON externamente
+        other_repo = JsonProfileRepository(self.file_path)
+        external_profile = Profile(
+            name="External Update",
+            application_id=self.app_id,
+            dpi=1600,
+            profile_id="p-ext-99",
+        )
+        other_repo.save(external_profile)
+
+        # La instancia original self.repo debe detectar el cambio y recargar
+        fetched = self.repo.get_by_id("p-ext-99")
+        self.assertIsNotNone(fetched)
+        self.assertEqual(fetched.name, "External Update")
+
 
 if __name__ == "__main__":
     unittest.main()
+

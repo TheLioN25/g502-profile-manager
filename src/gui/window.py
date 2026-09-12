@@ -658,7 +658,12 @@ class MainWindow(Adw.ApplicationWindow):
             return
 
         try:
-            success = self._ratbag_adapter.apply_profile(self._current_profile)
+            device = self._ratbag_adapter.find_device()
+            if not device:
+                self._show_toast("Error: No se detectó ningún ratón G502 HERO conectado.")
+                return
+
+            success = self._ratbag_adapter.apply_profile(device, self._current_profile)
             if success:
                 self._show_toast("¡Perfil aplicado con éxito al ratón G502 HERO!")
             else:

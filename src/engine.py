@@ -74,6 +74,7 @@ class AutomationEngine:
 
         self._device_id: str | None = None
         self._current_profile_id: str | None = None
+        self._current_profile_updated_at: str | None = None
         self._desktop_entries_cache = None
         self._tick_counter: int = 0
 
@@ -89,12 +90,12 @@ class AutomationEngine:
         """
         self._device_id = self._device_adapter.find_device(self._target_device_name)
         if not self._device_id:
-            self._log(f"ERROR: No se detectó el dispositivo '{self._target_device_name}'.")
+            self._log(f"Error: Dispositivo '{self._target_device_name}' no encontrado con ratbagctl.")
             return False
 
-        self._log(f"Mouse detectado: {self._device_id} ({self._target_device_name})")
+        self._log(f"Dispositivo detectado: '{self._target_device_name}' (libratbag ID: {self._device_id})")
 
-        # Cachear entradas desktop para evitar lecturas masivas de disco en cada tick
+        # Cachear entradas de escritorio
         self._desktop_entries_cache = [
             entry
             for desktop_file in discover_desktop_entries()
@@ -161,7 +162,11 @@ class AutomationEngine:
 
         # 5. Aplicar o restaurar según corresponda
         if target_profile is not None:
-            if self._current_profile_id != target_profile.id:
+            needs_apply = (
+                self._current_profile_id != target_profile.id
+                or self._current_profile_updated_at != target_profile.updated_at
+            )
+            if needs_apply:
                 self._log(f"\n[ACTIVO] Detectado: {detected_app_name} ({target_profile.application_id})")
                 self._log(f"         Aplicando perfil: '{target_profile.name}' | DPI: {target_profile.dpi.dpi} | LED: {target_profile.led_color or 'N/A'}")
 
@@ -169,6 +174,7 @@ class AutomationEngine:
                 if success:
                     self._log("         Perfil aplicado al ratón con éxito.")
                     self._current_profile_id = target_profile.id
+                    self._current_profile_updated_at = target_profile.updated_at
                 else:
                     self._log("         ADVERTENCIA: No se pudo aplicar el perfil completamente.")
         else:
@@ -177,6 +183,7 @@ class AutomationEngine:
                 self._log(f"\n[DESK] Volviendo al modo escritorio...")
                 self._device_adapter.switch_profile_slot(self._device_id, self._desktop_profile_slot)
                 self._current_profile_id = None
+                self._current_profile_updated_at = None
                 self._log(f"       Perfil de escritorio (slot {self._desktop_profile_slot}) restaurado.")
 
         return True

@@ -130,7 +130,8 @@ class TestGuiLogic(unittest.TestCase):
         window._select_application(app_warframe)
 
         window._on_apply_to_mouse_clicked(None)
-        self.mock_ratbag.apply_profile.assert_called_once()
+        self.mock_ratbag.find_device.assert_called()
+        self.mock_ratbag.apply_profile.assert_called_once_with("warbling-mara", window._current_profile)
 
     def test_action_picker_dialog(self):
         parent_window = Gtk.Window()

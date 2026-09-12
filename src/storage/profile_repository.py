@@ -59,12 +59,24 @@ class JsonProfileRepository:
         self._file_path = Path(file_path).expanduser().resolve()
         self._profiles: dict[str, Profile] = {}
         self._default_profiles: dict[str, str] = {}  # application_id -> profile_id
+        self._last_mtime: float = 0.0
         self._load()
 
     @property
     def file_path(self) -> Path:
         """Ruta al archivo JSON de persistencia."""
         return self._file_path
+
+    def _reload_if_needed(self) -> None:
+        """Recarga perfiles desde disco si otro proceso modificó el archivo."""
+        if not self._file_path.exists():
+            return
+        try:
+            mtime = self._file_path.stat().st_mtime
+            if mtime > self._last_mtime:
+                self._load()
+        except OSError:
+            pass
 
     def save(self, profile: Profile) -> None:
         """
@@ -73,6 +85,7 @@ class JsonProfileRepository:
         if not isinstance(profile, Profile):
             raise TypeError("profile debe ser una instancia de Profile.")
 
+        self._reload_if_needed()
         self._profiles[profile.id] = profile
         self._flush()
 
@@ -82,6 +95,7 @@ class JsonProfileRepository:
         """
         if not isinstance(profile_id, str):
             return None
+        self._reload_if_needed()
         return self._profiles.get(profile_id.strip())
 
     def get_by_application(self, application_id: str) -> tuple[Profile, ...]:
@@ -91,6 +105,7 @@ class JsonProfileRepository:
         if not isinstance(application_id, str):
             return ()
 
+        self._reload_if_needed()
         app_id = application_id.strip().casefold()
         return tuple(
             p
@@ -102,6 +117,7 @@ class JsonProfileRepository:
         """
         Devuelve todos los perfiles almacenados.
         """
+        self._reload_if_needed()
         return tuple(self._profiles.values())
 
     def get_default_profile_id(self, application_id: str) -> str | None:
@@ -110,6 +126,7 @@ class JsonProfileRepository:
         """
         if not isinstance(application_id, str):
             return None
+        self._reload_if_needed()
         return self._default_profiles.get(application_id.strip().casefold())
 
     def set_default_profile_id(self, application_id: str, profile_id: str) -> None:
@@ -121,6 +138,7 @@ class JsonProfileRepository:
         if not isinstance(profile_id, str) or not profile_id.strip():
             raise ValueError("profile_id no puede estar vacío.")
 
+        self._reload_if_needed()
         app_id = application_id.strip().casefold()
         p_id = profile_id.strip()
 
@@ -145,6 +163,7 @@ class JsonProfileRepository:
             return
 
         try:
+            self._last_mtime = self._file_path.stat().st_mtime
             with open(self._file_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
         except (json.JSONDecodeError, OSError):
@@ -152,6 +171,9 @@ class JsonProfileRepository:
 
         if not isinstance(data, dict):
             return
+
+        self._profiles.clear()
+        self._default_profiles.clear()
 
         # Cargar perfiles
         profiles_list = data.get("profiles", [])
@@ -189,6 +211,10 @@ class JsonProfileRepository:
             json.dump(data, f, indent=4, ensure_ascii=False)
 
         tmp_file.replace(self._file_path)
+        try:
+            self._last_mtime = self._file_path.stat().st_mtime
+        except OSError:
+            pass
 
     @staticmethod
     def _serialize_profile(profile: Profile) -> dict:
