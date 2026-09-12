@@ -1,0 +1,174 @@
+"""
+Pruebas unitarias para la lógica de la interfaz gráfica GTK4 / Libadwaita.
+"""
+
+from __future__ import annotations
+
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+import gi
+
+gi.require_version("Gtk", "4.0")
+gi.require_version("Adw", "1")
+from gi.repository import Adw, Gtk
+
+from domain import Action, Application, Button, Profile
+from gui.app import G502Application
+from gui.dialogs import ActionPickerDialog
+from gui.window import MainWindow, BUTTON_DEFINITIONS
+from services.action_catalog import ActionCatalogService
+from services.profile_manager import ProfileManager
+from storage.profile_repository import JsonProfileRepository
+
+
+class TestGuiLogic(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # Inicializar Adw para entorno de pruebas
+        Adw.init()
+
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.profiles_path = Path(self.temp_dir.name) / "profiles.json"
+        self.repo = JsonProfileRepository(self.profiles_path)
+        self.profile_manager = ProfileManager(self.repo)
+        self.catalog_service = ActionCatalogService()
+
+        # Mock discovery adapter
+        self.mock_discovery = MagicMock()
+        self.mock_discovery.discover_all_applications.return_value = [
+            Application(application_id="steam:230410", name="Warframe"),
+            Application(application_id="steam:1284210", name="Guild Wars 2"),
+        ]
+
+        # Mock ratbag adapter
+        self.mock_ratbag = MagicMock()
+        self.mock_ratbag.find_device.return_value = "warbling-mara"
+        self.mock_ratbag.apply_profile.return_value = True
+
+        self.app = G502Application()
+
+    def tearDown(self):
+        self.temp_dir.cleanup()
+
+    def test_application_instantiation(self):
+        self.assertEqual(self.app.get_application_id(), "io.github.thelion.G502ProfileManager")
+
+    def test_main_window_initialization(self):
+        window = MainWindow(
+            app=self.app,
+            profile_manager=self.profile_manager,
+            catalog_service=self.catalog_service,
+            discovery_adapter=self.mock_discovery,
+            ratbag_adapter=self.mock_ratbag,
+        )
+
+        self.assertIsNotNone(window)
+        self.assertEqual(window.get_title(), "G502 Profile Manager")
+        self.assertEqual(len(window._app_rows), 2)
+        # Verifica que los botones del G502 estén mapeados
+        self.assertIn("G5", window._button_rows)
+        self.assertIn("G4", window._button_rows)
+        self.assertIn("SNIPER", window._button_rows)
+        self.assertIn("G7", window._button_rows)
+        self.assertIn("G8", window._button_rows)
+
+    def test_main_window_select_application_and_save(self):
+        window = MainWindow(
+            app=self.app,
+            profile_manager=self.profile_manager,
+            catalog_service=self.catalog_service,
+            discovery_adapter=self.mock_discovery,
+            ratbag_adapter=self.mock_ratbag,
+        )
+
+        app_warframe = Application(application_id="steam:230410", name="Warframe")
+        window._select_application(app_warframe)
+
+        self.assertEqual(window._selected_app.application_id, "steam:230410")
+        self.assertIsNotNone(window._current_profile)
+
+        # Modificar DPI y color
+        window._dpi_adjustment.set_value(8000)
+        window._color_hex_entry.set_text("#00E5FF")
+
+        # Asignar acción a G5
+        action_h1 = Action(
+            action_id="wf_ability_1",
+            name="Habilidad 1",
+            application_id="steam:230410",
+            description="Primera habilidad",
+            binding_type="key",
+            binding_value="1",
+        )
+        window._current_profile.assign(Button(button_id="G5", name="Botón G5"), action_h1)
+
+        # Simular clic en Guardar
+        window._on_save_profile_clicked(None)
+
+        saved = self.profile_manager.get_active_profile_for_application("steam:230410")
+        self.assertIsNotNone(saved)
+        self.assertEqual(saved.dpi.dpi, 8000)
+        self.assertEqual(saved.led_color, "#00E5FF")
+        assignment = saved.get_assignment_for_button("G5")
+        self.assertIsNotNone(assignment)
+        self.assertEqual(assignment.action.action_id, "wf_ability_1")
+
+    def test_main_window_apply_to_mouse(self):
+        window = MainWindow(
+            app=self.app,
+            profile_manager=self.profile_manager,
+            catalog_service=self.catalog_service,
+            discovery_adapter=self.mock_discovery,
+            ratbag_adapter=self.mock_ratbag,
+        )
+
+        app_warframe = Application(application_id="steam:230410", name="Warframe")
+        window._select_application(app_warframe)
+
+        window._on_apply_to_mouse_clicked(None)
+        self.mock_ratbag.apply_profile.assert_called_once()
+
+    def test_action_picker_dialog(self):
+        parent_window = Gtk.Window()
+        categories = {
+            "Combate": [
+                Action("act_melee", "Ataque Melee", "steam:230410", "Golpe rápido", "key", "e", "Combate")
+            ]
+        }
+
+        selected_action = None
+
+        def callback(action):
+            nonlocal selected_action
+            selected_action = action
+
+        dialog = ActionPickerDialog(
+            parent_window=parent_window,
+            button_id="SNIPER",
+            button_name="Botón SNIPER",
+            app_id="steam:230410",
+            app_name="Warframe",
+            categories=categories,
+            current_action=None,
+            on_action_selected=callback,
+        )
+
+        self.assertIsNotNone(dialog)
+        self.assertEqual(len(dialog._rows), 1)
+
+        # Probar selección de acción
+        handler = dialog._make_select_handler(categories["Combate"][0])
+        handler()
+        self.assertEqual(selected_action.action_id, "act_melee")
+
+        # Probar limpieza de asignación
+        dialog._on_clear_clicked(None)
+        self.assertIsNone(selected_action)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -46,6 +46,17 @@ class ProfileManager:
 
         return profile
 
+    def save_profile(self, profile: Profile) -> Profile:
+        """
+        Persiste un perfil (nuevo o modificado) en el repositorio y lo establece
+        como predeterminado si no había uno previamente configurado.
+        """
+        self._repository.save(profile)
+        current_default = self._repository.get_default_profile_id(profile.application_id)
+        if current_default is None:
+            self._repository.set_default_profile_id(profile.application_id, profile.id)
+        return profile
+
     def get_profile(self, profile_id: str) -> Profile | None:
         """
         Obtiene un perfil por su ID único.

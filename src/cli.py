@@ -293,7 +293,21 @@ def create_parser():
     engine_p = subparsers.add_parser("engine", help="Alias para 'run'.")
     engine_p.add_argument("--interval", type=float, default=2.0, help="Intervalo de chequeo en segundos.")
 
+    # gui
+    subparsers.add_parser("gui", help="Inicia la interfaz gráfica nativa (GTK4 + Libadwaita).")
+
     return parser
+
+
+def cmd_gui(args):
+    try:
+        from gui.app import G502Application
+        app = G502Application()
+        return app.run(sys.argv[:1])
+    except ImportError as e:
+        print(f"Error al iniciar la interfaz gráfica: {e}")
+        print("Asegúrate de tener instalados GTK4 y Libadwaita (python-gi, libadwaita-1).")
+        return 1
 
 
 def main():
@@ -311,11 +325,14 @@ def main():
         "reset": cmd_reset,
         "run": cmd_run,
         "engine": cmd_run,
+        "gui": cmd_gui,
     }
 
     handler = handlers.get(args.command)
     if handler:
         handler(args)
+    else:
+        parser.print_help()
 
 
 if __name__ == "__main__":

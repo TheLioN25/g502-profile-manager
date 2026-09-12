@@ -1,0 +1,201 @@
+"""
+Diálogos modales para la interfaz gráfica G502 Profile Manager.
+"""
+
+from __future__ import annotations
+
+from typing import Callable
+
+import gi
+
+gi.require_version("Gtk", "4.0")
+gi.require_version("Adw", "1")
+from gi.repository import Adw, Gtk
+
+from domain import Action
+
+
+class ActionPickerDialog(Adw.Window):
+    """
+    Diálogo modal para seleccionar una acción del catálogo o asignar una tecla personalizada
+    a un botón específico del ratón G502 HERO.
+    """
+
+    def __init__(
+        self,
+        parent_window: Gtk.Window,
+        button_id: str,
+        button_name: str,
+        app_id: str,
+        app_name: str,
+        categories: dict[str, list[Action]],
+        current_action: Action | None,
+        on_action_selected: Callable[[Action | None], None],
+    ):
+        super().__init__(
+            title=f"Asignar {button_name}",
+            transient_for=parent_window,
+            modal=True,
+            default_width=460,
+            default_height=560,
+        )
+
+        self._button_id = button_id
+        self._button_name = button_name
+        self._app_id = app_id
+        self._categories = categories
+        self._on_action_selected = on_action_selected
+
+        # Contenedor principal
+        main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.set_content(main_box)
+
+        # HeaderBar
+        header = Adw.HeaderBar()
+        title_widget = Adw.WindowTitle(
+            title=button_name,
+            subtitle=f"Catálogo de {app_name}",
+        )
+        header.set_title_widget(title_widget)
+
+        # Botón Desasignar en la cabecera
+        clear_btn = Gtk.Button(label="Quitar Asignación")
+        clear_btn.add_css_class("destructive-action")
+        clear_btn.connect("clicked", self._on_clear_clicked)
+        header.pack_start(clear_btn)
+
+        main_box.append(header)
+
+        # Buscador de acciones
+        search_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        search_box.set_margin_start(16)
+        search_box.set_margin_end(16)
+        search_box.set_margin_top(12)
+        search_box.set_margin_bottom(8)
+
+        self._search_entry = Gtk.SearchEntry(placeholder_text="Buscar acción o habilidad...")
+        self._search_entry.set_hexpand(True)
+        self._search_entry.connect("search-changed", self._on_search_changed)
+        search_box.append(self._search_entry)
+        main_box.append(search_box)
+
+        # ScrolledWindow con las acciones
+        scrolled = Gtk.ScrolledWindow()
+        scrolled.set_vexpand(True)
+        scrolled.set_hexpand(True)
+        main_box.append(scrolled)
+
+        # Página de preferencias con grupos por categoría
+        self._pref_page = Adw.PreferencesPage()
+        scrolled.set_child(self._pref_page)
+
+        self._rows: list[tuple[Adw.ActionRow, Action]] = []
+        self._build_action_categories()
+
+        # Grupo inferior: Asignación personalizada
+        custom_group = Adw.PreferencesGroup(
+            title="Asignación Personalizada",
+            description="Asigna directamente cualquier tecla del teclado",
+        )
+        custom_row = Adw.ActionRow(title="Tecla o atajo")
+        self._custom_key_entry = Gtk.Entry(placeholder_text="ej: e, 1, space, leftctrl")
+        self._custom_key_entry.set_valign(Gtk.Align.CENTER)
+        self._custom_key_entry.connect("activate", self._on_custom_key_applied)
+
+        apply_custom_btn = Gtk.Button(label="Asignar")
+        apply_custom_btn.set_valign(Gtk.Align.CENTER)
+        apply_custom_btn.add_css_class("suggested-action")
+        apply_custom_btn.connect("clicked", self._on_custom_key_applied)
+
+        custom_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        custom_box.append(self._custom_key_entry)
+        custom_box.append(apply_custom_btn)
+        custom_row.add_suffix(custom_box)
+        custom_group.add(custom_row)
+        self._pref_page.add(custom_group)
+
+    def _build_action_categories(self):
+        icon_map = {
+            "Combate": "⚔️",
+            "Habilidades": "⚡",
+            "Movimiento": "🏃",
+            "Interacción": "🖐️",
+            "Navegación": "🌐",
+            "Edición": "✏️",
+            "Multimedia": "🔊",
+        }
+
+        for cat_name, actions in self._categories.items():
+            if not actions:
+                continue
+
+            icon = icon_map.get(cat_name, "📁")
+            group = Adw.PreferencesGroup(title=f"{icon} {cat_name}")
+            self._pref_page.add(group)
+
+            for action in actions:
+                row = Adw.ActionRow(
+                    title=action.name,
+                    subtitle=action.description or f"Comando: {action.binding_type} [{action.binding_value}]",
+                )
+                row.set_activatable(True)
+
+                # Chip que muestra la tecla/comando
+                badge = Gtk.Label(label=f"[{action.binding_value}]")
+                badge.add_css_class("action-chip")
+                badge.set_valign(Gtk.Align.CENTER)
+                row.add_suffix(badge)
+
+                # Botón de asignación directa
+                select_btn = Gtk.Button(label="Asignar")
+                select_btn.set_valign(Gtk.Align.CENTER)
+                select_btn.add_css_class("suggested-action")
+                select_btn.connect("clicked", self._make_select_handler(action))
+                row.add_suffix(select_btn)
+
+                # Permitir hacer clic en toda la fila para asignar
+                row.connect("activated", self._make_select_handler(action))
+
+                group.add(row)
+                self._rows.append((row, action))
+
+    def _make_select_handler(self, action: Action):
+        def handler(*_args):
+            self._on_action_selected(action)
+            self.close()
+
+        return handler
+
+    def _on_clear_clicked(self, _btn):
+        self._on_action_selected(None)
+        self.close()
+
+    def _on_custom_key_applied(self, _widget):
+        text = self._custom_key_entry.get_text().strip()
+        if not text:
+            return
+
+        action = Action(
+            action_id=f"custom_{text.casefold()}",
+            name=f"Tecla {text.upper()}",
+            application_id=self._app_id,
+            description="Tecla asignada manualmente",
+            binding_type="key",
+            binding_value=text,
+            category="Personalizado",
+        )
+        self._on_action_selected(action)
+        self.close()
+
+    def _on_search_changed(self, entry: Gtk.SearchEntry):
+        query = entry.get_text().strip().casefold()
+        for row, action in self._rows:
+            if not query:
+                row.set_visible(True)
+            else:
+                matches = (
+                    query in action.name.casefold()
+                    or query in action.binding_value.casefold()
+                    or query in (action.description or "").casefold()
+                )
+                row.set_visible(matches)
