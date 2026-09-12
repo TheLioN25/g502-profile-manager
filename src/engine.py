@@ -1,249 +1,193 @@
-#!/usr/bin/env python3
+"""
+Motor de automatización en tiempo real para G502 Profile Manager.
 
-import subprocess
-import time
+Supervisa los procesos del sistema, detecta lanzamientos de videojuegos y aplicaciones,
+y aplica automáticamente las preferencias de interacción al ratón Logitech G502 HERO
+utilizando la capa de dominio y adaptadores de hardware.
+"""
+
+from __future__ import annotations
+
+import os
 from pathlib import Path
+import time
+from typing import Callable
 
+from adapters import (
+    ApplicationDiscoveryAdapter,
+    RatbagDeviceAdapter,
+)
 from application_resolver import (
     combine_active_applications,
     resolve_active_applications,
     resolve_steam_applications,
 )
-
-from application_manager import (
-    list_configurable_applications,
-)
-
-from config_manager import ConfigError, load_config
 from desktop_entries import (
+    DESKTOP_DIRECTORIES,
     discover_desktop_entries,
     parse_desktop_entry,
 )
-
+from domain import Profile
 from process_discovery import discover_processes
-from steam_discovery import discover_active_steam_apps
-
-def run_command(command):
-    """Ejecuta un comando del sistema y devuelve el resultado."""
-    return subprocess.run(
-        command,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+from services import ProfileManager
+from steam_discovery import (
+    discover_active_steam_apps,
+)
+from storage import JsonProfileRepository
 
 
-def mouse_available(device):
-    """Comprueba que el dispositivo esté disponible mediante ratbagctl."""
-    result = run_command(["ratbagctl", "list"])
-
-    return (
-        result.returncode == 0
-        and device in result.stdout
-    )
+DEFAULT_STEAM_LIBRARYFOLDERS_FILE = (
+    Path.home() / ".local/share/Steam/steamapps/libraryfolders.vdf"
+)
+DEFAULT_PROFILES_FILE = Path.home() / ".config/g502-profiles.json"
 
 
-def get_active_profile(device):
-    """Obtiene el perfil activo del mouse."""
-    result = run_command(
-        [
-            "ratbagctl",
-            device,
-            "profile",
-            "active",
-            "get",
+class AutomationEngine:
+    """
+    Orquestador en tiempo real que reacciona a los cambios de aplicaciones activas.
+    """
+
+    def __init__(
+        self,
+        profile_manager: ProfileManager,
+        device_adapter: RatbagDeviceAdapter,
+        check_interval: float = 2.0,
+        steam_libraryfolders_file: Path | str = DEFAULT_STEAM_LIBRARYFOLDERS_FILE,
+        target_device_name: str = "Logitech G502 HERO Gaming Mouse",
+        desktop_profile_slot: int = 0,
+        logger: Callable[[str], None] = print,
+    ):
+        self._profile_manager = profile_manager
+        self._device_adapter = device_adapter
+        self._check_interval = check_interval
+        self._steam_file = Path(steam_libraryfolders_file).expanduser().resolve()
+        self._target_device_name = target_device_name
+        self._desktop_profile_slot = desktop_profile_slot
+        self._log = logger
+
+        self._device_id: str | None = None
+        self._current_profile_id: str | None = None
+        self._desktop_entries_cache = None
+
+    @property
+    def current_profile_id(self) -> str | None:
+        """ID del perfil de dominio actualmente aplicado al mouse, o None si está en escritorio."""
+        return self._current_profile_id
+
+    def initialize(self) -> bool:
+        """
+        Verifica la conexión con el hardware del ratón y cachea las entradas de escritorio.
+        """
+        self._device_id = self._device_adapter.find_device(self._target_device_name)
+        if not self._device_id:
+            self._log(f"ERROR: No se detectó el dispositivo '{self._target_device_name}'.")
+            return False
+
+        self._log(f"Mouse detectado: {self._device_id} ({self._target_device_name})")
+
+        # Cachear entradas desktop para evitar lecturas masivas de disco en cada tick
+        self._desktop_entries_cache = [
+            entry
+            for desktop_file in discover_desktop_entries()
+            if (entry := parse_desktop_entry(desktop_file)) is not None
         ]
-    )
 
-    if result.returncode != 0:
-        return None
-
-    try:
-        return int(result.stdout.strip())
-    except ValueError:
-        return None
-
-
-def set_profile(device, profile):
-    """
-    Cambia el perfil únicamente cuando el perfil solicitado
-    es diferente del perfil actualmente activo.
-    """
-
-    current_profile = get_active_profile(device)
-
-    if current_profile == profile:
         return True
 
-    result = run_command(
-        [
-            "ratbagctl",
-            device,
-            "profile",
-            "active",
-            "set",
-            str(profile),
-        ]
-    )
+    def step(self) -> bool:
+        """
+        Ejecuta una iteración de detección y conmutación.
+        Devuelve True si la iteración se completó con éxito.
+        """
+        if not self._device_id:
+            return False
 
-    return result.returncode == 0
+        processes = discover_processes()
 
-
-def find_active_application(applications, active_applications):
-    """
-    Devuelve la aplicación configurada activa con mayor prioridad.
-
-    Compara la identidad estable source + application_id.
-    """
-
-    active_identities = {
-        (
-            application.source.casefold(),
-            application.application_id.casefold(),
+        # 1. Resolver aplicaciones de escritorio
+        desktop_apps = resolve_active_applications(
+            processes,
+            self._desktop_entries_cache or [],
         )
-        for application in active_applications
-    }
 
-    running_applications = [
-        application
-        for application in applications
-        if (
-            application.catalog_entry.source.casefold(),
-            application.catalog_entry.application_id.casefold(),
-        )
-        in active_identities
-    ]
+        # 2. Resolver juegos de Steam
+        steam_active = discover_active_steam_apps(processes, self._steam_file)
+        steam_apps = resolve_steam_applications(steam_active)
 
-    if not running_applications:
-        return None
+        # 3. Combinar identidades activas
+        active_applications = combine_active_applications((desktop_apps, steam_apps))
 
-    return max(
-        running_applications,
-        key=lambda application: application.priority,
-    )
+        # 4. Buscar si alguna aplicación activa tiene un perfil configurado
+        target_profile: Profile | None = None
+        detected_app_name: str = "Escritorio"
+
+        for app in active_applications:
+            prof = self._profile_manager.get_active_profile_for_application(app.application_id)
+            if prof is not None:
+                target_profile = prof
+                detected_app_name = app.name
+                break
+
+        # 5. Aplicar o restaurar según corresponda
+        if target_profile is not None:
+            if self._current_profile_id != target_profile.id:
+                self._log(f"\n[ACTIVO] Detectado: {detected_app_name} ({target_profile.application_id})")
+                self._log(f"         Aplicando perfil: '{target_profile.name}' | DPI: {target_profile.dpi.dpi} | LED: {target_profile.led_color or 'N/A'}")
+
+                success = self._device_adapter.apply_profile(self._device_id, target_profile)
+                if success:
+                    self._log("         Perfil aplicado al ratón con éxito.")
+                    self._current_profile_id = target_profile.id
+                else:
+                    self._log("         ADVERTENCIA: No se pudo aplicar el perfil completamente.")
+        else:
+            # Volver a perfil de escritorio si estábamos en otro perfil
+            if self._current_profile_id is not None:
+                self._log(f"\n[DESK] Volviendo al modo escritorio...")
+                self._device_adapter.switch_profile_slot(self._device_id, self._desktop_profile_slot)
+                self._current_profile_id = None
+                self._log(f"       Perfil de escritorio (slot {self._desktop_profile_slot}) restaurado.")
+
+        return True
+
+    def run(self) -> None:
+        """
+        Bucle de monitoreo continuo.
+        """
+        if not self.initialize():
+            return
+
+        self._log(f"Motor iniciado con intervalo de {self._check_interval}s.")
+        self._log("Presiona Ctrl+C para detener y restaurar el perfil de escritorio.\n")
+
+        try:
+            while True:
+                self.step()
+                time.sleep(self._check_interval)
+
+        except KeyboardInterrupt:
+            self._log("\nDeteniendo motor...")
+            self.restore_desktop()
+            self._log("Motor detenido limpiamente.")
+
+    def restore_desktop(self) -> None:
+        """Restaura la ranura de hardware predeterminada del escritorio."""
+        if self._device_id:
+            self._device_adapter.switch_profile_slot(self._device_id, self._desktop_profile_slot)
+            self._current_profile_id = None
 
 
 def main():
-    print("G502 Profile Manager - Engine")
-    print("-----------------------------")
+    repo = JsonProfileRepository(DEFAULT_PROFILES_FILE)
+    manager = ProfileManager(repo)
+    adapter = RatbagDeviceAdapter()
 
-    try:
-        config = load_config()
-
-    except ConfigError as error:
-        print(f"ERROR DE CONFIGURACIÓN: {error}")
-        return
-
-    device = config["device"]
-    desktop_profile = config["desktop_profile"]
-    check_interval = config["check_interval"]
-    applications = [
-        application
-        for application in list_configurable_applications()
-        if application.configured
-    ]
-
-    desktop_entries = [
-        entry
-        for desktop_file in discover_desktop_entries()
-        if (entry := parse_desktop_entry(desktop_file)) is not None
-    ]
-
-    print("Configuración cargada correctamente.")
-    print(f"Aplicaciones configuradas: {len(applications)}")
-
-    if not mouse_available(device):
-        print(f"ERROR: Dispositivo no detectado: {device}")
-        return
-
-    print("Mouse detectado correctamente.")
-    print(f"Perfil predeterminado: {desktop_profile}")
-    print("Motor iniciado.")
-    print("Presiona Ctrl+C para detenerlo.\n")
-
-    last_mode = None
-
-    try:
-
-        while True:
-
-            processes = discover_processes()
-
-            desktop_applications = resolve_active_applications(
-                processes,
-                desktop_entries,
-            )
-
-            steam_applications = resolve_steam_applications(
-                discover_active_steam_apps(
-                    processes,
-                    Path.home()
-                    / ".local/share/Steam/steamapps/libraryfolders.vdf",
-                )
-            )
-
-            active_applications = combine_active_applications(
-                (
-                    desktop_applications,
-                    steam_applications,
-                )
-            )
-
-            application = find_active_application(
-                applications,
-                active_applications,
-            )
-
-            if application:
-
-                mode = application.catalog_entry.name
-                target_profile = application.profile
-
-            else:
-
-                mode = "Desktop"
-                target_profile = desktop_profile
-
-            if mode != last_mode:
-
-                print(f"Aplicación activa: {mode}")
-                print(f"Solicitando perfil: {target_profile}")
-
-                if set_profile(device, target_profile):
-
-                    print(
-                        f"Perfil {target_profile} "
-                        "activado correctamente.\n"
-                    )
-
-                else:
-
-                    print(
-                        "ERROR: No se pudo cambiar el perfil.\n"
-                    )
-
-                last_mode = mode
-
-            time.sleep(check_interval)
-
-    except KeyboardInterrupt:
-
-        print("\nDeteniendo motor...")
-
-        if set_profile(device, desktop_profile):
-
-            print(
-                f"Perfil {desktop_profile} restaurado."
-            )
-
-        else:
-
-            print(
-                "ADVERTENCIA: No se pudo restaurar "
-                "el perfil predeterminado."
-            )
-
-        print("Motor detenido.")
+    engine = AutomationEngine(
+        profile_manager=manager,
+        device_adapter=adapter,
+        check_interval=2.0,
+    )
+    engine.run()
 
 
 if __name__ == "__main__":
