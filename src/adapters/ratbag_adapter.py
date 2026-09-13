@@ -275,17 +275,19 @@ class RatbagDeviceAdapter:
 
         Ejecución Atómica:
         Aplica los comandos preparatorios con '--nocommit' para evitar múltiples
-        escrituras en la memoria Flash/EEPROM del ratón, y ejecuta el último comando
-        sin '--nocommit' para consolidar los cambios en una sola escritura instantánea.
+        escrituras en la memoria Flash/EEPROM del ratón, ejecuta el último comando
+        sin '--nocommit' para consolidar los cambios en una sola escritura instantánea,
+        y asegura que la ranura de hardware quede explícitamente activa en el ratón.
         """
+        target_slot = slot if slot is not None else 0
         commands: list[list[str]] = []
 
         # 1. Comando DPI
-        commands.append(self.build_dpi_command(device, profile.dpi.dpi, slot=slot))
+        commands.append(self.build_dpi_command(device, profile.dpi.dpi, slot=target_slot))
 
         # 2. Comandos LED (Logo G + Indicadores DPI)
         if profile.led_color:
-            commands.extend(self.build_led_commands(device, profile.led_color, slot=slot))
+            commands.extend(self.build_led_commands(device, profile.led_color, slot=target_slot))
 
         # 3. Comandos de botones asignados
         for assignment in profile.list_assignments():
@@ -293,7 +295,7 @@ class RatbagDeviceAdapter:
                 device=device,
                 button_id=assignment.button.button_id,
                 action=assignment.action,
-                slot=slot,
+                slot=target_slot,
             )
             if cmd:
                 commands.append(cmd)
@@ -315,5 +317,9 @@ class RatbagDeviceAdapter:
             res = self._runner(actual_cmd)
             if res.returncode != 0:
                 all_success = False
+
+        # 4. Asegurar que la ranura de hardware quede activa físicamente
+        if not self.switch_profile_slot(device, target_slot):
+            all_success = False
 
         return all_success
