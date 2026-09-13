@@ -129,7 +129,10 @@ class TestGuiLogic(unittest.TestCase):
         app_warframe = Application(application_id="steam:230410", name="Warframe")
         window._select_application(app_warframe)
 
-        window._on_apply_to_mouse_clicked(None)
+        with patch("threading.Thread") as mock_thread_cls:
+            mock_thread_cls.side_effect = lambda target, daemon: MagicMock(start=target)
+            window._on_apply_to_mouse_clicked(None)
+
         self.mock_ratbag.find_device.assert_called()
         self.mock_ratbag.apply_profile.assert_called_once_with("warbling-mara", window._current_profile)
 

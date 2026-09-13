@@ -158,10 +158,11 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
         success = adapter.apply_profile("warbling-mara", profile, slot=0)
         self.assertTrue(success)
 
-        # Debe haber ejecutado DPI, LED y el botón G5 (que mapea a button 4)
+        # Debe haber ejecutado comandos en lote atómico:
+        # Los pasos intermedios llevan '--nocommit' y el último ejecuta el commit final
         flattened = [" ".join(cmd) for cmd in executed_commands]
-        self.assertIn("ratbagctl warbling-mara profile 0 dpi set 1200", flattened)
-        self.assertIn("ratbagctl warbling-mara profile 0 led 0 set color 00ff00", flattened)
+        self.assertIn("ratbagctl --nocommit warbling-mara profile 0 dpi set 1200", flattened)
+        self.assertIn("ratbagctl --nocommit warbling-mara profile 0 led 0 set color 00ff00", flattened)
         self.assertIn("ratbagctl warbling-mara profile 0 button 4 action set key KEY_1", flattened)
 
 

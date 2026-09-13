@@ -4,6 +4,7 @@ Ventana principal de la interfaz gráfica G502 Profile Manager (GTK4 + Libadwait
 
 from __future__ import annotations
 
+import threading
 from typing import Sequence
 
 import gi
@@ -802,19 +803,32 @@ class MainWindow(Adw.ApplicationWindow):
         if not self._current_profile:
             return
 
-        try:
-            device = self._ratbag_adapter.find_device()
-            if not device:
-                self._show_toast("Error: No se detectó ningún ratón G502 HERO conectado.")
-                return
+        target_profile = self._current_profile
+        self._apply_mouse_btn.set_sensitive(False)
+        self._apply_mouse_btn.set_label("Aplicando...")
 
-            success = self._ratbag_adapter.apply_profile(device, self._current_profile)
-            if success:
-                self._show_toast("¡Perfil aplicado con éxito al ratón G502 HERO!")
-            else:
-                self._show_toast("Advertencia: No se pudo aplicar completamente al hardware.")
-        except Exception as e:
-            self._show_toast(f"Error al comunicar con ratbagctl: {e}")
+        def worker():
+            msg = "¡Perfil aplicado con éxito al ratón G502 HERO!"
+            try:
+                device = self._ratbag_adapter.find_device()
+                if not device:
+                    msg = "Error: No se detectó ningún ratón G502 HERO conectado."
+                else:
+                    success = self._ratbag_adapter.apply_profile(device, target_profile)
+                    if not success:
+                        msg = "Advertencia: No se pudo aplicar completamente al hardware."
+            except Exception as e:
+                msg = f"Error al comunicar con ratbagctl: {e}"
+
+            def on_done():
+                self._apply_mouse_btn.set_sensitive(True)
+                self._apply_mouse_btn.set_label("Aplicar al Ratón")
+                self._show_toast(msg)
+                return False
+
+            GLib.idle_add(on_done)
+
+        threading.Thread(target=worker, daemon=True).start()
 
     def _update_mouse_hardware_status(self):
         try:

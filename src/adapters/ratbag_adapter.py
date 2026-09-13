@@ -122,17 +122,87 @@ class RatbagDeviceAdapter:
         )
         return result.returncode == 0
 
+    def build_dpi_command(
+        self, device: str, dpi: int, slot: int | None = None
+    ) -> list[str]:
+        """Construye el comando para configurar DPI."""
+        cmd = ["ratbagctl", device]
+        if slot is not None:
+            cmd.extend(["profile", str(slot)])
+        cmd.extend(["dpi", "set", str(dpi)])
+        return cmd
+
+    def build_led_commands(
+        self,
+        device: str,
+        hex_color: str,
+        slot: int | None = None,
+        led_index: int | None = None,
+    ) -> list[list[str]]:
+        """Construye los comandos para configurar modo y color de las zonas LED."""
+        color_clean = hex_color.lstrip("#").strip().lower()
+        if len(color_clean) != 6:
+            return []
+
+        indices = (
+            [led_index]
+            if led_index is not None
+            else [0, 1]  # G502 HERO posee exactamente 2 zonas: Logo 'G' (0) y DPI (1)
+        )
+        commands = []
+        for idx in indices:
+            cmd_mode = ["ratbagctl", device]
+            if slot is not None:
+                cmd_mode.extend(["profile", str(slot)])
+            cmd_mode.extend(["led", str(idx), "set", "mode", "on"])
+            commands.append(cmd_mode)
+
+            cmd_color = ["ratbagctl", device]
+            if slot is not None:
+                cmd_color.extend(["profile", str(slot)])
+            cmd_color.extend(["led", str(idx), "set", "color", color_clean])
+            commands.append(cmd_color)
+
+        return commands
+
+    def build_button_command(
+        self,
+        device: str,
+        button_id: str,
+        action: Action,
+        slot: int | None = None,
+    ) -> list[str] | None:
+        """Construye el comando para configurar la acción de un botón físico."""
+        btn_key = button_id.strip().upper()
+        if btn_key not in G502_BUTTON_INDEX_MAP:
+            return None
+
+        btn_index = G502_BUTTON_INDEX_MAP[btn_key]
+        cmd = ["ratbagctl", device]
+        if slot is not None:
+            cmd.extend(["profile", str(slot)])
+
+        cmd.extend(["button", str(btn_index), "action", "set"])
+
+        if action.binding_type == "key" and action.binding_value:
+            key_code = normalize_key_to_input_code(action.binding_value)
+            cmd.extend(["key", key_code])
+        elif action.binding_type == "macro" and action.binding_value:
+            cmd.extend(["macro", action.binding_value])
+        elif action.binding_type == "special" and action.binding_value:
+            cmd.extend(["special", action.binding_value])
+        else:
+            return None
+
+        return cmd
+
     def set_dpi(
         self, device: str, dpi: int, slot: int | None = None
     ) -> bool:
         """
         Ajusta el valor de DPI en el mouse.
         """
-        cmd = ["ratbagctl", device]
-        if slot is not None:
-            cmd.extend(["profile", str(slot)])
-        cmd.extend(["dpi", "set", str(dpi)])
-
+        cmd = self.build_dpi_command(device, dpi, slot=slot)
         result = self._runner(cmd)
         return result.returncode == 0
 
@@ -162,31 +232,14 @@ class RatbagDeviceAdapter:
         Si led_index es None, aplica el color a todas las zonas LED del ratón
         (tanto el logo 'G' como los indicadores DPI).
         """
-        color_clean = hex_color.lstrip("#").strip().lower()
-        if len(color_clean) != 6:
+        commands = self.build_led_commands(device, hex_color, slot=slot, led_index=led_index)
+        if not commands:
             return False
 
-        indices = (
-            [led_index]
-            if led_index is not None
-            else list(range(self.get_led_count(device)))
-        )
         all_success = True
-
-        for idx in indices:
-            cmd_mode = ["ratbagctl", device]
-            if slot is not None:
-                cmd_mode.extend(["profile", str(slot)])
-            cmd_mode.extend(["led", str(idx), "set", "mode", "on"])
-
-            cmd_color = ["ratbagctl", device]
-            if slot is not None:
-                cmd_color.extend(["profile", str(slot)])
-            cmd_color.extend(["led", str(idx), "set", "color", color_clean])
-
-            self._runner(cmd_mode)
-            res_color = self._runner(cmd_color)
-            if res_color.returncode != 0:
+        for cmd in commands:
+            res = self._runner(cmd)
+            if res.returncode != 0:
                 all_success = False
 
         return all_success
@@ -201,26 +254,8 @@ class RatbagDeviceAdapter:
         """
         Configura la acción en un botón físico del ratón mediante ratbagctl.
         """
-        btn_key = button_id.strip().upper()
-        if btn_key not in G502_BUTTON_INDEX_MAP:
-            return False
-
-        btn_index = G502_BUTTON_INDEX_MAP[btn_key]
-        cmd = ["ratbagctl", device]
-        if slot is not None:
-            cmd.extend(["profile", str(slot)])
-
-        cmd.extend(["button", str(btn_index), "action", "set"])
-
-        if action.binding_type == "key" and action.binding_value:
-            key_code = normalize_key_to_input_code(action.binding_value)
-            cmd.extend(["key", key_code])
-        elif action.binding_type == "macro" and action.binding_value:
-            # Soporte para macros simples o series de teclas
-            cmd.extend(["macro", action.binding_value])
-        elif action.binding_type == "special" and action.binding_value:
-            cmd.extend(["special", action.binding_value])
-        else:
+        cmd = self.build_button_command(device, button_id, action, slot=slot)
+        if not cmd:
             return False
 
         result = self._runner(cmd)
@@ -235,28 +270,50 @@ class RatbagDeviceAdapter:
         """
         Aplica integralmente un Profile de dominio al hardware:
         - Ajusta el DPI activo.
-        - Ajusta el color LED si está configurado.
+        - Ajusta el color LED en todas las zonas.
         - Asigna los botones físicos correspondientes.
+
+        Ejecución Atómica:
+        Aplica los comandos preparatorios con '--nocommit' para evitar múltiples
+        escrituras en la memoria Flash/EEPROM del ratón, y ejecuta el último comando
+        sin '--nocommit' para consolidar los cambios en una sola escritura instantánea.
         """
-        success = True
+        commands: list[list[str]] = []
 
-        # 1. Configurar DPI
-        if not self.set_dpi(device, profile.dpi.dpi, slot=slot):
-            success = False
+        # 1. Comando DPI
+        commands.append(self.build_dpi_command(device, profile.dpi.dpi, slot=slot))
 
-        # 2. Configurar LED si está definido
+        # 2. Comandos LED (Logo G + Indicadores DPI)
         if profile.led_color:
-            if not self.set_led_color(device, profile.led_color, slot=slot):
-                success = False
+            commands.extend(self.build_led_commands(device, profile.led_color, slot=slot))
 
-        # 3. Configurar botones asignados
+        # 3. Comandos de botones asignados
         for assignment in profile.list_assignments():
-            if not self.apply_button_action(
+            cmd = self.build_button_command(
                 device=device,
                 button_id=assignment.button.button_id,
                 action=assignment.action,
                 slot=slot,
-            ):
-                success = False
+            )
+            if cmd:
+                commands.append(cmd)
 
-        return success
+        if not commands:
+            return True
+
+        all_success = True
+        total = len(commands)
+
+        for i, cmd in enumerate(commands):
+            is_last = (i == total - 1)
+            actual_cmd = list(cmd)
+            if not is_last:
+                # Flag '--nocommit' permite agrupar todas las operaciones previas
+                # sin saturar la EEPROM del ratón.
+                actual_cmd.insert(1, "--nocommit")
+
+            res = self._runner(actual_cmd)
+            if res.returncode != 0:
+                all_success = False
+
+        return all_success
