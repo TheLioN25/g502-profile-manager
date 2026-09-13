@@ -199,3 +199,64 @@ class ActionPickerDialog(Adw.Window):
                     or query in (action.description or "").casefold()
                 )
                 row.set_visible(matches)
+
+
+class NewProfileDialog(Adw.Window):
+    """
+    Diálogo modal para crear un nuevo perfil con un nombre personalizado.
+    """
+
+    def __init__(
+        self,
+        parent_window: Gtk.Window,
+        app_name: str,
+        on_profile_created: Callable[[str], None],
+    ):
+        super().__init__(
+            title="Nuevo Perfil",
+            transient_for=parent_window,
+            modal=True,
+            default_width=380,
+            default_height=200,
+        )
+        self._on_profile_created = on_profile_created
+
+        main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.set_content(main_box)
+
+        header = Adw.HeaderBar()
+        title_widget = Adw.WindowTitle(title="Crear Nuevo Perfil", subtitle=app_name)
+        header.set_title_widget(title_widget)
+
+        cancel_btn = Gtk.Button(label="Cancelar")
+        cancel_btn.connect("clicked", lambda _: self.close())
+        header.pack_start(cancel_btn)
+
+        create_btn = Gtk.Button(label="Crear")
+        create_btn.add_css_class("suggested-action")
+        create_btn.connect("clicked", self._on_create_clicked)
+        header.pack_end(create_btn)
+
+        main_box.append(header)
+
+        # Formulario
+        pref_page = Adw.PreferencesPage()
+        pref_group = Adw.PreferencesGroup(
+            title="Detalles del Perfil",
+            description="Ingresa un nombre descriptivo para esta configuración.",
+        )
+        pref_page.add(pref_group)
+
+        self._entry_row = Adw.EntryRow(title="Nombre del Perfil")
+        self._entry_row.set_text(f"{app_name} Alternativo")
+        self._entry_row.connect("entry-activated", lambda _: self._on_create_clicked(None))
+        pref_group.add(self._entry_row)
+
+        main_box.append(pref_page)
+
+    def _on_create_clicked(self, _btn):
+        name = self._entry_row.get_text().strip()
+        if not name:
+            return
+        self.close()
+        self._on_profile_created(name)

@@ -14,8 +14,8 @@ from gi.repository import Adw, Gdk, GLib, Gtk, Pango
 
 from adapters.application_discovery_adapter import ApplicationDiscoveryAdapter
 from adapters.ratbag_adapter import RatbagDeviceAdapter
-from domain import Action, Application, Button, Profile
-from gui.dialogs import ActionPickerDialog
+from domain import Action, Application, Button, DpiConfiguration, Profile
+from gui.dialogs import ActionPickerDialog, NewProfileDialog
 from gui.mouse_diagram import G502MouseDiagram
 from services.action_catalog import ActionCatalogService
 from services.profile_manager import ProfileManager
@@ -85,6 +85,8 @@ class MainWindow(Adw.ApplicationWindow):
 
         self._selected_app: Application | None = None
         self._current_profile: Profile | None = None
+        self._current_app_profiles: list[Profile] = []
+        self._updating_profile_dropdown: bool = False
         self._app_rows: list[tuple[Gtk.ListBoxRow, Application]] = []
         self._button_rows: dict[str, tuple[Adw.ActionRow, Gtk.Label]] = {}
 
@@ -175,12 +177,56 @@ class MainWindow(Adw.ApplicationWindow):
         self._apply_mouse_btn = Gtk.Button(label="Aplicar al Ratón", tooltip_text="Escribir perfil directamente al G502 HERO")
         self._apply_mouse_btn.add_css_class("suggested-action")
         self._apply_mouse_btn.connect("clicked", self._on_apply_to_mouse_clicked)
-        self._main_header.pack_end(self._apply_mouse_btn)
 
         # Botón Guardar
         self._save_btn = Gtk.Button(label="Guardar", tooltip_text="Guardar cambios del perfil")
         self._save_btn.connect("clicked", self._on_save_profile_clicked)
+
+        # Controles de Gestión de Perfiles
+        profile_controls = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+        profile_controls.set_margin_end(6)
+
+        self._profile_string_list = Gtk.StringList.new([])
+        self._profile_dropdown = Gtk.DropDown.new(self._profile_string_list, None)
+        self._profile_dropdown.set_tooltip_text("Seleccionar perfil para este juego")
+        self._profile_dropdown.connect("notify::selected", self._on_profile_dropdown_changed)
+        profile_controls.append(self._profile_dropdown)
+
+        self._new_profile_btn = Gtk.Button(icon_name="list-add-symbolic", tooltip_text="Crear nuevo perfil")
+        self._new_profile_btn.connect("clicked", self._on_new_profile_clicked)
+        profile_controls.append(self._new_profile_btn)
+
+        self._profile_menu_btn = Gtk.MenuButton(icon_name="view-more-symbolic", tooltip_text="Opciones del perfil")
+        self._profile_popover = Gtk.Popover()
+        pop_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        pop_box.set_margin_top(6)
+        pop_box.set_margin_bottom(6)
+        pop_box.set_margin_start(6)
+        pop_box.set_margin_end(6)
+
+        set_def_btn = Gtk.Button(label="⭐ Marcar como Predeterminado")
+        set_def_btn.add_css_class("flat")
+        set_def_btn.connect("clicked", self._on_set_default_profile_clicked)
+        pop_box.append(set_def_btn)
+
+        dup_btn = Gtk.Button(label="📋 Duplicar Perfil")
+        dup_btn.add_css_class("flat")
+        dup_btn.connect("clicked", self._on_duplicate_profile_clicked)
+        pop_box.append(dup_btn)
+
+        del_btn = Gtk.Button(label="🗑️ Eliminar Perfil")
+        del_btn.add_css_class("flat")
+        del_btn.add_css_class("destructive-action")
+        del_btn.connect("clicked", self._on_delete_profile_clicked)
+        pop_box.append(del_btn)
+
+        self._profile_popover.set_child(pop_box)
+        self._profile_menu_btn.set_popover(self._profile_popover)
+        profile_controls.append(self._profile_menu_btn)
+
+        self._main_header.pack_end(self._apply_mouse_btn)
         self._main_header.pack_end(self._save_btn)
+        self._main_header.pack_end(profile_controls)
 
         box.append(self._main_header)
 
@@ -514,16 +560,48 @@ class MainWindow(Adw.ApplicationWindow):
         self._selected_app = app
         self._window_title.set_title(app.name)
         self._window_title.set_subtitle(f"ID: {app.application_id}")
+        self._populate_profiles_dropdown(app.application_id)
 
-        # Cargar perfil existente o crear uno en memoria
-        profile = self._profile_manager.get_active_profile_for_application(app.application_id)
-        if not profile:
-            profile = Profile(
-                name=f"{app.name} Perfil",
-                application_id=app.application_id,
-                dpi=8000,
-                led_color="#00E5FF",
-            )
+    def _populate_profiles_dropdown(self, application_id: str, select_profile_id: str | None = None):
+        """Llena el desplegable de perfiles asociados a la aplicación."""
+        self._updating_profile_dropdown = True
+        try:
+            profiles = list(self._profile_manager.get_profiles_for_application(application_id))
+            if not profiles:
+                default_name = f"{self._selected_app.name if self._selected_app else 'Juego'} Perfil"
+                new_p = self._profile_manager.create_profile(
+                    name=default_name,
+                    application_id=application_id,
+                    dpi=8000,
+                    led_color="#00E5FF",
+                )
+                profiles = [new_p]
+
+            self._current_app_profiles = profiles
+            default_p = self._profile_manager.get_default_profile(application_id)
+            default_id = default_p.id if default_p else profiles[0].id
+
+            string_list = Gtk.StringList.new([])
+            target_id = select_profile_id or (self._current_profile.id if self._current_profile else default_id)
+            selected_idx = 0
+
+            for idx, p in enumerate(profiles):
+                is_default = (p.id == default_id)
+                display_name = f"⭐ {p.name}" if is_default else p.name
+                string_list.append(display_name)
+                if p.id == target_id:
+                    selected_idx = idx
+
+            self._profile_dropdown.set_model(string_list)
+            self._profile_dropdown.set_selected(selected_idx)
+
+            active_profile = profiles[selected_idx]
+            self._load_profile_into_ui(active_profile)
+        finally:
+            self._updating_profile_dropdown = False
+
+    def _load_profile_into_ui(self, profile: Profile):
+        """Carga los datos de un perfil en todos los widgets de la interfaz."""
         self._current_profile = profile
 
         # Actualizar campos en la interfaz
@@ -537,7 +615,7 @@ class MainWindow(Adw.ApplicationWindow):
             self._color_hex_entry.set_text(profile.led_color)
             self._update_color_preview(profile.led_color)
 
-        # Actualizar botones
+        # Actualizar botones y esquema vectorial
         self._refresh_button_assignments()
 
     def _refresh_button_assignments(self):
@@ -595,7 +673,7 @@ class MainWindow(Adw.ApplicationWindow):
         val = int(adjustment.get_value())
         self._dpi_display_label.set_text(f"{val} DPI")
         if self._current_profile:
-            self._current_profile.set_dpi(val, self._current_profile.dpi.shift_dpi)
+            self._current_profile.set_dpi(DpiConfiguration(val, self._current_profile.dpi.shift_dpi))
 
     def _make_quick_dpi_handler(self, dpi: int):
         def handler(_btn):
@@ -605,7 +683,7 @@ class MainWindow(Adw.ApplicationWindow):
     def _on_shift_dpi_changed(self, spin: Gtk.SpinButton):
         val = int(spin.get_value())
         if self._current_profile:
-            self._current_profile.set_dpi(self._current_profile.dpi.dpi, val)
+            self._current_profile.set_dpi(DpiConfiguration(self._current_profile.dpi.dpi, val))
 
     def _on_color_hex_changed(self, entry: Gtk.Entry):
         text = entry.get_text().strip()
@@ -644,14 +722,81 @@ class MainWindow(Adw.ApplicationWindow):
             )
         widget.set_css_classes([safe_class, "color-preview-box"])
 
+    def _on_profile_dropdown_changed(self, dropdown, _param):
+        if self._updating_profile_dropdown:
+            return
+
+        idx = dropdown.get_selected()
+        if 0 <= idx < len(self._current_app_profiles):
+            selected_profile = self._current_app_profiles[idx]
+            self._load_profile_into_ui(selected_profile)
+            self._show_toast(f"Perfil activo: {selected_profile.name}")
+
+    def _on_new_profile_clicked(self, _btn):
+        if not self._selected_app:
+            return
+
+        def on_created(name: str):
+            new_p = self._profile_manager.create_profile(
+                name=name,
+                application_id=self._selected_app.application_id,
+                dpi=self._current_profile.dpi.dpi if self._current_profile else 8000,
+                led_color=self._current_profile.led_color if self._current_profile else "#00E5FF",
+            )
+            self._populate_profiles_dropdown(self._selected_app.application_id, select_profile_id=new_p.id)
+            self._show_toast(f"Perfil '{name}' creado.")
+
+        dialog = NewProfileDialog(
+            parent_window=self,
+            app_name=self._selected_app.name,
+            on_profile_created=on_created,
+        )
+        dialog.present()
+
+    def _on_set_default_profile_clicked(self, _btn):
+        if not self._selected_app or not self._current_profile:
+            return
+
+        self._profile_popover.popdown()
+        self._profile_manager.set_default_profile(self._selected_app.application_id, self._current_profile.id)
+        self._populate_profiles_dropdown(self._selected_app.application_id, select_profile_id=self._current_profile.id)
+        self._show_toast(f"'{self._current_profile.name}' marcado como predeterminado ⭐")
+
+    def _on_duplicate_profile_clicked(self, _btn):
+        if not self._selected_app or not self._current_profile:
+            return
+
+        self._profile_popover.popdown()
+        cloned = self._profile_manager.duplicate_profile(
+            self._current_profile.id,
+            f"{self._current_profile.name} (Copia)",
+        )
+        self._populate_profiles_dropdown(self._selected_app.application_id, select_profile_id=cloned.id)
+        self._show_toast(f"Perfil duplicado: '{cloned.name}'")
+
+    def _on_delete_profile_clicked(self, _btn):
+        if not self._selected_app or not self._current_profile:
+            return
+
+        self._profile_popover.popdown()
+        if len(self._current_app_profiles) <= 1:
+            self._show_toast("No puedes eliminar el único perfil de este juego.")
+            return
+
+        deleted_name = self._current_profile.name
+        self._profile_manager.delete_profile(self._current_profile.id)
+        self._current_profile = None
+        self._populate_profiles_dropdown(self._selected_app.application_id)
+        self._show_toast(f"Perfil '{deleted_name}' eliminado.")
+
     def _on_save_profile_clicked(self, _btn):
         if not self._selected_app or not self._current_profile:
             return
 
         # Guardar en repositorio
         saved_profile = self._profile_manager.save_profile(self._current_profile)
-        self._profile_manager.set_default_profile(self._selected_app.application_id, saved_profile.id)
-        self._show_toast(f"Perfil guardado para {self._selected_app.name}")
+        self._populate_profiles_dropdown(self._selected_app.application_id, select_profile_id=saved_profile.id)
+        self._show_toast(f"Perfil '{saved_profile.name}' guardado.")
 
     def _on_apply_to_mouse_clicked(self, _btn):
         if not self._current_profile:

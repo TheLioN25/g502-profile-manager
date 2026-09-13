@@ -141,6 +141,22 @@ class TestJsonProfileRepository(unittest.TestCase):
         self.assertEqual(fetched.name, "External Update")
 
 
+    def test_delete_profile_removes_from_repository_and_default(self):
+        self.repo.save(self.profile)
+        self.repo.set_default_profile_id(self.app_id, self.profile.id)
+        self.assertEqual(self.repo.get_default_profile_id(self.app_id), self.profile.id)
+
+        # Eliminar
+        deleted = self.repo.delete(self.profile.id)
+        self.assertTrue(deleted)
+        self.assertIsNone(self.repo.get_by_id(self.profile.id))
+        self.assertIsNone(self.repo.get_default_profile_id(self.app_id))
+
+        # Intentar eliminar de nuevo debe retornar False
+        self.assertFalse(self.repo.delete(self.profile.id))
+        self.assertFalse(self.repo.delete("id_inexistente"))
+
+
 if __name__ == "__main__":
     unittest.main()
 

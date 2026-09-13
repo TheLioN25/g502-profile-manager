@@ -41,6 +41,10 @@ class ProfileRepository(Protocol):
         """Establece el ID del perfil predeterminado para una aplicación."""
         ...
 
+    def delete(self, profile_id: str) -> bool:
+        """Elimina un perfil por su ID."""
+        ...
+
 
 DEFAULT_PROFILES_FILE = Path.home() / ".config/g502-profiles.json"
 
@@ -154,6 +158,28 @@ class JsonProfileRepository:
 
         self._default_profiles[app_id] = p_id
         self._flush()
+
+    def delete(self, profile_id: str) -> bool:
+        """
+        Elimina un perfil por su ID único y actualiza el archivo atómicamente.
+        """
+        if not isinstance(profile_id, str):
+            return False
+
+        self._reload_if_needed()
+        clean_id = profile_id.strip()
+        if clean_id not in self._profiles:
+            return False
+
+        del self._profiles[clean_id]
+
+        # Limpiar de default_profiles si correspondía
+        for app_id, def_id in list(self._default_profiles.items()):
+            if def_id == clean_id:
+                del self._default_profiles[app_id]
+
+        self._flush()
+        return True
 
     def _load(self) -> None:
         """

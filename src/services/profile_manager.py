@@ -144,6 +144,29 @@ class ProfileManager:
         self._repository.save(profile)
         return profile
 
+    def duplicate_profile(self, source_profile_id: str, new_name: str) -> Profile:
+        """
+        Crea una copia idéntica del perfil especificado con un nuevo nombre.
+        """
+        source = self._get_required_profile(source_profile_id)
+        clone = Profile(
+            name=new_name,
+            application_id=source.application_id,
+            dpi=DpiConfiguration(source.dpi.dpi, source.dpi.shift_dpi),
+            led_color=source.led_color,
+        )
+        for assignment in source.list_assignments():
+            clone.assign(assignment.button, assignment.action)
+
+        self._repository.save(clone)
+        return clone
+
+    def delete_profile(self, profile_id: str) -> bool:
+        """
+        Elimina de forma permanente un perfil.
+        """
+        return self._repository.delete(profile_id)
+
     def set_default_profile(self, application_id: str, profile_id: str) -> None:
         """
         Establece explícitamente el perfil predeterminado para una aplicación.

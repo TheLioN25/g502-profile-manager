@@ -17,7 +17,7 @@ from gi.repository import Adw, Gtk
 
 from domain import Action, Application, Button, Profile
 from gui.app import G502Application
-from gui.dialogs import ActionPickerDialog
+from gui.dialogs import ActionPickerDialog, NewProfileDialog
 from gui.window import MainWindow, BUTTON_DEFINITIONS
 from services.action_catalog import ActionCatalogService
 from services.profile_manager import ProfileManager
@@ -169,6 +169,84 @@ class TestGuiLogic(unittest.TestCase):
         # Probar limpieza de asignación
         dialog._on_clear_clicked(None)
         self.assertIsNone(selected_action)
+
+    def test_new_profile_dialog(self):
+        parent_window = Gtk.Window()
+        created_name = None
+
+        def callback(name: str):
+            nonlocal created_name
+            created_name = name
+
+        dialog = NewProfileDialog(
+            parent_window=parent_window,
+            app_name="Warframe",
+            on_profile_created=callback,
+        )
+        self.assertIsNotNone(dialog)
+
+        # Simular cambio de texto y clic en Crear
+        dialog._entry_row.set_text("Warframe Eidolon Hunt")
+        dialog._on_create_clicked(None)
+        self.assertEqual(created_name, "Warframe Eidolon Hunt")
+
+    def test_main_window_multi_profile_dropdown_and_switching(self):
+        # Crear 2 perfiles iniciales para Warframe
+        p1 = self.profile_manager.create_profile("DPS Saryn", "steam:230410", 1200)
+        p2 = self.profile_manager.create_profile("Volt Speed", "steam:230410", 2400)
+
+        window = MainWindow(
+            app=self.app,
+            profile_manager=self.profile_manager,
+            catalog_service=self.catalog_service,
+            discovery_adapter=self.mock_discovery,
+            ratbag_adapter=self.mock_ratbag,
+        )
+
+        app_warframe = Application(application_id="steam:230410", name="Warframe")
+        window._select_application(app_warframe)
+
+        self.assertEqual(len(window._current_app_profiles), 2)
+        self.assertEqual(window._current_profile.id, p1.id)
+
+        # Simular cambio de selección en el dropdown a Volt Speed (índice 1)
+        window._profile_dropdown.set_selected(1)
+        self.assertEqual(window._current_profile.id, p2.id)
+        self.assertEqual(window._current_profile.dpi.dpi, 2400)
+
+    def test_main_window_duplicate_and_set_default_and_delete(self):
+        p1 = self.profile_manager.create_profile("Warframe Main", "steam:230410", 1600)
+
+        window = MainWindow(
+            app=self.app,
+            profile_manager=self.profile_manager,
+            catalog_service=self.catalog_service,
+            discovery_adapter=self.mock_discovery,
+            ratbag_adapter=self.mock_ratbag,
+        )
+
+        app_warframe = Application(application_id="steam:230410", name="Warframe")
+        window._select_application(app_warframe)
+
+        # 1. Duplicar perfil
+        window._on_duplicate_profile_clicked(None)
+        self.assertEqual(len(window._current_app_profiles), 2)
+        duplicated = window._current_profile
+        self.assertIn("(Copia)", duplicated.name)
+
+        # 2. Marcar como predeterminado
+        window._on_set_default_profile_clicked(None)
+        default_p = self.profile_manager.get_default_profile("steam:230410")
+        self.assertEqual(default_p.id, duplicated.id)
+
+        # 3. Eliminar perfil duplicado
+        window._on_delete_profile_clicked(None)
+        self.assertEqual(len(window._current_app_profiles), 1)
+        self.assertEqual(window._current_profile.id, p1.id)
+
+        # 4. Intentar eliminar el único perfil no debe eliminarlo
+        window._on_delete_profile_clicked(None)
+        self.assertEqual(len(window._current_app_profiles), 1)
 
 
 if __name__ == "__main__":
