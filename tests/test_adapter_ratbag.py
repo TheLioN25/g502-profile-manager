@@ -163,7 +163,11 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
         flattened = [" ".join(cmd) for cmd in executed_commands]
         self.assertIn("ratbagctl --nocommit warbling-mara profile 0 dpi set 1200", flattened)
         self.assertIn("ratbagctl --nocommit warbling-mara profile 0 led 0 set color 00ff00", flattened)
-        self.assertIn("ratbagctl warbling-mara profile 0 button 4 action set key KEY_1", flattened)
+        self.assertIn("ratbagctl --nocommit warbling-mara profile 0 button 4 action set key KEY_1", flattened)
+        # Comprobar que los botones no asignados se restablecen a sus valores de fábrica
+        self.assertIn("ratbagctl --nocommit warbling-mara profile 0 button 3 action set button 4", flattened)
+        self.assertIn("ratbagctl --nocommit warbling-mara profile 0 button 5 action set special resolution-alternate", flattened)
+        self.assertIn("ratbagctl --nocommit warbling-mara profile 0 button 6 action set special resolution-down", flattened)
         self.assertIn("ratbagctl warbling-mara profile active set 0", flattened)
 
         # Si slot=None, debe por defecto dirigirse al perfil 0 del hardware
@@ -172,6 +176,8 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
         self.assertTrue(success_default)
         flattened_default = [" ".join(cmd) for cmd in executed_commands]
         self.assertIn("ratbagctl --nocommit warbling-mara profile 0 dpi set 1200", flattened_default)
+        self.assertIn("ratbagctl --nocommit warbling-mara profile 0 button 4 action set key KEY_1", flattened_default)
+        self.assertIn("ratbagctl --nocommit warbling-mara profile 0 button 5 action set special resolution-alternate", flattened_default)
         self.assertIn("ratbagctl warbling-mara profile active set 0", flattened_default)
 
 

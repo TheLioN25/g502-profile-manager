@@ -28,6 +28,17 @@ G502_BUTTON_INDEX_MAP: dict[str, int] = {
     "WHEEL_LEFT": 10,
 }
 
+G502_DEFAULT_BUTTON_FALLBACKS: dict[str, tuple[str, str]] = {
+    "G4": ("button", "4"),
+    "G5": ("button", "5"),
+    "SNIPER": ("special", "resolution-alternate"),
+    "G7": ("special", "resolution-down"),
+    "G8": ("special", "resolution-up"),
+    "G9": ("special", "profile-cycle-up"),
+    "WHEEL_RIGHT": ("special", "wheel-right"),
+    "WHEEL_LEFT": ("special", "wheel-left"),
+}
+
 KEY_TRANSLATIONS: dict[str, str] = {
     "ctrl": "KEY_LEFTCTRL",
     "leftctrl": "KEY_LEFTCTRL",
@@ -289,15 +300,38 @@ class RatbagDeviceAdapter:
         if profile.led_color:
             commands.extend(self.build_led_commands(device, profile.led_color, slot=target_slot))
 
-        # 3. Comandos de botones asignados
-        for assignment in profile.list_assignments():
+        # 3. Comandos de botones (Asignados y Restauración de no asignados para aislamiento total)
+        assigned_button_ids = {
+            assignment.button.button_id.strip().upper(): assignment.action
+            for assignment in profile.list_assignments()
+        }
+
+        # Programar los botones configurados por el usuario
+        for btn_id, action in assigned_button_ids.items():
             cmd = self.build_button_command(
                 device=device,
-                button_id=assignment.button.button_id,
-                action=assignment.action,
+                button_id=btn_id,
+                action=action,
                 slot=target_slot,
             )
             if cmd:
+                commands.append(cmd)
+
+        # Restaurar a sus valores de fábrica los botones no asignados en este perfil
+        # para evitar contaminación de teclas residuales de perfiles de otros juegos
+        for fallback_btn_id, (action_type, action_val) in G502_DEFAULT_BUTTON_FALLBACKS.items():
+            is_assigned = fallback_btn_id in assigned_button_ids
+            if fallback_btn_id == "SNIPER" and "G6" in assigned_button_ids:
+                is_assigned = True
+            elif fallback_btn_id == "G6" and "SNIPER" in assigned_button_ids:
+                is_assigned = True
+
+            if not is_assigned:
+                btn_index = G502_BUTTON_INDEX_MAP[fallback_btn_id]
+                cmd = ["ratbagctl", device]
+                if target_slot is not None:
+                    cmd.extend(["profile", str(target_slot)])
+                cmd.extend(["button", str(btn_index), "action", "set", action_type, action_val])
                 commands.append(cmd)
 
         if not commands:
