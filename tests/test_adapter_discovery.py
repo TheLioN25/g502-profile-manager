@@ -75,6 +75,18 @@ class TestApplicationDiscoveryAdapter(unittest.TestCase):
         self.assertIn("desktop:blender", app_ids)
         self.assertIn("desktop:gimp-2.10", app_ids)
 
+    def test_discover_all_applications_includes_desktop_general_first(self):
+        apps = self.adapter.discover_all_applications()
+        self.assertGreaterEqual(len(apps), 1)
+        self.assertEqual(apps[0].application_id, "desktop:general")
+        self.assertEqual(apps[0].name, "Escritorio / Sistema")
+
+    def test_get_application_by_id_desktop_general(self):
+        app = self.adapter.get_application_by_id("desktop:general")
+        self.assertIsNotNone(app)
+        self.assertEqual(app.application_id, "desktop:general")
+        self.assertEqual(app.name, "Escritorio / Sistema")
+
 
 if __name__ == "__main__":
     unittest.main()

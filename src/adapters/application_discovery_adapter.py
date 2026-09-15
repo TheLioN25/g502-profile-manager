@@ -138,7 +138,14 @@ class ApplicationDiscoveryAdapter:
             if app.application_id not in combined:
                 combined[app.application_id] = app
 
-        return tuple(sorted(combined.values(), key=lambda a: a.name.casefold()))
+        combined.pop("desktop:general", None)
+        sorted_apps = sorted(combined.values(), key=lambda a: a.name.casefold())
+
+        desktop_general = Application(
+            application_id="desktop:general",
+            name="Escritorio / Sistema",
+        )
+        return (desktop_general, *sorted_apps)
 
     def get_application_by_id(self, application_id: str) -> Application | None:
         """
@@ -148,6 +155,12 @@ class ApplicationDiscoveryAdapter:
             return None
 
         target_id = application_id.strip().casefold()
+        if target_id == "desktop:general":
+            return Application(
+                application_id="desktop:general",
+                name="Escritorio / Sistema",
+            )
+
         for app in self.discover_all_applications():
             if app.application_id.casefold() == target_id:
                 return app

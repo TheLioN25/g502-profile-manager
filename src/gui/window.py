@@ -511,7 +511,12 @@ class MainWindow(Adw.ApplicationWindow):
             hbox.set_margin_top(8)
             hbox.set_margin_bottom(8)
 
-            icon = Gtk.Image.new_from_icon_name("application-x-executable-symbolic")
+            icon_name = (
+                "user-desktop-symbolic"
+                if app.application_id == "desktop:general"
+                else "application-x-executable-symbolic"
+            )
+            icon = Gtk.Image.new_from_icon_name(icon_name)
             hbox.append(icon)
 
             vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
@@ -540,7 +545,7 @@ class MainWindow(Adw.ApplicationWindow):
             self._app_list_box.append(row)
             self._app_rows.append((row, app))
 
-            if first_row is None or app.application_id == "steam:230410":
+            if first_row is None:
                 first_row = row
 
         if first_row:

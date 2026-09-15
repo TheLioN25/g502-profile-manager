@@ -181,10 +181,15 @@ class AutomationEngine:
             # Volver a perfil de escritorio si estábamos en otro perfil
             if self._current_profile_id is not None:
                 self._log(f"\n[DESK] Volviendo al modo escritorio...")
-                self._device_adapter.switch_profile_slot(self._device_id, self._desktop_profile_slot)
+                desktop_prof = self._profile_manager.get_active_profile_for_application("desktop:general")
+                if desktop_prof is not None:
+                    self._device_adapter.apply_profile(self._device_id, desktop_prof)
+                    self._log("       Perfil de escritorio ('desktop:general') restaurado.")
+                else:
+                    self._device_adapter.switch_profile_slot(self._device_id, self._desktop_profile_slot)
+                    self._log(f"       Perfil de escritorio (slot {self._desktop_profile_slot}) restaurado.")
                 self._current_profile_id = None
                 self._current_profile_updated_at = None
-                self._log(f"       Perfil de escritorio (slot {self._desktop_profile_slot}) restaurado.")
 
         return True
 
@@ -209,10 +214,15 @@ class AutomationEngine:
             self._log("Motor detenido limpiamente.")
 
     def restore_desktop(self) -> None:
-        """Restaura la ranura de hardware predeterminada del escritorio."""
+        """Restaura el perfil de escritorio en el hardware del ratón."""
         if self._device_id:
-            self._device_adapter.switch_profile_slot(self._device_id, self._desktop_profile_slot)
+            desktop_prof = self._profile_manager.get_active_profile_for_application("desktop:general")
+            if desktop_prof is not None:
+                self._device_adapter.apply_profile(self._device_id, desktop_prof)
+            else:
+                self._device_adapter.switch_profile_slot(self._device_id, self._desktop_profile_slot)
             self._current_profile_id = None
+            self._current_profile_updated_at = None
 
 
 def main():

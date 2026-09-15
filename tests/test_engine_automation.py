@@ -75,6 +75,17 @@ class TestAutomationEngine(unittest.TestCase):
         self.engine.restore_desktop()
         self.assertIn(0, self.adapter.switched_slots)
 
+    def test_restore_desktop_with_desktop_profile(self):
+        self.engine.initialize()
+        desk_prof = self.manager.create_profile(
+            name="Escritorio / Navegación",
+            application_id="desktop:general",
+            dpi=1600,
+            led_color="#00E5FF",
+        )
+        self.engine.restore_desktop()
+        self.assertIn(desk_prof, self.adapter.applied_profiles)
+
 
 if __name__ == "__main__":
     unittest.main()
