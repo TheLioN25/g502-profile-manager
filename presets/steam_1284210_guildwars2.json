@@ -45,12 +45,68 @@
       "binding_value": "5"
     },
     {
+      "action_id": "gw2_skill_q",
+      "name": "Habilidad / Ataque (Q)",
+      "category": "Armas",
+      "description": "Asignación rápida de habilidad a la tecla Q",
+      "binding_type": "key",
+      "binding_value": "q"
+    },
+    {
+      "action_id": "gw2_skill_e",
+      "name": "Habilidad / Ataque (E)",
+      "category": "Armas",
+      "description": "Asignación rápida de habilidad a la tecla E",
+      "binding_type": "key",
+      "binding_value": "e"
+    },
+    {
       "action_id": "gw2_weapon_swap",
       "name": "Cambiar Conjunto de Armas",
       "category": "Armas",
       "description": "Alternar entre primer y segundo set de armas",
       "binding_type": "key",
       "binding_value": "grave"
+    },
+    {
+      "action_id": "gw2_prof_1",
+      "name": "Profesión 1 (F1)",
+      "category": "Profesión",
+      "description": "Primera mecánica, virtud o robo de clase (F1)",
+      "binding_type": "key",
+      "binding_value": "f1"
+    },
+    {
+      "action_id": "gw2_prof_2",
+      "name": "Profesión 2 (F2)",
+      "category": "Profesión",
+      "description": "Segunda mecánica de clase o mascota (F2)",
+      "binding_type": "key",
+      "binding_value": "f2"
+    },
+    {
+      "action_id": "gw2_prof_3",
+      "name": "Profesión 3 (F3)",
+      "category": "Profesión",
+      "description": "Tercera mecánica de clase (F3)",
+      "binding_type": "key",
+      "binding_value": "f3"
+    },
+    {
+      "action_id": "gw2_prof_4",
+      "name": "Profesión 4 (F4)",
+      "category": "Profesión",
+      "description": "Cuarta mecánica de clase o distorsión (F4)",
+      "binding_type": "key",
+      "binding_value": "f4"
+    },
+    {
+      "action_id": "gw2_prof_5",
+      "name": "Profesión 5 (F5)",
+      "category": "Profesión",
+      "description": "Quinta mecánica de clase o modo celestial/tomo (F5)",
+      "binding_type": "key",
+      "binding_value": "f5"
     },
     {
       "action_id": "gw2_heal",

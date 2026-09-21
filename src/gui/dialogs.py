@@ -117,7 +117,10 @@ class ActionPickerDialog(Adw.Window):
     def _build_action_categories(self):
         icon_map = {
             "Combate": "⚔️",
+            "Armas": "🗡️",
             "Habilidades": "⚡",
+            "Profesión": "🔮",
+            "Apoyo y Élite": "🛡️",
             "Movimiento": "🏃",
             "Interacción": "🖐️",
             "Navegación": "🌐",
