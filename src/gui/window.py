@@ -89,6 +89,8 @@ class MainWindow(Adw.ApplicationWindow):
         self._current_app_profiles: list[Profile] = []
         self._updating_profile_dropdown: bool = False
         self._app_rows: list[tuple[Gtk.ListBoxRow, Application]] = []
+        self._configured_rows: list[tuple[Gtk.ListBoxRow, Application]] = []
+        self._unconfigured_rows: list[tuple[Gtk.ListBoxRow, Application]] = []
         self._button_rows: dict[str, tuple[Adw.ActionRow, Gtk.Label]] = {}
 
         # Contenedor Toast para notificaciones visuales
@@ -132,29 +134,50 @@ class MainWindow(Adw.ApplicationWindow):
         sidebar_header.pack_start(refresh_btn)
         box.append(sidebar_header)
 
-        # Buscador de juegos
+        # 1. Sección Superior: Perfiles Configurados
+        configured_scrolled = Gtk.ScrolledWindow()
+        configured_scrolled.set_propagate_natural_height(True)
+        configured_scrolled.set_max_content_height(240)
+        configured_scrolled.set_hexpand(True)
+
+        self._configured_list_box = Gtk.ListBox()
+        self._configured_list_box.add_css_class("navigation-sidebar")
+        self._configured_list_box.connect("row-selected", self._on_configured_row_selected)
+        configured_scrolled.set_child(self._configured_list_box)
+        box.append(configured_scrolled)
+
+        # 2. Línea separadora
+        separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+        separator.set_margin_top(4)
+        separator.set_margin_bottom(4)
+        box.append(separator)
+
+        # 3. Buscador de aplicaciones disponibles
         search_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         search_box.set_margin_start(12)
         search_box.set_margin_end(12)
-        search_box.set_margin_top(8)
-        search_box.set_margin_bottom(8)
+        search_box.set_margin_top(2)
+        search_box.set_margin_bottom(6)
 
-        self._app_search_entry = Gtk.SearchEntry(placeholder_text="Buscar juego...")
+        self._app_search_entry = Gtk.SearchEntry(placeholder_text="Buscar juego o app...")
         self._app_search_entry.set_hexpand(True)
         self._app_search_entry.connect("search-changed", self._on_app_search_changed)
         search_box.append(self._app_search_entry)
         box.append(search_box)
 
-        # Lista de juegos instalados
-        scrolled = Gtk.ScrolledWindow()
-        scrolled.set_vexpand(True)
-        scrolled.set_hexpand(True)
-        box.append(scrolled)
+        # 4. Sección Inferior: Aplicaciones no configuradas
+        unconfigured_scrolled = Gtk.ScrolledWindow()
+        unconfigured_scrolled.set_vexpand(True)
+        unconfigured_scrolled.set_hexpand(True)
 
-        self._app_list_box = Gtk.ListBox()
-        self._app_list_box.add_css_class("navigation-sidebar")
-        self._app_list_box.connect("row-selected", self._on_app_row_selected)
-        scrolled.set_child(self._app_list_box)
+        self._unconfigured_list_box = Gtk.ListBox()
+        self._unconfigured_list_box.add_css_class("navigation-sidebar")
+        self._unconfigured_list_box.connect("row-selected", self._on_unconfigured_row_selected)
+        unconfigured_scrolled.set_child(self._unconfigured_list_box)
+        box.append(unconfigured_scrolled)
+
+        # Mantener referencia por compatibilidad
+        self._app_list_box = self._configured_list_box
 
         return box
 
@@ -493,70 +516,119 @@ class MainWindow(Adw.ApplicationWindow):
     # -------------------------------------------------------------------------
     # Lógica de Datos y Eventos
     # -------------------------------------------------------------------------
-    def _load_applications(self):
-        """Descubre juegos instalados de Steam y Epic Games y llena la lista."""
-        while child := self._app_list_box.get_first_child():
-            self._app_list_box.remove(child)
+    def _create_app_row(self, app: Application, is_configured: bool) -> Gtk.ListBoxRow:
+        row = Gtk.ListBoxRow()
+        hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        hbox.set_margin_start(12)
+        hbox.set_margin_end(12)
+        hbox.set_margin_top(8)
+        hbox.set_margin_bottom(8)
+
+        icon_name = (
+            "user-desktop-symbolic"
+            if app.application_id == "desktop:general"
+            else "application-x-executable-symbolic"
+        )
+        icon = Gtk.Image.new_from_icon_name(icon_name)
+        hbox.append(icon)
+
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        name_label = Gtk.Label(label=app.name, xalign=0)
+        name_label.set_ellipsize(3)  # PANGO_ELLIPSIZE_END
+        name_label.add_css_class("heading")
+        vbox.append(name_label)
+
+        id_label = Gtk.Label(label=app.application_id, xalign=0)
+        id_label.add_css_class("caption")
+        id_label.add_css_class("dim-label")
+        vbox.append(id_label)
+        hbox.append(vbox)
+
+        if is_configured:
+            badge = Gtk.Label(label="Configurado")
+            badge.add_css_class("app-badge-preset")
+            badge.set_valign(Gtk.Align.CENTER)
+            badge.set_hexpand(True)
+            badge.set_halign(Gtk.Align.END)
+            hbox.append(badge)
+
+        row.set_child(hbox)
+        return row
+
+    def _load_applications(self, select_app_id: str | None = None):
+        """Descubre juegos instalados y organiza las secciones de configuradas (arriba) y no configuradas (abajo)."""
+        while child := self._configured_list_box.get_first_child():
+            self._configured_list_box.remove(child)
+        while child := self._unconfigured_list_box.get_first_child():
+            self._unconfigured_list_box.remove(child)
 
         self._app_rows.clear()
+        self._configured_rows.clear()
+        self._unconfigured_rows.clear()
+
         apps = self._discovery_adapter.discover_all_applications()
         self._catalog_service.sync_with_installed_applications(apps)
 
-        first_row = None
+        selected_row_to_activate = None
+        first_configured_row = None
+        first_unconfigured_row = None
+
         for app in apps:
-            row = Gtk.ListBoxRow()
-            hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-            hbox.set_margin_start(12)
-            hbox.set_margin_end(12)
-            hbox.set_margin_top(8)
-            hbox.set_margin_bottom(8)
-
-            icon_name = (
-                "user-desktop-symbolic"
-                if app.application_id == "desktop:general"
-                else "application-x-executable-symbolic"
-            )
-            icon = Gtk.Image.new_from_icon_name(icon_name)
-            hbox.append(icon)
-
-            vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-            name_label = Gtk.Label(label=app.name, xalign=0)
-            name_label.set_ellipsize(3)  # PANGO_ELLIPSIZE_END
-            name_label.add_css_class("heading")
-            vbox.append(name_label)
-
-            id_label = Gtk.Label(label=app.application_id, xalign=0)
-            id_label.add_css_class("caption")
-            id_label.add_css_class("dim-label")
-            vbox.append(id_label)
-            hbox.append(vbox)
-
-            # Badge si tiene perfil guardado
             existing = self._profile_manager.get_active_profile_for_application(app.application_id)
-            if existing:
-                badge = Gtk.Label(label="Configurado")
-                badge.add_css_class("app-badge-preset")
-                badge.set_valign(Gtk.Align.CENTER)
-                badge.set_hexpand(True)
-                badge.set_halign(Gtk.Align.END)
-                hbox.append(badge)
+            is_configured = existing is not None or app.application_id == "desktop:general"
 
-            row.set_child(hbox)
-            self._app_list_box.append(row)
+            row = self._create_app_row(app, is_configured=is_configured)
+
+            if is_configured:
+                self._configured_list_box.append(row)
+                self._configured_rows.append((row, app))
+                if first_configured_row is None:
+                    first_configured_row = row
+            else:
+                self._unconfigured_list_box.append(row)
+                self._unconfigured_rows.append((row, app))
+                if first_unconfigured_row is None:
+                    first_unconfigured_row = row
+
             self._app_rows.append((row, app))
 
-            if first_row is None:
-                first_row = row
+            if select_app_id and app.application_id == select_app_id:
+                selected_row_to_activate = (row, is_configured)
 
-        if first_row:
-            self._app_list_box.select_row(first_row)
+        if selected_row_to_activate:
+            row, is_conf = selected_row_to_activate
+            if is_conf:
+                self._configured_list_box.select_row(row)
+            else:
+                self._unconfigured_list_box.select_row(row)
+        elif first_configured_row:
+            self._configured_list_box.select_row(first_configured_row)
+        elif first_unconfigured_row:
+            self._unconfigured_list_box.select_row(first_unconfigured_row)
 
         self._show_toast("Biblioteca de aplicaciones sincronizada")
+
+    def _on_configured_row_selected(self, _box, row: Gtk.ListBoxRow | None):
+        if not row:
+            return
+        self._unconfigured_list_box.unselect_all()
+        for r, app in self._configured_rows:
+            if r == row:
+                self._select_application(app)
+                break
+
+    def _on_unconfigured_row_selected(self, _box, row: Gtk.ListBoxRow | None):
+        if not row:
+            return
+        self._configured_list_box.unselect_all()
+        for r, app in self._unconfigured_rows:
+            if r == row:
+                self._select_application(app)
+                break
 
     def _on_app_row_selected(self, _box, row: Gtk.ListBoxRow | None):
         if not row:
             return
-
         for r, app in self._app_rows:
             if r == row:
                 self._select_application(app)
@@ -794,6 +866,7 @@ class MainWindow(Adw.ApplicationWindow):
         self._current_profile = None
         self._populate_profiles_dropdown(self._selected_app.application_id)
         self._show_toast(f"Perfil '{deleted_name}' eliminado.")
+        self._load_applications(select_app_id=self._selected_app.application_id)
 
     def _on_save_profile_clicked(self, _btn):
         if not self._selected_app or not self._current_profile:
@@ -803,6 +876,7 @@ class MainWindow(Adw.ApplicationWindow):
         saved_profile = self._profile_manager.save_profile(self._current_profile)
         self._populate_profiles_dropdown(self._selected_app.application_id, select_profile_id=saved_profile.id)
         self._show_toast(f"Perfil '{saved_profile.name}' guardado.")
+        self._load_applications(select_app_id=self._selected_app.application_id)
 
     def _on_apply_to_mouse_clicked(self, _btn):
         if not self._current_profile:
@@ -852,7 +926,7 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _on_app_search_changed(self, entry: Gtk.SearchEntry):
         query = entry.get_text().strip().casefold()
-        for row, app in self._app_rows:
+        for row, app in self._unconfigured_rows:
             if not query:
                 row.set_visible(True)
             else:

@@ -10,6 +10,10 @@ Permite configurar visualmente los botones, macros, sensibilidades (DPI) y zonas
 
 * 🎨 **Interfaz Gráfica Moderna (GTK4 + Libadwaita):**
   * Diseño nativo para Linux con soporte de tema oscuro automático.
+  * **Barra lateral con gestor de aplicaciones en dos secciones:**
+    * **Sección Superior (Configuradas):** Acceso rápido y prioritario a las aplicaciones que ya tienen perfiles configurados (ej. *Escritorio / Sistema*, *Warframe*, *Guild Wars 2*).
+    * **Línea divisoria y buscador reactivo:** Barra de búsqueda ubicada estratégicamente sobre las aplicaciones pendientes de configuración.
+    * **Sección Inferior (No configuradas):** Catálogo de juegos y aplicaciones instaladas en el sistema, filtrables al vuelo para configurar nuevos títulos.
   * **Plano interactivo vectorial del ratón** renderizado en tiempo real con Cairo Canvas: muestra asignaciones de botones, tooltips informativos y sincronización visual con el color LED configurado.
   * Gestión multi-perfil por aplicación: crear, duplicar, renombrar, eliminar y marcar perfiles predeterminados.
   * Selector de acciones con categorías temáticas (*Combate, Armas, Profesión, Movimiento, Productividad*) y asignación rápida de teclas personalizadas.
@@ -31,7 +35,7 @@ Permite configurar visualmente los botones, macros, sensibilidades (DPI) y zonas
   * Presets integrados en formato JSON ampliables para juegos como **Warframe** y **Guild Wars 2** (incluyendo mecánicas de profesión F1–F5 y habilidades personalizables), además de atajos de productividad para el escritorio.
 
 * 🧪 **Suite de Pruebas Exhaustiva:**
-  * 95 pruebas unitarias automatizadas con cobertura en dominio, persistencia, adaptadores de hardware y lógica de interfaz gráfica.
+  * 96 pruebas unitarias automatizadas con cobertura en dominio, persistencia, adaptadores de hardware y lógica de interfaz gráfica.
 
 ---
 

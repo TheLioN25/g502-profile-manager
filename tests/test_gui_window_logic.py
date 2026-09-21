@@ -251,6 +251,37 @@ class TestGuiLogic(unittest.TestCase):
         window._on_delete_profile_clicked(None)
         self.assertEqual(len(window._current_app_profiles), 1)
 
+    def test_main_window_configured_and_unconfigured_separation_and_search(self):
+        # Crear perfil solo para Warframe
+        self.profile_manager.create_profile("Warframe Main", "steam:230410", 1600)
+
+        window = MainWindow(
+            app=self.app,
+            profile_manager=self.profile_manager,
+            catalog_service=self.catalog_service,
+            discovery_adapter=self.mock_discovery,
+            ratbag_adapter=self.mock_ratbag,
+        )
+
+        # Warframe debe estar en _configured_rows y Guild Wars 2 en _unconfigured_rows
+        conf_ids = [app.application_id for _, app in window._configured_rows]
+        unconf_ids = [app.application_id for _, app in window._unconfigured_rows]
+        self.assertIn("steam:230410", conf_ids)
+        self.assertIn("steam:1284210", unconf_ids)
+
+        # Probar búsqueda en no configuradas
+        window._app_search_entry.set_text("Guild")
+        window._on_app_search_changed(window._app_search_entry)
+        for row, app in window._unconfigured_rows:
+            if app.application_id == "steam:1284210":
+                self.assertTrue(row.get_visible())
+
+        window._app_search_entry.set_text("ZzzNonExistent")
+        window._on_app_search_changed(window._app_search_entry)
+        for row, app in window._unconfigured_rows:
+            if app.application_id == "steam:1284210":
+                self.assertFalse(row.get_visible())
+
 
 if __name__ == "__main__":
     unittest.main()
