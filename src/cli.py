@@ -218,6 +218,13 @@ def cmd_reset(args):
 
 
 def cmd_run(args):
+    import logging
+    log_level = logging.DEBUG if getattr(args, "verbose", False) else logging.INFO
+    logging.basicConfig(
+        level=log_level,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        datefmt="%H:%M:%S",
+    )
     repo, manager, discovery, adapter, catalog = get_services()
     engine = AutomationEngine(
         profile_manager=manager,
@@ -327,9 +334,11 @@ def create_parser():
     # run / engine
     run_p = subparsers.add_parser("run", help="Inicia el motor de automatización en tiempo real.")
     run_p.add_argument("--interval", type=float, default=2.0, help="Intervalo de chequeo en segundos.")
+    run_p.add_argument("-v", "--verbose", action="store_true", help="Habilita registros detallados de depuración (DEBUG).")
 
     engine_p = subparsers.add_parser("engine", help="Alias para 'run'.")
     engine_p.add_argument("--interval", type=float, default=2.0, help="Intervalo de chequeo en segundos.")
+    engine_p.add_argument("-v", "--verbose", action="store_true", help="Habilita registros detallados de depuración (DEBUG).")
 
     # gui
     subparsers.add_parser("gui", help="Inicia la interfaz gráfica nativa (GTK4 + Libadwaita).")

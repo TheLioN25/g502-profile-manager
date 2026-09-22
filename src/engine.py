@@ -8,11 +8,14 @@ utilizando la capa de dominio y adaptadores de hardware.
 
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
 import threading
 import time
 from typing import Callable
+
+logger_engine = logging.getLogger("g502.engine")
 
 from adapters import (
     ApplicationDiscoveryAdapter,
@@ -61,7 +64,7 @@ class AutomationEngine:
         desktop_profile_slot: int = 0,
         catalog_service: ActionCatalogService | None = None,
         discovery_adapter: ApplicationDiscoveryAdapter | None = None,
-        logger: Callable[[str], None] = print,
+        logger: Callable[[str], None] | None = None,
         on_profile_applied: Callable[[str, Profile], None] | None = None,
         on_desktop_restored: Callable[[], None] | None = None,
     ):
@@ -73,7 +76,7 @@ class AutomationEngine:
         self._desktop_profile_slot = desktop_profile_slot
         self._catalog_service = catalog_service or ActionCatalogService()
         self._discovery = discovery_adapter or ApplicationDiscoveryAdapter(steam_libraryfolders_file=self._steam_file)
-        self._log = logger
+        self._log = logger if logger is not None else logger_engine.info
         self._on_profile_applied = on_profile_applied
         self._on_desktop_restored = on_desktop_restored
         self._stop_event = threading.Event()
@@ -245,6 +248,11 @@ class AutomationEngine:
 
 
 def main():
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        datefmt="%H:%M:%S",
+    )
     repo = JsonProfileRepository(DEFAULT_PROFILES_FILE)
     manager = ProfileManager(repo)
     adapter = RatbagDeviceAdapter()
