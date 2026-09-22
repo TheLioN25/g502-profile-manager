@@ -19,6 +19,7 @@ from domain import Action, Application, Button, DpiConfiguration, Profile
 from engine import AutomationEngine
 from gui.dialogs import ActionPickerDialog, NewProfileDialog
 from gui.mouse_diagram import G502MouseDiagram
+from gui.tray import TrayIndicator
 from services.action_catalog import ActionCatalogService
 from services.profile_manager import ProfileManager
 
@@ -97,6 +98,15 @@ class MainWindow(Adw.ApplicationWindow):
         self._configured_rows: list[tuple[Gtk.ListBoxRow, Application]] = []
         self._unconfigured_rows: list[tuple[Gtk.ListBoxRow, Application]] = []
         self._button_rows: dict[str, tuple[Adw.ActionRow, Gtk.Label]] = {}
+
+        # Inicializar indicador de bandeja del sistema (System Tray)
+        try:
+            self._tray = TrayIndicator(
+                on_activate=self._on_tray_activate,
+                on_toggle_auto=self._on_tray_toggle_auto,
+            )
+        except Exception:
+            self._tray = None
 
         # Contenedor Toast para notificaciones visuales
         self._toast_overlay = Adw.ToastOverlay()
@@ -726,6 +736,7 @@ class MainWindow(Adw.ApplicationWindow):
 
         # Actualizar botones y esquema vectorial
         self._refresh_button_assignments()
+        self._sync_tray()
 
     def _refresh_button_assignments(self):
         if not self._current_profile:
@@ -1049,6 +1060,7 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _on_auto_profile_applied(self, app_name: str, profile: Profile):
         self._window_title.set_subtitle(f"⚡ Auto: {app_name} ({profile.name} · {profile.dpi.dpi} DPI)")
+        self._sync_tray()
         return False
 
     def _on_auto_desktop_restored(self):
@@ -1056,9 +1068,33 @@ class MainWindow(Adw.ApplicationWindow):
             self._window_title.set_subtitle(f"ID: {self._selected_app.application_id}")
         else:
             self._window_title.set_subtitle("Selecciona una aplicación")
+        self._sync_tray()
         return False
+
+    def _on_tray_activate(self):
+        self.present()
+
+    def _on_tray_toggle_auto(self):
+        if hasattr(self, "_auto_switch"):
+            self._auto_switch.set_active(not self._auto_switch.get_active())
+
+    def _sync_tray(self):
+        if not hasattr(self, "_tray") or self._tray is None:
+            return
+        prof_name = self._current_profile.name if self._current_profile else "Escritorio"
+        app_name = self._selected_app.name if self._selected_app else "Sistema"
+        dpi = self._current_profile.dpi.dpi if self._current_profile else 1200
+        auto_active = self._auto_switch.get_active() if hasattr(self, "_auto_switch") else False
+        self._tray.update_status(
+            profile_name=prof_name,
+            app_name=app_name,
+            dpi=dpi,
+            auto_active=auto_active,
+        )
 
     def _on_close_request(self, _window) -> bool:
         if self._auto_thread is not None and hasattr(self, "_auto_switch"):
             self._auto_switch.set_active(False)
+        if hasattr(self, "_tray") and self._tray:
+            self._tray.destroy()
         return False

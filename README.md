@@ -1,7 +1,7 @@
 # Logitech G502 HERO Profile Manager (Linux)
 
 [![CI Pipeline](https://github.com/TheLioN25/g502-profile-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/TheLioN25/g502-profile-manager/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-112%20passed-brightgreen.svg)](#-ejecución-de-pruebas-unitarias)
+[![Tests](https://img.shields.io/badge/tests-117%20passed-brightgreen.svg)](#-ejecución-de-pruebas-unitarias)
 [![Python](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](pyproject.toml)
 
@@ -20,6 +20,10 @@ Permite configurar visualmente los botones, macros, sensibilidades (DPI) y zonas
     * **Línea divisoria y buscador reactivo:** Barra de búsqueda ubicada estratégicamente sobre las aplicaciones pendientes de configuración.
     * **Sección Inferior (No configuradas):** Catálogo de juegos y aplicaciones instaladas en el sistema, filtrables al vuelo para configurar nuevos títulos.
   * **Interruptor Auto-Perfil (⚡) en la cabecera (HeaderBar):** Permite encender o apagar la auto-detección reactiva directamente desde la interfaz gráfica, manteniendo la GUI 100% fluida en un hilo secundario y mostrando el juego activo y sus DPI en tiempo real en la cabecera.
+  * **🔔 Indicador en la Bandeja del Sistema (StatusNotifierItem / System Tray):**
+    * Integración nativa con la barra de tareas de KDE Plasma y GNOME mediante D-Bus de sesión puro (sin dependencias obsoletas de GTK 3.0 como `AppIndicator3`).
+    * Tooltip dinámico en tiempo real que informa el perfil activo, aplicación detectada, sensibilidad en DPI y estado de auto-detección.
+    * Clic interactivo para restaurar y presentar la ventana principal al instante.
   * **Integración nativa con el sistema:** Acceso directo `.desktop` con icono SVG vectorial dedicado de alta resolución, integrado automáticamente con el menú de inicio de KDE Plasma (Kickoff), KRunner y la barra de tareas.
   * **Plano interactivo vectorial del ratón** renderizado en tiempo real con Cairo Canvas: muestra asignaciones de botones, tooltips informativos y sincronización visual con el color LED configurado.
   * Gestión multi-perfil por aplicación: crear, duplicar, renombrar, eliminar y marcar perfiles predeterminados.
@@ -37,15 +41,16 @@ Permite configurar visualmente los botones, macros, sensibilidades (DPI) y zonas
 * ⚙️ **Servicio de Sistema Nativo (`systemd --user`):**
   * Configuración como demonio de usuario nativo con arranque automático en sesión, reinicio por fallos y control unificado desde la terminal o el interruptor de la interfaz gráfica.
 
-* 🛡️ **Aislamiento Total de Perfiles (Modelo G-HUB):**
+* 🛡️ **Aislamiento Total de Perfiles (Modelo G-HUB) y Cumplimiento Anti-Cheat:**
   * Resuelve la persistencia indeseada en la memoria física EEPROM del ratón.
   * Cualquier botón no asignado en un perfil se restablece automáticamente a su función de fábrica (*Back, Forward, DPI Shift, Profile Cycle*), evitando que configuraciones de un juego afecten al escritorio u otros títulos.
+  * Política estricta de mapeo de hardware 1:1 sin macros automatizadas o temporizadas, protegiendo las cuentas de juego frente a sanciones por software anti-trampas (EasyAntiCheat, BattlEye, Ricochet, etc.).
 
 * 🧩 **Catálogos y Presets Modulares (`presets/`):**
   * Presets integrados en formato JSON ampliables para juegos como **Warframe** y **Guild Wars 2** (incluyendo mecánicas de profesión F1–F5 y habilidades personalizables), además de atajos de productividad para el escritorio.
 
 * 🧪 **Suite de Pruebas Exhaustiva:**
-  * 103 pruebas unitarias automatizadas con cobertura en dominio, persistencia, adaptadores de hardware, lógica de interfaz gráfica, empaquetado de escritorio y servicio systemd.
+  * 117 pruebas unitarias automatizadas con cobertura en dominio, persistencia atómica, adaptadores de hardware, lógica de interfaz gráfica, bandeja del sistema, empaquetado de escritorio y servicio systemd.
 
 ---
 
@@ -53,8 +58,12 @@ Permite configurar visualmente los botones, macros, sensibilidades (DPI) y zonas
 
 El proyecto está diseñado bajo principios de **Domain-Driven Design (DDD)** y **Clean Architecture**, asegurando un desacoplamiento estricto entre la lógica de negocio, los controladores de hardware y la interfaz de usuario:
 
+> 📘 **Documentación Técnica Completa:** Para ver diagramas C4 en detalle (Contexto, Contenedores, Componentes), análisis de capas y registros formales de decisiones de diseño (ADR-001 a ADR-006), consulta [**`docs/ARCHITECTURE.md`**](docs/ARCHITECTURE.md).
+
 ```text
 g502-profile-manager/
+├── docs/                        # Documentación técnica de arquitectura
+│   └── ARCHITECTURE.md          # Diagramas C4, Clean Architecture y registros ADR
 ├── data/                        # Recursos del sistema y accesos directos
 │   ├── icons/                   # Icono SVG vectorial (io.github.thelion.G502ProfileManager.svg)
 │   ├── io.github.thelion.G502ProfileManager.desktop # Entrada .desktop estándar XDG
@@ -64,8 +73,10 @@ g502-profile-manager/
 │   ├── steam_1284210_guildwars2.json
 │   └── steam_230410_warframe.json
 ├── scripts/                     # Scripts de utilidad e instalación en el sistema
-│   ├── install-desktop.sh       # Instalación rápida de lanzador e icono en el sistema
-│   ├── uninstall-desktop.sh     # Desinstalación limpia del lanzador
+│   ├── install-bin.sh           # Instalación de accesos directos 'g502' y 'g502-gui' en PATH
+│   ├── uninstall-bin.sh         # Desinstalación limpia de binarios en ~/.local/bin
+│   ├── install-desktop.sh       # Instalación de lanzador e icono en el sistema
+│   ├── uninstall-desktop.sh     # Desinstalación del lanzador XDG
 │   ├── install-service.sh       # Instalación y arranque del servicio systemd --user
 │   └── uninstall-service.sh     # Detención y desinstalación del servicio systemd
 ├── src/
@@ -78,13 +89,14 @@ g502-profile-manager/
 │   │   ├── action_catalog.py    # Gestión de catálogos y presets modulares
 │   │   └── profile_manager.py   # Casos de uso de gestión y persistencia de perfiles
 │   ├── storage/                 # Capa de infraestructura y almacenamiento
-│   │   └── profile_repository.py# Repositorio JSON con recarga dinámica
+│   │   └── profile_repository.py# Repositorio JSON con recarga dinámica y escritura atómica
 │   ├── adapters/                # Adaptadores para sistemas externos y hardware
 │   │   ├── ratbag_adapter.py    # Comunicación con libratbag/ratbagctl y aislamiento EEPROM
 │   │   └── application_discovery_adapter.py # Descubrimiento unificado (Steam + Epic + Desktop)
 │   ├── gui/                     # Capa de presentación GTK4 / Libadwaita
 │   │   ├── app.py               # Punto de entrada de la aplicación gráfica
 │   │   ├── window.py            # Ventana principal y control de eventos
+│   │   ├── tray.py              # Indicador en bandeja del sistema (D-Bus StatusNotifierItem)
 │   │   ├── dialogs.py           # Diálogos modales (ActionPicker, NewProfile)
 │   │   ├── mouse_diagram.py     # Canvas vectorial interactivo en Cairo
 │   │   └── style.css            # Estilos Adwaita personalizados
@@ -94,7 +106,7 @@ g502-profile-manager/
 │   ├── epic_discovery.py        # Descubrimiento de juegos de Epic Games
 │   ├── desktop_entries.py       # Parser de archivos .desktop de Linux
 │   └── process_discovery.py     # Inspección de procesos del sistema
-└── tests/                       # Suite de 103 pruebas unitarias
+└── tests/                       # Suite de 117 pruebas unitarias
 ```
 
 ---
@@ -228,7 +240,7 @@ Si juegas títulos de Windows en Linux mediante **Steam Play / Proton**:
 
 ## 🧪 Ejecución de Pruebas Unitarias
 
-Para ejecutar la suite completa de 112 pruebas automatizadas:
+Para ejecutar la suite completa de 117 pruebas automatizadas:
 ```bash
 python3 -m unittest discover -s tests -v
 ```
