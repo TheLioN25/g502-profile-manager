@@ -221,10 +221,12 @@ def cmd_reset(args):
 
 
 def cmd_run(args):
-    repo, manager, _, adapter = get_services()
+    repo, manager, discovery, adapter, catalog = get_services()
     engine = AutomationEngine(
         profile_manager=manager,
         device_adapter=adapter,
+        discovery_adapter=discovery,
+        catalog_service=catalog,
         check_interval=args.interval,
     )
     engine.run()
@@ -299,6 +301,11 @@ def create_parser():
     # desktop integration
     subparsers.add_parser("install-desktop", help="Instala el acceso directo y su icono en el menú de aplicaciones del sistema.")
     subparsers.add_parser("uninstall-desktop", help="Desinstala el acceso directo y su icono del sistema.")
+
+    # systemd user service integration
+    subparsers.add_parser("install-service", help="Instala y activa el demonio como servicio de usuario systemd (--user).")
+    subparsers.add_parser("uninstall-service", help="Detiene y desinstala el servicio systemd del usuario.")
+    subparsers.add_parser("service-status", help="Consulta el estado del servicio systemd del usuario.")
 
     return parser
 
@@ -395,6 +402,85 @@ def cmd_uninstall_desktop(args):
         print("\nNo se encontró ninguna instalación previa del acceso directo.\n")
 
 
+def cmd_install_service(args):
+    import subprocess
+
+    repo_root = Path(__file__).resolve().parent.parent
+    systemd_user_dir = Path.home() / ".config/systemd/user"
+    systemd_user_dir.mkdir(parents=True, exist_ok=True)
+
+    service_content = f"""[Unit]
+Description=G502 Profile Manager - Demonio de automatización en segundo plano
+Documentation=https://github.com/TheLioN25/g502-profile-manager
+After=default.target
+
+[Service]
+Type=simple
+ExecStart={sys.executable} {repo_root / 'src/cli.py'} run
+Restart=on-failure
+RestartSec=5s
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=default.target
+"""
+    service_file = systemd_user_dir / "g502-profile-manager.service"
+    service_file.write_text(service_content, encoding="utf-8")
+    print(f"• Archivo de servicio creado: {service_file}")
+
+    # Recargar systemd y habilitar/arrancar servicio
+    subprocess.run(["systemctl", "--user", "daemon-reload"], check=False)
+    subprocess.run(["systemctl", "--user", "enable", "--now", "g502-profile-manager.service"], check=False)
+
+    status_res = subprocess.run(
+        ["systemctl", "--user", "is-active", "g502-profile-manager.service"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    is_active = status_res.stdout.strip() == "active"
+
+    if is_active:
+        print("\n✓ ¡Servicio systemd --user instalado y ejecutándose exitosamente!")
+    else:
+        print(f"\n• Servicio instalado. Estado actual: {status_res.stdout.strip()}")
+
+    print("  Comandos útiles:")
+    print("  - Ver logs en vivo: journalctl --user -u g502-profile-manager.service -f")
+    print("  - Ver estado:       systemctl --user status g502-profile-manager.service")
+    print("  - Detener servicio: systemctl --user stop g502-profile-manager.service\n")
+
+
+def cmd_uninstall_service(args):
+    import subprocess
+
+    service_file = Path.home() / ".config/systemd/user/g502-profile-manager.service"
+
+    # Detener y deshabilitar
+    subprocess.run(["systemctl", "--user", "stop", "g502-profile-manager.service"], check=False)
+    subprocess.run(["systemctl", "--user", "disable", "g502-profile-manager.service"], check=False)
+
+    removed = False
+    if service_file.exists():
+        service_file.unlink()
+        print(f"• Eliminado: {service_file}")
+        removed = True
+
+    subprocess.run(["systemctl", "--user", "daemon-reload"], check=False)
+    subprocess.run(["systemctl", "--user", "reset-failed"], check=False)
+
+    if removed:
+        print("\n✓ Servicio systemd --user desinstalado correctamente.\n")
+    else:
+        print("\nNo se encontró ningún archivo de servicio instalado.\n")
+
+
+def cmd_service_status(args):
+    import subprocess
+
+    subprocess.run(["systemctl", "--user", "status", "g502-profile-manager.service"])
+
+
 def main():
     parser = create_parser()
     args = parser.parse_args()
@@ -413,6 +499,9 @@ def main():
         "gui": cmd_gui,
         "install-desktop": cmd_install_desktop,
         "uninstall-desktop": cmd_uninstall_desktop,
+        "install-service": cmd_install_service,
+        "uninstall-service": cmd_uninstall_service,
+        "service-status": cmd_service_status,
     }
 
     handler = handlers.get(args.command)

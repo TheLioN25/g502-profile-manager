@@ -29,6 +29,9 @@ Permite configurar visualmente los botones, macros, sensibilidades (DPI) y zonas
     * 🖥️ **Escritorio Linux:** Integración con entradas `.desktop` estándar del sistema (XDG).
   * **Restauración Inteligente:** Al cerrar un juego, detener el motor o apagar el interruptor, se restaura automáticamente el perfil de **Escritorio / Sistema** (`desktop:general`).
 
+* ⚙️ **Servicio de Sistema Nativo (`systemd --user`):**
+  * Configuración como demonio de usuario nativo con arranque automático en sesión, reinicio por fallos y control unificado desde la terminal o el interruptor de la interfaz gráfica.
+
 * 🛡️ **Aislamiento Total de Perfiles (Modelo G-HUB):**
   * Resuelve la persistencia indeseada en la memoria física EEPROM del ratón.
   * Cualquier botón no asignado en un perfil se restablece automáticamente a su función de fábrica (*Back, Forward, DPI Shift, Profile Cycle*), evitando que configuraciones de un juego afecten al escritorio u otros títulos.
@@ -37,7 +40,7 @@ Permite configurar visualmente los botones, macros, sensibilidades (DPI) y zonas
   * Presets integrados en formato JSON ampliables para juegos como **Warframe** y **Guild Wars 2** (incluyendo mecánicas de profesión F1–F5 y habilidades personalizables), además de atajos de productividad para el escritorio.
 
 * 🧪 **Suite de Pruebas Exhaustiva:**
-  * 101 pruebas unitarias automatizadas con cobertura en dominio, persistencia, adaptadores de hardware, lógica de interfaz gráfica e integración de escritorio.
+  * 103 pruebas unitarias automatizadas con cobertura en dominio, persistencia, adaptadores de hardware, lógica de interfaz gráfica, empaquetado de escritorio y servicio systemd.
 
 ---
 
@@ -49,14 +52,17 @@ El proyecto está diseñado bajo principios de **Domain-Driven Design (DDD)** y 
 g502-profile-manager/
 ├── data/                        # Recursos del sistema y accesos directos
 │   ├── icons/                   # Icono SVG vectorial (io.github.thelion.G502ProfileManager.svg)
-│   └── io.github.thelion.G502ProfileManager.desktop # Entrada .desktop estándar XDG
+│   ├── io.github.thelion.G502ProfileManager.desktop # Entrada .desktop estándar XDG
+│   └── g502-profile-manager.service # Unidad de servicio systemd --user
 ├── presets/                     # Manifiestos JSON de presets por juego/aplicación
 │   ├── desktop_general.json
 │   ├── steam_1284210_guildwars2.json
 │   └── steam_230410_warframe.json
 ├── scripts/                     # Scripts de utilidad e instalación en el sistema
 │   ├── install-desktop.sh       # Instalación rápida de lanzador e icono en el sistema
-│   └── uninstall-desktop.sh     # Desinstalación limpia del lanzador
+│   ├── uninstall-desktop.sh     # Desinstalación limpia del lanzador
+│   ├── install-service.sh       # Instalación y arranque del servicio systemd --user
+│   └── uninstall-service.sh     # Detención y desinstalación del servicio systemd
 ├── src/
 │   ├── domain/                  # Entidades de dominio puro (sin dependencias externas)
 │   │   ├── application.py       # Entidad Application y Value Object Action
@@ -83,7 +89,7 @@ g502-profile-manager/
 │   ├── epic_discovery.py        # Descubrimiento de juegos de Epic Games
 │   ├── desktop_entries.py       # Parser de archivos .desktop de Linux
 │   └── process_discovery.py     # Inspección de procesos del sistema
-└── tests/                       # Suite de 101 pruebas unitarias
+└── tests/                       # Suite de 103 pruebas unitarias
 ```
 
 ---
@@ -144,15 +150,34 @@ Para registrar la aplicación en el menú de inicio de Linux (Kickoff, KRunner, 
 # (o mediante la CLI: python3 src/cli.py uninstall-desktop)
 ```
 
-### 3. Motor de Automatización en Segundo Plano (Modo Demonio CLI)
-También puedes ejecutar la auto-detección de forma independiente desde una terminal o script de inicio:
+### 3. Servicio de Usuario en Segundo Plano (`systemd --user`)
+Para que el motor de auto-detección arranque automáticamente y en silencio cada vez que inicies sesión en tu equipo:
+```bash
+# Instalar y arrancar el servicio de usuario systemd
+./scripts/install-service.sh
+# (o mediante la CLI: python3 src/cli.py install-service)
+
+# Consultar el estado del servicio:
+python3 src/cli.py service-status
+
+# Inspeccionar logs en vivo con journalctl:
+journalctl --user -u g502-profile-manager.service -f
+
+# Detener y desinstalar el servicio:
+./scripts/uninstall-service.sh
+# (o mediante la CLI: python3 src/cli.py uninstall-service)
+```
+*(Nota: Si el servicio systemd está activo, la interfaz gráfica lo detectará automáticamente y sincronizará el interruptor de la barra superior).*
+
+### 4. Motor de Automatización en Segundo Plano (Modo Demonio CLI manual)
+También puedes ejecutar la auto-detección de forma independiente desde una terminal o script:
 ```bash
 python3 src/engine.py
 ```
 * El motor detectará automáticamente el lanzamiento de juegos compatibles (ej. Warframe, Guild Wars 2) y aplicará su perfil asignado.
 * Al salir del juego o detener el motor con `Ctrl+C`, se restablecerá automáticamente el perfil de **Escritorio / Sistema**.
 
-### 4. Interfaz de Línea de Comandos (CLI)
+### 5. Interfaz de Línea de Comandos (CLI)
 Para consultar o gestionar aplicaciones desde la terminal:
 ```bash
 # Listar aplicaciones detectadas y estado de configuración
@@ -178,7 +203,7 @@ Si juegas títulos de Windows en Linux mediante **Steam Play / Proton**:
 
 ## 🧪 Ejecución de Pruebas Unitarias
 
-Para ejecutar la suite completa de 101 pruebas automatizadas:
+Para ejecutar la suite completa de 103 pruebas automatizadas:
 ```bash
 python3 -m unittest discover -s tests -v
 ```

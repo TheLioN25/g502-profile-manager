@@ -120,6 +120,7 @@ class MainWindow(Adw.ApplicationWindow):
         # Cargar datos iniciales
         self._load_applications()
         self._update_mouse_hardware_status()
+        self._check_systemd_service_status()
 
     # -------------------------------------------------------------------------
     # Panel Izquierdo: Sidebar de Juegos
@@ -968,10 +969,49 @@ class MainWindow(Adw.ApplicationWindow):
         toast.set_timeout(3)
         self._toast_overlay.add_toast(toast)
 
+    def _is_systemd_service_active(self) -> bool:
+        import subprocess
+        try:
+            res = subprocess.run(
+                ["systemctl", "--user", "is-active", "g502-profile-manager.service"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            return res.stdout.strip() == "active"
+        except Exception:
+            return False
+
+    def _check_systemd_service_status(self):
+        if self._automation_engine is None and self._is_systemd_service_active():
+            self._auto_box.set_tooltip_text("Auto-detección activa en segundo plano (Servicio systemd --user)")
+            self._auto_box.add_css_class("auto-switch-active")
+            self._auto_switch.set_active(True)
+
     def _on_auto_switch_toggled(self, switch: Gtk.Switch, _pspec):
+        from pathlib import Path
+        import subprocess
+
+        svc_file = Path.home() / ".config/systemd/user/g502-profile-manager.service"
+        is_svc_installed = svc_file.exists()
+
         if switch.get_active():
+            if self._automation_engine is None and is_svc_installed:
+                try:
+                    subprocess.run(["systemctl", "--user", "start", "g502-profile-manager.service"], check=False)
+                    self._auto_box.add_css_class("auto-switch-active")
+                    self._auto_box.set_tooltip_text("Auto-detección activa en segundo plano (Servicio systemd --user)")
+                    self._show_toast("⚡ Servicio systemd activado en segundo plano.")
+                    return
+                except Exception:
+                    pass
             self._start_automation()
         else:
+            if self._automation_engine is None and is_svc_installed and self._is_systemd_service_active():
+                try:
+                    subprocess.run(["systemctl", "--user", "stop", "g502-profile-manager.service"], check=False)
+                except Exception:
+                    pass
             self._stop_automation()
 
     def _start_automation(self):
@@ -1019,6 +1059,6 @@ class MainWindow(Adw.ApplicationWindow):
         return False
 
     def _on_close_request(self, _window) -> bool:
-        if hasattr(self, "_auto_switch") and self._auto_switch.get_active():
+        if self._auto_thread is not None and hasattr(self, "_auto_switch"):
             self._auto_switch.set_active(False)
         return False

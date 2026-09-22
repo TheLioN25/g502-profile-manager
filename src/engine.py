@@ -211,6 +211,13 @@ class AutomationEngine:
         self._log("Presiona Ctrl+C o invoca stop() para detener y restaurar el perfil de escritorio.\n")
 
         try:
+            import signal
+            if threading.current_thread() is threading.main_thread():
+                signal.signal(signal.SIGTERM, lambda *_: self.stop())
+        except (ValueError, AttributeError):
+            pass
+
+        try:
             while not self._stop_event.is_set():
                 self.step()
                 if self._stop_event.wait(timeout=self._check_interval):

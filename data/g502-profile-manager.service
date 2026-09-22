@@ -1,0 +1,14 @@
+[Unit]
+Description=G502 Profile Manager - Demonio de automatización en segundo plano
+Documentation=https://github.com/TheLioN25/g502-profile-manager
+After=default.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /home/thelion/g502-profile-manager/src/cli.py run
+Restart=on-failure
+RestartSec=5s
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=default.target

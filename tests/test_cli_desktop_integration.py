@@ -13,7 +13,13 @@ src_path = Path(__file__).resolve().parent.parent / "src"
 if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
 
-from cli import cmd_install_desktop, cmd_uninstall_desktop, create_parser
+from cli import (
+    cmd_install_desktop,
+    cmd_install_service,
+    cmd_uninstall_desktop,
+    cmd_uninstall_service,
+    create_parser,
+)
 
 
 class TestCliDesktopIntegration(unittest.TestCase):
@@ -31,6 +37,12 @@ class TestCliDesktopIntegration(unittest.TestCase):
 
         args_uninstall = parser.parse_args(["uninstall-desktop"])
         self.assertEqual(args_uninstall.command, "uninstall-desktop")
+
+        args_svc_in = parser.parse_args(["install-service"])
+        self.assertEqual(args_svc_in.command, "install-service")
+
+        args_svc_un = parser.parse_args(["uninstall-service"])
+        self.assertEqual(args_svc_un.command, "uninstall-service")
 
     @patch("subprocess.run")
     def test_cmd_install_and_uninstall_desktop(self, mock_subprocess):
@@ -58,6 +70,46 @@ class TestCliDesktopIntegration(unittest.TestCase):
             cmd_uninstall_desktop(None)
             self.assertFalse(dest_desktop.exists(), "El archivo .desktop debe haberse eliminado.")
             self.assertFalse(dest_icon.exists(), "El icono SVG debe haberse eliminado.")
+
+    @patch("subprocess.run")
+    def test_cmd_install_and_uninstall_service(self, mock_subprocess):
+        mock_proc = unittest.mock.MagicMock()
+        mock_proc.stdout = "active"
+        mock_subprocess.return_value = mock_proc
+
+        with patch("pathlib.Path.home", return_value=self.fake_home):
+            # 1. Instalar servicio systemd
+            cmd_install_service(None)
+
+            service_file = self.fake_home / ".config/systemd/user/g502-profile-manager.service"
+            self.assertTrue(service_file.exists(), "El archivo .service debe existir tras la instalación.")
+
+            # Validar estructura INI del servicio systemd
+            config = configparser.ConfigParser(interpolation=None)
+            config.read(service_file, encoding="utf-8")
+            self.assertIn("Unit", config.sections())
+            self.assertIn("Service", config.sections())
+            self.assertIn("Install", config.sections())
+            self.assertIn("run", config["Service"]["ExecStart"])
+            self.assertEqual(config["Install"]["WantedBy"], "default.target")
+
+            # 2. Desinstalar servicio systemd
+            cmd_uninstall_service(None)
+            self.assertFalse(service_file.exists(), "El archivo .service debe haberse eliminado.")
+
+    @patch("cli.AutomationEngine")
+    def test_cmd_run_instantiates_engine_correctly(self, mock_engine_cls):
+        mock_instance = unittest.mock.MagicMock()
+        mock_engine_cls.return_value = mock_instance
+
+        from cli import cmd_run
+        args = unittest.mock.MagicMock()
+        args.interval = 3.5
+
+        cmd_run(args)
+        mock_engine_cls.assert_called_once()
+        self.assertEqual(mock_engine_cls.call_args.kwargs["check_interval"], 3.5)
+        mock_instance.run.assert_called_once()
 
 
 if __name__ == "__main__":
