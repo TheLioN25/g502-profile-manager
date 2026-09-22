@@ -1,5 +1,10 @@
 # Logitech G502 HERO Profile Manager (Linux)
 
+[![CI Pipeline](https://github.com/TheLioN25/g502-profile-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/TheLioN25/g502-profile-manager/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/tests-112%20passed-brightgreen.svg)](#-ejecución-de-pruebas-unitarias)
+[![Python](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](pyproject.toml)
+
 Administrador avanzado de perfiles y automatización en tiempo real para el ratón **Logitech G502 HERO** en entornos Linux.
 
 Permite configurar visualmente los botones, macros, sensibilidades (DPI) y zonas de iluminación LED del ratón, además de conmutar automáticamente los perfiles de hardware según el videojuego o aplicación activa en el sistema mediante [`ratbagctl`](https://github.com/libratbag/libratbag) (`libratbag`).
