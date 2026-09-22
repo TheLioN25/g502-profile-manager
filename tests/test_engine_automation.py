@@ -86,6 +86,31 @@ class TestAutomationEngine(unittest.TestCase):
         self.engine.restore_desktop()
         self.assertIn(desk_prof, self.adapter.applied_profiles)
 
+    def test_stop_engine_sets_event_and_restores_desktop(self):
+        self.engine.initialize()
+        self.assertFalse(self.engine._stop_event.is_set())
+        self.engine.stop()
+        self.assertTrue(self.engine._stop_event.is_set())
+        self.assertIn(0, self.adapter.switched_slots)
+
+    def test_callbacks_on_profile_applied_and_desktop_restored(self):
+        applied_events = []
+        restored_events = []
+
+        engine_with_callbacks = AutomationEngine(
+            profile_manager=self.manager,
+            device_adapter=self.adapter,
+            check_interval=0.1,
+            on_profile_applied=lambda app, prof: applied_events.append((app, prof)),
+            on_desktop_restored=lambda: restored_events.append(True),
+            logger=lambda msg: None,
+        )
+        engine_with_callbacks.initialize()
+
+        # Al restaurar escritorio se llama al callback de restauración
+        engine_with_callbacks.restore_desktop()
+        self.assertEqual(len(restored_events), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

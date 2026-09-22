@@ -4,10 +4,15 @@ Pruebas unitarias para la lógica de la interfaz gráfica GTK4 / Libadwaita.
 
 from __future__ import annotations
 
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+
+src_path = Path(__file__).resolve().parent.parent / "src"
+if str(src_path) not in sys.path:
+    sys.path.insert(0, str(src_path))
 
 import gi
 
@@ -281,6 +286,48 @@ class TestGuiLogic(unittest.TestCase):
         for row, app in window._unconfigured_rows:
             if app.application_id == "steam:1284210":
                 self.assertFalse(row.get_visible())
+
+    def test_main_window_auto_detection_switch_and_lifecycle(self):
+        mock_engine = MagicMock()
+
+        window = MainWindow(
+            app=self.app,
+            profile_manager=self.profile_manager,
+            catalog_service=self.catalog_service,
+            discovery_adapter=self.mock_discovery,
+            ratbag_adapter=self.mock_ratbag,
+            automation_engine=mock_engine,
+        )
+
+        self.assertIsNotNone(window._auto_switch)
+        self.assertFalse(window._auto_switch.get_active())
+
+        # 1. Activar el interruptor
+        window._auto_switch.set_active(True)
+        self.assertTrue(window._auto_switch.get_active())
+        self.assertIsNotNone(window._auto_thread)
+
+        # Probar callback de perfil aplicado
+        test_prof = Profile(name="Saryn Test", application_id="steam:230410", dpi=1600, profile_id="p1")
+        window._on_auto_profile_applied("Warframe", test_prof)
+        self.assertIn("Warframe", window._window_title.get_subtitle())
+        self.assertIn("1600 DPI", window._window_title.get_subtitle())
+
+        # Probar callback de escritorio restaurado
+        window._on_auto_desktop_restored()
+        self.assertIn("steam:230410", window._window_title.get_subtitle())
+
+        # 2. Desactivar el interruptor
+        window._auto_switch.set_active(False)
+        self.assertFalse(window._auto_switch.get_active())
+        mock_engine.stop.assert_called()
+
+        # 3. Probar _on_close_request cuando estaba activo
+        mock_engine.reset_mock()
+        window._auto_switch.set_active(True)
+        window._on_close_request(window)
+        self.assertFalse(window._auto_switch.get_active())
+        mock_engine.stop.assert_called()
 
 
 if __name__ == "__main__":

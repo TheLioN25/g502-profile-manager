@@ -16,6 +16,7 @@ from gi.repository import Adw, Gdk, GLib, Gtk, Pango
 from adapters.application_discovery_adapter import ApplicationDiscoveryAdapter
 from adapters.ratbag_adapter import RatbagDeviceAdapter
 from domain import Action, Application, Button, DpiConfiguration, Profile
+from engine import AutomationEngine
 from gui.dialogs import ActionPickerDialog, NewProfileDialog
 from gui.mouse_diagram import G502MouseDiagram
 from services.action_catalog import ActionCatalogService
@@ -70,6 +71,7 @@ class MainWindow(Adw.ApplicationWindow):
         catalog_service: ActionCatalogService,
         discovery_adapter: ApplicationDiscoveryAdapter,
         ratbag_adapter: RatbagDeviceAdapter | None = None,
+        automation_engine: AutomationEngine | None = None,
     ):
         super().__init__(
             application=app,
@@ -83,6 +85,9 @@ class MainWindow(Adw.ApplicationWindow):
         self._catalog_service = catalog_service
         self._discovery_adapter = discovery_adapter
         self._ratbag_adapter = ratbag_adapter or RatbagDeviceAdapter()
+        self._automation_engine: AutomationEngine | None = automation_engine
+        self._auto_thread: threading.Thread | None = None
+        self.connect("close-request", self._on_close_request)
 
         self._selected_app: Application | None = None
         self._current_profile: Profile | None = None
@@ -196,6 +201,31 @@ class MainWindow(Adw.ApplicationWindow):
         self._mouse_status_label = Gtk.Label(label="Buscando mouse...")
         self._mouse_status_label.set_margin_end(8)
         self._main_header.pack_start(self._mouse_status_label)
+
+        # Separador visual
+        header_sep = Gtk.Separator(orientation=Gtk.Orientation.VERTICAL)
+        header_sep.set_margin_start(4)
+        header_sep.set_margin_end(6)
+        self._main_header.pack_start(header_sep)
+
+        # Interruptor de Auto-Detección de Juegos
+        self._auto_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        self._auto_box.add_css_class("auto-switch-box")
+        self._auto_box.set_tooltip_text("Conmutación automática de perfiles según el juego o aplicación activa")
+
+        auto_icon = Gtk.Image.new_from_icon_name("media-flash-symbolic")
+        self._auto_box.append(auto_icon)
+
+        auto_label = Gtk.Label(label="Auto-Perfil")
+        auto_label.add_css_class("auto-switch-label")
+        self._auto_box.append(auto_label)
+
+        self._auto_switch = Gtk.Switch()
+        self._auto_switch.set_valign(Gtk.Align.CENTER)
+        self._auto_switch.connect("notify::active", self._on_auto_switch_toggled)
+        self._auto_box.append(self._auto_switch)
+
+        self._main_header.pack_start(self._auto_box)
 
         # Botón Aplicar al Mouse
         self._apply_mouse_btn = Gtk.Button(label="Aplicar al Ratón", tooltip_text="Escribir perfil directamente al G502 HERO")
@@ -937,3 +967,58 @@ class MainWindow(Adw.ApplicationWindow):
         toast = Adw.Toast.new(message)
         toast.set_timeout(3)
         self._toast_overlay.add_toast(toast)
+
+    def _on_auto_switch_toggled(self, switch: Gtk.Switch, _pspec):
+        if switch.get_active():
+            self._start_automation()
+        else:
+            self._stop_automation()
+
+    def _start_automation(self):
+        self._auto_box.add_css_class("auto-switch-active")
+        if self._automation_engine is None:
+            self._automation_engine = AutomationEngine(
+                profile_manager=self._profile_manager,
+                device_adapter=self._ratbag_adapter,
+                catalog_service=self._catalog_service,
+                discovery_adapter=self._discovery_adapter,
+                check_interval=2.0,
+                on_profile_applied=lambda app_name, prof: GLib.idle_add(self._on_auto_profile_applied, app_name, prof),
+                on_desktop_restored=lambda: GLib.idle_add(self._on_auto_desktop_restored),
+                logger=lambda msg: None,
+            )
+        else:
+            self._automation_engine._on_profile_applied = lambda app_name, prof: GLib.idle_add(self._on_auto_profile_applied, app_name, prof)
+            self._automation_engine._on_desktop_restored = lambda: GLib.idle_add(self._on_auto_desktop_restored)
+
+        def run_worker():
+            if self._automation_engine:
+                self._automation_engine.run()
+
+        self._auto_thread = threading.Thread(target=run_worker, daemon=True)
+        self._auto_thread.start()
+        self._show_toast("⚡ Auto-detección activada: supervisando procesos...")
+
+    def _stop_automation(self):
+        self._auto_box.remove_css_class("auto-switch-active")
+        if self._automation_engine:
+            self._automation_engine.stop()
+        self._auto_thread = None
+        self._on_auto_desktop_restored()
+        self._show_toast("Auto-detección desactivada: modo escritorio restaurado.")
+
+    def _on_auto_profile_applied(self, app_name: str, profile: Profile):
+        self._window_title.set_subtitle(f"⚡ Auto: {app_name} ({profile.name} · {profile.dpi.dpi} DPI)")
+        return False
+
+    def _on_auto_desktop_restored(self):
+        if self._selected_app:
+            self._window_title.set_subtitle(f"ID: {self._selected_app.application_id}")
+        else:
+            self._window_title.set_subtitle("Selecciona una aplicación")
+        return False
+
+    def _on_close_request(self, _window) -> bool:
+        if hasattr(self, "_auto_switch") and self._auto_switch.get_active():
+            self._auto_switch.set_active(False)
+        return False

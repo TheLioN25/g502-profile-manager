@@ -14,18 +14,19 @@ Permite configurar visualmente los botones, macros, sensibilidades (DPI) y zonas
     * **Sección Superior (Configuradas):** Acceso rápido y prioritario a las aplicaciones que ya tienen perfiles configurados (ej. *Escritorio / Sistema*, *Warframe*, *Guild Wars 2*).
     * **Línea divisoria y buscador reactivo:** Barra de búsqueda ubicada estratégicamente sobre las aplicaciones pendientes de configuración.
     * **Sección Inferior (No configuradas):** Catálogo de juegos y aplicaciones instaladas en el sistema, filtrables al vuelo para configurar nuevos títulos.
+  * **Interruptor Auto-Perfil (⚡) en la cabecera (HeaderBar):** Permite encender o apagar la auto-detección reactiva directamente desde la interfaz gráfica, manteniendo la GUI 100% fluida en un hilo secundario y mostrando el juego activo y sus DPI en tiempo real en la cabecera.
   * **Plano interactivo vectorial del ratón** renderizado en tiempo real con Cairo Canvas: muestra asignaciones de botones, tooltips informativos y sincronización visual con el color LED configurado.
   * Gestión multi-perfil por aplicación: crear, duplicar, renombrar, eliminar y marcar perfiles predeterminados.
   * Selector de acciones con categorías temáticas (*Combate, Armas, Profesión, Movimiento, Productividad*) y asignación rápida de teclas personalizadas.
   * Aplicación instantánea al hardware con ejecución en segundo plano y debouncing para evitar bloqueos de la interfaz.
 
 * 🔄 **Motor de Automatización Reactivo (`engine.py`):**
-  * Monitoreo continuo y ligero de procesos activos en segundo plano.
+  * Monitoreo continuo y ligero de procesos activos en segundo plano (vía CLI o interruptor en la GUI).
   * **Descubrimiento unificado de aplicaciones:**
     * 🎮 **Steam:** Detección de juegos instalados y activos mediante lectura de librerías VDF y manifiestos `.acf` (`steam:<appid>`).
     * ⚔️ **Epic Games:** Detección automática en lanzadores Linux (Heroic Games Launcher, Legendary y Lutris).
     * 🖥️ **Escritorio Linux:** Integración con entradas `.desktop` estándar del sistema (XDG).
-  * **Restauración Inteligente:** Al cerrar un juego o detener el motor (`Ctrl+C`), se restaura automáticamente el perfil de **Escritorio / Sistema** (`desktop:general`).
+  * **Restauración Inteligente:** Al cerrar un juego, detener el motor o apagar el interruptor, se restaura automáticamente el perfil de **Escritorio / Sistema** (`desktop:general`).
 
 * 🛡️ **Aislamiento Total de Perfiles (Modelo G-HUB):**
   * Resuelve la persistencia indeseada en la memoria física EEPROM del ratón.
@@ -35,7 +36,7 @@ Permite configurar visualmente los botones, macros, sensibilidades (DPI) y zonas
   * Presets integrados en formato JSON ampliables para juegos como **Warframe** y **Guild Wars 2** (incluyendo mecánicas de profesión F1–F5 y habilidades personalizables), además de atajos de productividad para el escritorio.
 
 * 🧪 **Suite de Pruebas Exhaustiva:**
-  * 96 pruebas unitarias automatizadas con cobertura en dominio, persistencia, adaptadores de hardware y lógica de interfaz gráfica.
+  * 99 pruebas unitarias automatizadas con cobertura en dominio, persistencia, adaptadores de hardware y lógica de interfaz gráfica.
 
 ---
 
@@ -75,7 +76,7 @@ g502-profile-manager/
 │   ├── epic_discovery.py        # Descubrimiento de juegos de Epic Games
 │   ├── desktop_entries.py       # Parser de archivos .desktop de Linux
 │   └── process_discovery.py     # Inspección de procesos del sistema
-└── tests/                       # Suite de 95 pruebas unitarias
+└── tests/                       # Suite de 99 pruebas unitarias
 ```
 
 ---
@@ -119,9 +120,10 @@ Para abrir el administrador visual con el plano interactivo del ratón:
 ```bash
 python3 src/gui/app.py
 ```
-* Selecciona una aplicación en la barra lateral (o **Escritorio / Sistema**).
-* Personaliza los DPI, el color LED o haz clic en cualquier botón del diagrama para asignarle una acción del catálogo o una tecla personalizada.
-* Haz clic en **"Aplicar al ratón"** para grabar la configuración en la memoria física del dispositivo.
+* **Organizador de aplicaciones:** Explora las aplicaciones ya configuradas en la sección superior o utiliza el buscador para configurar títulos nuevos desde la sección inferior.
+* **Interruptor Auto-Perfil (⚡):** Enciende el switch en la barra superior para activar la supervisión de procesos en segundo plano. Detectará cuando entres o salgas de tus juegos y aplicará o restaurará los perfiles en tiempo real sin congelar la ventana.
+* **Personalización Completa:** Ajusta los DPI, el color LED o haz clic en cualquier botón del esquema interactivo para asignarle una acción del catálogo o una tecla personalizada.
+* **Aplicar al ratón:** Graba instantáneamente la configuración en la memoria física del ratón.
 
 ### 2. Motor de Automatización en Segundo Plano
 Para activar el cambio automático de perfiles al abrir o cerrar juegos:
@@ -157,7 +159,7 @@ Si juegas títulos de Windows en Linux mediante **Steam Play / Proton**:
 
 ## 🧪 Ejecución de Pruebas Unitarias
 
-Para ejecutar la suite completa de 95 pruebas automatizadas:
+Para ejecutar la suite completa de 99 pruebas automatizadas:
 ```bash
 python3 -m unittest discover -s tests -v
 ```

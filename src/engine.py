@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+import threading
 import time
 from typing import Callable
 
@@ -61,6 +62,8 @@ class AutomationEngine:
         catalog_service: ActionCatalogService | None = None,
         discovery_adapter: ApplicationDiscoveryAdapter | None = None,
         logger: Callable[[str], None] = print,
+        on_profile_applied: Callable[[str, Profile], None] | None = None,
+        on_desktop_restored: Callable[[], None] | None = None,
     ):
         self._profile_manager = profile_manager
         self._device_adapter = device_adapter
@@ -71,6 +74,9 @@ class AutomationEngine:
         self._catalog_service = catalog_service or ActionCatalogService()
         self._discovery = discovery_adapter or ApplicationDiscoveryAdapter(steam_libraryfolders_file=self._steam_file)
         self._log = logger
+        self._on_profile_applied = on_profile_applied
+        self._on_desktop_restored = on_desktop_restored
+        self._stop_event = threading.Event()
 
         self._device_id: str | None = None
         self._current_profile_id: str | None = None
@@ -175,23 +181,23 @@ class AutomationEngine:
                     self._log("         Perfil aplicado al ratón con éxito.")
                     self._current_profile_id = target_profile.id
                     self._current_profile_updated_at = target_profile.updated_at
+                    if self._on_profile_applied:
+                        self._on_profile_applied(detected_app_name, target_profile)
                 else:
                     self._log("         ADVERTENCIA: No se pudo aplicar el perfil completamente.")
         else:
             # Volver a perfil de escritorio si estábamos en otro perfil
             if self._current_profile_id is not None:
-                self._log(f"\n[DESK] Volviendo al modo escritorio...")
-                desktop_prof = self._profile_manager.get_active_profile_for_application("desktop:general")
-                if desktop_prof is not None:
-                    self._device_adapter.apply_profile(self._device_id, desktop_prof)
-                    self._log("       Perfil de escritorio ('desktop:general') restaurado.")
-                else:
-                    self._device_adapter.switch_profile_slot(self._device_id, self._desktop_profile_slot)
-                    self._log(f"       Perfil de escritorio (slot {self._desktop_profile_slot}) restaurado.")
-                self._current_profile_id = None
-                self._current_profile_updated_at = None
+                self._log("\n[DESK] Volviendo al modo escritorio...")
+                self.restore_desktop()
 
         return True
+
+    def stop(self) -> None:
+        """Detiene el bucle de monitoreo y restaura el perfil de escritorio."""
+        self._stop_event.set()
+        self.restore_desktop()
+        self._log("Motor detenido limpiamente.")
 
     def run(self) -> None:
         """
@@ -200,18 +206,20 @@ class AutomationEngine:
         if not self.initialize():
             return
 
+        self._stop_event.clear()
         self._log(f"Motor iniciado con intervalo de {self._check_interval}s.")
-        self._log("Presiona Ctrl+C para detener y restaurar el perfil de escritorio.\n")
+        self._log("Presiona Ctrl+C o invoca stop() para detener y restaurar el perfil de escritorio.\n")
 
         try:
-            while True:
+            while not self._stop_event.is_set():
                 self.step()
-                time.sleep(self._check_interval)
+                if self._stop_event.wait(timeout=self._check_interval):
+                    break
 
         except KeyboardInterrupt:
             self._log("\nDeteniendo motor...")
-            self.restore_desktop()
-            self._log("Motor detenido limpiamente.")
+        finally:
+            self.stop()
 
     def restore_desktop(self) -> None:
         """Restaura el perfil de escritorio en el hardware del ratón."""
@@ -219,10 +227,14 @@ class AutomationEngine:
             desktop_prof = self._profile_manager.get_active_profile_for_application("desktop:general")
             if desktop_prof is not None:
                 self._device_adapter.apply_profile(self._device_id, desktop_prof)
+                self._log("       Perfil de escritorio ('desktop:general') restaurado.")
             else:
                 self._device_adapter.switch_profile_slot(self._device_id, self._desktop_profile_slot)
+                self._log(f"       Perfil de escritorio (slot {self._desktop_profile_slot}) restaurado.")
             self._current_profile_id = None
             self._current_profile_updated_at = None
+            if self._on_desktop_restored:
+                self._on_desktop_restored()
 
 
 def main():
