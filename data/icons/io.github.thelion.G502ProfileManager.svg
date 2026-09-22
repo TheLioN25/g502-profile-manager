@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <!-- Gradientes de Fondo -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#21262d"/>
+      <stop offset="50%" stop-color="#161b22"/>
+      <stop offset="100%" stop-color="#0d1117"/>
+    </linearGradient>
+
+    <!-- Gradiente de Borde Neón -->
+    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00e5ff" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#0066ff" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#00e5ff" stop-opacity="0.1"/>
+    </linearGradient>
+
+    <!-- Gradiente Cuerpo del Ratón -->
+    <linearGradient id="bodyGrad" x1="20%" y1="10%" x2="80%" y2="90%">
+      <stop offset="0%" stop-color="#30363d"/>
+      <stop offset="60%" stop-color="#1e2228"/>
+      <stop offset="100%" stop-color="#12151a"/>
+    </linearGradient>
+
+    <!-- Gradiente Botones Principales -->
+    <linearGradient id="clickGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3d444d"/>
+      <stop offset="100%" stop-color="#21262d"/>
+    </linearGradient>
+
+    <!-- Gradiente Rueda Metálica -->
+    <linearGradient id="wheelGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#8b949e"/>
+      <stop offset="50%" stop-color="#f0f6fc"/>
+      <stop offset="100%" stop-color="#6e7681"/>
+    </linearGradient>
+
+    <!-- Gradiente Neón Cyan G502 -->
+    <linearGradient id="neonCyan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#33ebff"/>
+      <stop offset="100%" stop-color="#0099ff"/>
+    </linearGradient>
+
+    <!-- Filtro de Resplandor Neón -->
+    <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <filter id="subtleGlow" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Fondo Squircle Estilo Libadwaita / KDE -->
+  <rect x="12" y="12" width="232" height="232" rx="52" fill="url(#bgGrad)"/>
+  <rect x="12" y="12" width="232" height="232" rx="52" fill="none" stroke="url(#borderGrad)" stroke-width="2.5"/>
+
+  <!-- Ala reposapulgar izquierda (Ergonomía icónica G502) -->
+  <path d="M 98 128 C 82 135 62 152 64 182 C 65 198 84 206 104 204 Z" 
+        fill="#1c2127" stroke="#30363d" stroke-width="1.5"/>
+
+  <!-- Botón Sniper en reposapulgar -->
+  <rect x="68" y="166" width="14" height="22" rx="4" fill="#0d1117" stroke="#00e5ff" stroke-width="1.2" opacity="0.9"/>
+  <circle cx="75" cy="177" r="2.5" fill="#00e5ff" filter="url(#subtleGlow)"/>
+
+  <!-- Botones Laterales G5 y G4 -->
+  <path d="M 85 132 L 95 130 L 93 146 L 83 148 Z" fill="#21262d" stroke="#30363d" stroke-width="1"/>
+  <path d="M 82 151 L 92 149 L 90 165 L 80 167 Z" fill="#21262d" stroke="#30363d" stroke-width="1"/>
+
+  <!-- Silueta Principal del Ratón -->
+  <path d="M 96 68 
+           C 98 48 118 42 128 42 
+           C 138 42 158 48 160 68 
+           C 162 88 174 125 174 165 
+           C 174 202 154 218 128 218 
+           C 102 218 88 200 88 165 
+           C 88 125 94 88 96 68 Z" 
+        fill="url(#bodyGrad)" stroke="#30363d" stroke-width="2"/>
+
+  <!-- Clic Izquierdo (con biseles afilados del G502) -->
+  <path d="M 96 68 C 98 50 114 44 124 43 L 124 116 L 95 116 C 94 98 95 80 96 68 Z" 
+        fill="url(#clickGrad)" stroke="#30363d" stroke-width="1.2"/>
+
+  <!-- Clic Derecho -->
+  <path d="M 132 43 C 142 44 158 50 160 68 C 161 80 162 98 161 116 L 132 116 Z" 
+        fill="url(#clickGrad)" stroke="#30363d" stroke-width="1.2"/>
+
+  <!-- Botones DPI G7 y G8 en el borde del clic izquierdo -->
+  <rect x="91" y="62" width="5" height="12" rx="2" fill="#0d1117" stroke="#00e5ff" stroke-width="1"/>
+  <rect x="91" y="77" width="5" height="12" rx="2" fill="#0d1117" stroke="#00e5ff" stroke-width="1"/>
+
+  <!-- Cavidad de la Rueda de Desplazamiento -->
+  <rect x="123" y="52" width="10" height="34" rx="4" fill="#0d1117"/>
+
+  <!-- Rueda Metálica con estrías -->
+  <rect x="124.5" y="54" width="7" height="30" rx="3" fill="url(#wheelGrad)"/>
+  <line x1="125" y1="60" x2="131" y2="60" stroke="#161b22" stroke-width="1.2"/>
+  <line x1="125" y1="65" x2="131" y2="65" stroke="#161b22" stroke-width="1.2"/>
+  <line x1="125" y1="70" x2="131" y2="70" stroke="#161b22" stroke-width="1.2"/>
+  <line x1="125" y1="75" x2="131" y2="75" stroke="#161b22" stroke-width="1.2"/>
+
+  <!-- Botón G9 / Modo de Rueda detrás de la rueda -->
+  <rect x="125" y="92" width="6" height="8" rx="2" fill="#21262d" stroke="#30363d" stroke-width="1"/>
+  <rect x="125" y="103" width="6" height="8" rx="2" fill="#21262d" stroke="#30363d" stroke-width="1"/>
+
+  <!-- Líneas Indicadoras DPI (3 barras inclinadas cian neón) -->
+  <g filter="url(#neonGlow)">
+    <path d="M 102 124 L 105 124 L 103 130 L 100 130 Z" fill="#00e5ff"/>
+    <path d="M 100 133 L 103 133 L 101 139 L 98 139 Z" fill="#00e5ff"/>
+    <path d="M 98 142 L 101 142 L 99 148 L 96 148 Z" fill="#00e5ff"/>
+  </g>
+
+  <!-- Logotipo "G" Estilizado Logitech Gaming con Iluminación LED RGB Neón -->
+  <g transform="translate(128, 172)" filter="url(#neonGlow)">
+    <!-- Aura circular de luz -->
+    <circle cx="0" cy="0" r="16" fill="url(#neonCyan)" opacity="0.15"/>
+    <!-- Glifo "G" icónico -->
+    <path d="M 8 -7 
+             C 4 -12 -4 -12 -8 -8 
+             C -13 -3 -13 4 -8 9 
+             C -3 13 5 13 9 8 
+             L 9 2 L 0 2 L 0 -1 L 12 -1 L 12 9 
+             C 6 16 -6 16 -12 11 
+             C -17 5 -17 -5 -11 -11 
+             C -5 -16 6 -16 12 -9 Z" 
+          fill="url(#neonCyan)"/>
+  </g>
+
+  <!-- Destello / Brillo Superior Sutil -->
+  <ellipse cx="128" cy="24" rx="60" ry="8" fill="#ffffff" opacity="0.04"/>
+</svg>

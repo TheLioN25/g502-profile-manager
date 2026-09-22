@@ -53,6 +53,13 @@ class G502Application(Adw.Application):
                     Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
                 )
 
+        # Registrar directorio de iconos local
+        icons_dir = Path(__file__).resolve().parent.parent.parent / "data" / "icons"
+        display = Gdk.Display.get_default()
+        if icons_dir.exists() and display:
+            icon_theme = Gtk.IconTheme.get_for_display(display)
+            icon_theme.add_search_path(str(icons_dir))
+
     def do_activate(self):
         if not self._window:
             repository = JsonProfileRepository(DEFAULT_PROFILES_FILE)

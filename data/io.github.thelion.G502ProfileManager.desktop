@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=G502 Profile Manager
+GenericName=Gestor de Ratón Logitech G502 HERO
+Comment=Gestor nativo de perfiles, macros, DPI e iluminación para ratón Logitech G502 HERO en Linux
+Exec=python3 /home/thelion/g502-profile-manager/src/cli.py gui
+Icon=io.github.thelion.G502ProfileManager
+Terminal=false
+Type=Application
+Categories=Settings;HardwareSettings;Game;Utility;
+Keywords=Logitech;G502;Mouse;Profile;Gaming;RGB;DPI;Warframe;GuildWars2;Heroic;Steam;
+StartupNotify=true
+StartupWMClass=io.github.thelion.G502ProfileManager

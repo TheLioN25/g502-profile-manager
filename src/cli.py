@@ -296,6 +296,10 @@ def create_parser():
     # gui
     subparsers.add_parser("gui", help="Inicia la interfaz gráfica nativa (GTK4 + Libadwaita).")
 
+    # desktop integration
+    subparsers.add_parser("install-desktop", help="Instala el acceso directo y su icono en el menú de aplicaciones del sistema.")
+    subparsers.add_parser("uninstall-desktop", help="Desinstala el acceso directo y su icono del sistema.")
+
     return parser
 
 
@@ -308,6 +312,87 @@ def cmd_gui(args):
         print(f"Error al iniciar la interfaz gráfica: {e}")
         print("Asegúrate de tener instalados GTK4 y Libadwaita (python-gi, libadwaita-1).")
         return 1
+
+
+def cmd_install_desktop(args):
+    import shutil
+    import subprocess
+
+    repo_root = Path(__file__).resolve().parent.parent
+    desktop_dest_dir = Path.home() / ".local/share/applications"
+    icons_dest_dir = Path.home() / ".local/share/icons/hicolor/scalable/apps"
+
+    desktop_dest_dir.mkdir(parents=True, exist_ok=True)
+    icons_dest_dir.mkdir(parents=True, exist_ok=True)
+
+    src_icon = repo_root / "data" / "icons" / "io.github.thelion.G502ProfileManager.svg"
+    dest_icon = icons_dest_dir / "io.github.thelion.G502ProfileManager.svg"
+    if src_icon.exists():
+        shutil.copy2(src_icon, dest_icon)
+        print(f"• Icono instalado: {dest_icon}")
+
+    desktop_content = f"""[Desktop Entry]
+Name=G502 Profile Manager
+GenericName=Gestor de Ratón Logitech G502 HERO
+Comment=Gestor nativo de perfiles, macros, DPI e iluminación para ratón Logitech G502 HERO en Linux
+Exec={sys.executable} {repo_root / 'src/cli.py'} gui
+Icon=io.github.thelion.G502ProfileManager
+Terminal=false
+Type=Application
+Categories=Settings;HardwareSettings;Game;Utility;
+Keywords=Logitech;G502;Mouse;Profile;Gaming;RGB;DPI;Warframe;GuildWars2;Heroic;Steam;
+StartupNotify=true
+StartupWMClass=io.github.thelion.G502ProfileManager
+"""
+    dest_desktop = desktop_dest_dir / "io.github.thelion.G502ProfileManager.desktop"
+    dest_desktop.write_text(desktop_content, encoding="utf-8")
+    dest_desktop.chmod(0o755)
+    print(f"• Acceso directo instalado: {dest_desktop}")
+
+    # Actualizar bases de datos del entorno de escritorio
+    for cmd in [
+        ["update-desktop-database", str(desktop_dest_dir)],
+        ["kbuildsycoca6"],
+        ["gtk-update-icon-cache", "-q", "-t", "-f", str(Path.home() / ".local/share/icons/hicolor")],
+    ]:
+        try:
+            subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+        except FileNotFoundError:
+            pass
+
+    print("\n✓ ¡Acceso directo instalado con éxito en el sistema!")
+    print("  Ahora puedes buscar 'G502 Profile Manager' en el menú de KDE Plasma o KRunner.\n")
+
+
+def cmd_uninstall_desktop(args):
+    import subprocess
+
+    desktop_file = Path.home() / ".local/share/applications/io.github.thelion.G502ProfileManager.desktop"
+    icon_file = Path.home() / ".local/share/icons/hicolor/scalable/apps/io.github.thelion.G502ProfileManager.svg"
+
+    removed = False
+    if desktop_file.exists():
+        desktop_file.unlink()
+        print(f"• Eliminado: {desktop_file}")
+        removed = True
+    if icon_file.exists():
+        icon_file.unlink()
+        print(f"• Eliminado: {icon_file}")
+        removed = True
+
+    if removed:
+        for cmd in [
+            ["update-desktop-database", str(Path.home() / ".local/share/applications")],
+            ["kbuildsycoca6"],
+            ["gtk-update-icon-cache", "-q", "-t", "-f", str(Path.home() / ".local/share/icons/hicolor")],
+        ]:
+            try:
+                subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+            except FileNotFoundError:
+                pass
+        print("\n✓ Acceso directo desinstalado del sistema correctamente.\n")
+    else:
+        print("\nNo se encontró ninguna instalación previa del acceso directo.\n")
 
 
 def main():
@@ -326,6 +411,8 @@ def main():
         "run": cmd_run,
         "engine": cmd_run,
         "gui": cmd_gui,
+        "install-desktop": cmd_install_desktop,
+        "uninstall-desktop": cmd_uninstall_desktop,
     }
 
     handler = handlers.get(args.command)

@@ -15,6 +15,7 @@ Permite configurar visualmente los botones, macros, sensibilidades (DPI) y zonas
     * **Línea divisoria y buscador reactivo:** Barra de búsqueda ubicada estratégicamente sobre las aplicaciones pendientes de configuración.
     * **Sección Inferior (No configuradas):** Catálogo de juegos y aplicaciones instaladas en el sistema, filtrables al vuelo para configurar nuevos títulos.
   * **Interruptor Auto-Perfil (⚡) en la cabecera (HeaderBar):** Permite encender o apagar la auto-detección reactiva directamente desde la interfaz gráfica, manteniendo la GUI 100% fluida en un hilo secundario y mostrando el juego activo y sus DPI en tiempo real en la cabecera.
+  * **Integración nativa con el sistema:** Acceso directo `.desktop` con icono SVG vectorial dedicado de alta resolución, integrado automáticamente con el menú de inicio de KDE Plasma (Kickoff), KRunner y la barra de tareas.
   * **Plano interactivo vectorial del ratón** renderizado en tiempo real con Cairo Canvas: muestra asignaciones de botones, tooltips informativos y sincronización visual con el color LED configurado.
   * Gestión multi-perfil por aplicación: crear, duplicar, renombrar, eliminar y marcar perfiles predeterminados.
   * Selector de acciones con categorías temáticas (*Combate, Armas, Profesión, Movimiento, Productividad*) y asignación rápida de teclas personalizadas.
@@ -36,7 +37,7 @@ Permite configurar visualmente los botones, macros, sensibilidades (DPI) y zonas
   * Presets integrados en formato JSON ampliables para juegos como **Warframe** y **Guild Wars 2** (incluyendo mecánicas de profesión F1–F5 y habilidades personalizables), además de atajos de productividad para el escritorio.
 
 * 🧪 **Suite de Pruebas Exhaustiva:**
-  * 99 pruebas unitarias automatizadas con cobertura en dominio, persistencia, adaptadores de hardware y lógica de interfaz gráfica.
+  * 101 pruebas unitarias automatizadas con cobertura en dominio, persistencia, adaptadores de hardware, lógica de interfaz gráfica e integración de escritorio.
 
 ---
 
@@ -46,10 +47,16 @@ El proyecto está diseñado bajo principios de **Domain-Driven Design (DDD)** y 
 
 ```text
 g502-profile-manager/
+├── data/                        # Recursos del sistema y accesos directos
+│   ├── icons/                   # Icono SVG vectorial (io.github.thelion.G502ProfileManager.svg)
+│   └── io.github.thelion.G502ProfileManager.desktop # Entrada .desktop estándar XDG
 ├── presets/                     # Manifiestos JSON de presets por juego/aplicación
 │   ├── desktop_general.json
 │   ├── steam_1284210_guildwars2.json
 │   └── steam_230410_warframe.json
+├── scripts/                     # Scripts de utilidad e instalación en el sistema
+│   ├── install-desktop.sh       # Instalación rápida de lanzador e icono en el sistema
+│   └── uninstall-desktop.sh     # Desinstalación limpia del lanzador
 ├── src/
 │   ├── domain/                  # Entidades de dominio puro (sin dependencias externas)
 │   │   ├── application.py       # Entidad Application y Value Object Action
@@ -76,7 +83,7 @@ g502-profile-manager/
 │   ├── epic_discovery.py        # Descubrimiento de juegos de Epic Games
 │   ├── desktop_entries.py       # Parser de archivos .desktop de Linux
 │   └── process_discovery.py     # Inspección de procesos del sistema
-└── tests/                       # Suite de 99 pruebas unitarias
+└── tests/                       # Suite de 101 pruebas unitarias
 ```
 
 ---
@@ -125,15 +132,27 @@ python3 src/gui/app.py
 * **Personalización Completa:** Ajusta los DPI, el color LED o haz clic en cualquier botón del esquema interactivo para asignarle una acción del catálogo o una tecla personalizada.
 * **Aplicar al ratón:** Graba instantáneamente la configuración en la memoria física del ratón.
 
-### 2. Motor de Automatización en Segundo Plano
-Para activar el cambio automático de perfiles al abrir o cerrar juegos:
+### 2. Integración en el Menú de Aplicaciones (KDE Plasma / GNOME)
+Para registrar la aplicación en el menú de inicio de Linux (Kickoff, KRunner, barra de tareas) con su propio icono SVG:
+```bash
+# Instalar acceso directo en ~/.local/share/applications/ e icono en ~/.local/share/icons/
+./scripts/install-desktop.sh
+# (o mediante la CLI: python3 src/cli.py install-desktop)
+
+# Para desinstalar el acceso directo:
+./scripts/uninstall-desktop.sh
+# (o mediante la CLI: python3 src/cli.py uninstall-desktop)
+```
+
+### 3. Motor de Automatización en Segundo Plano (Modo Demonio CLI)
+También puedes ejecutar la auto-detección de forma independiente desde una terminal o script de inicio:
 ```bash
 python3 src/engine.py
 ```
 * El motor detectará automáticamente el lanzamiento de juegos compatibles (ej. Warframe, Guild Wars 2) y aplicará su perfil asignado.
 * Al salir del juego o detener el motor con `Ctrl+C`, se restablecerá automáticamente el perfil de **Escritorio / Sistema**.
 
-### 3. Interfaz de Línea de Comandos (CLI)
+### 4. Interfaz de Línea de Comandos (CLI)
 Para consultar o gestionar aplicaciones desde la terminal:
 ```bash
 # Listar aplicaciones detectadas y estado de configuración
@@ -159,7 +178,7 @@ Si juegas títulos de Windows en Linux mediante **Steam Play / Proton**:
 
 ## 🧪 Ejecución de Pruebas Unitarias
 
-Para ejecutar la suite completa de 99 pruebas automatizadas:
+Para ejecutar la suite completa de 101 pruebas automatizadas:
 ```bash
 python3 -m unittest discover -s tests -v
 ```
