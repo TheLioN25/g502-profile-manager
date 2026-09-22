@@ -46,4 +46,4 @@ package-dir = {"" = "src"}
 where = ["src"]
 
 [tool.setuptools.package-data]
-"*" = ["*.css", "*.svg", "*.json"]
+"*" = ["*.css", "*.svg", "*.json", "*.png"]

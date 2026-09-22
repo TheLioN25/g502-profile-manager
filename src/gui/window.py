@@ -80,6 +80,7 @@ class MainWindow(Adw.ApplicationWindow):
             default_width=1240,
             default_height=780,
         )
+        self.set_icon_name("io.github.thelion.G502ProfileManager")
         self.set_size_request(880, 560)
 
         self._profile_manager = profile_manager

@@ -11,7 +11,14 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, Gdk, Gio, Gtk
+from gi.repository import Adw, Gdk, Gio, GLib, Gtk
+
+# Establecer identificador de programa canónico para Wayland/X11 y gestores de ventanas (KDE Plasma / GNOME)
+try:
+    GLib.set_prgname("io.github.thelion.G502ProfileManager")
+    GLib.set_application_name("G502 Profile Manager")
+except Exception:
+    pass
 
 from adapters.application_discovery_adapter import ApplicationDiscoveryAdapter
 from adapters.ratbag_adapter import RatbagDeviceAdapter
@@ -41,6 +48,9 @@ class G502Application(Adw.Application):
         style_manager = Adw.StyleManager.get_default()
         style_manager.set_color_scheme(Adw.ColorScheme.PREFER_DARK)
 
+        # Definir icono de ventana predeterminado en GTK
+        Gtk.Window.set_default_icon_name("io.github.thelion.G502ProfileManager")
+
         # Cargar estilos CSS personalizados
         css_path = Path(__file__).parent / "style.css"
         if css_path.exists():
@@ -54,12 +64,16 @@ class G502Application(Adw.Application):
                     Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
                 )
 
-        # Registrar directorio de iconos local
+        # Registrar directorios de iconos local y de usuario
         icons_dir = Path(__file__).resolve().parent.parent.parent / "data" / "icons"
+        user_icons_dir = Path.home() / ".local/share/icons/hicolor"
         display = Gdk.Display.get_default()
-        if icons_dir.exists() and display:
+        if display:
             icon_theme = Gtk.IconTheme.get_for_display(display)
-            icon_theme.add_search_path(str(icons_dir))
+            if icons_dir.exists():
+                icon_theme.add_search_path(str(icons_dir))
+            if user_icons_dir.exists():
+                icon_theme.add_search_path(str(user_icons_dir))
 
     def do_activate(self):
         if not self._window:

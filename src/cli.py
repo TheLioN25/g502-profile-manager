@@ -368,6 +368,12 @@ def create_parser():
 
 def cmd_gui(args):
     try:
+        from gi.repository import GLib
+        GLib.set_prgname("io.github.thelion.G502ProfileManager")
+        GLib.set_application_name("G502 Profile Manager")
+    except Exception:
+        pass
+    try:
         from gui.app import G502Application
         app = G502Application()
         return app.run(sys.argv[:1])
@@ -383,16 +389,61 @@ def cmd_install_desktop(args):
 
     repo_root = Path(__file__).resolve().parent.parent
     desktop_dest_dir = Path.home() / ".local/share/applications"
-    icons_dest_dir = Path.home() / ".local/share/icons/hicolor/scalable/apps"
+    hicolor_root = Path.home() / ".local/share/icons/hicolor"
+    icons_dest_dir = hicolor_root / "scalable/apps"
 
     desktop_dest_dir.mkdir(parents=True, exist_ok=True)
     icons_dest_dir.mkdir(parents=True, exist_ok=True)
 
+    # 1. Asegurar archivo index.theme en ~/.local/share/icons/hicolor para que gtk-update-icon-cache no falle
+    hicolor_theme_file = hicolor_root / "index.theme"
+    if not hicolor_theme_file.exists():
+        system_index = Path("/usr/share/icons/hicolor/index.theme")
+        if system_index.exists():
+            shutil.copy2(system_index, hicolor_theme_file)
+        else:
+            hicolor_theme_file.write_text(
+                "[Icon Theme]\nName=Hicolor\nComment=Fallback icon theme\nHidden=true\nDirectories=scalable/apps,16x16/apps,22x22/apps,24x24/apps,32x32/apps,48x48/apps,64x64/apps,128x128/apps,256x256/apps,512x512/apps\n",
+                encoding="utf-8",
+            )
+
+    # 2. Instalar icono SVG vectorial en scalable, ~/.local/share/icons y pixmaps
     src_icon = repo_root / "data" / "icons" / "io.github.thelion.G502ProfileManager.svg"
     dest_icon = icons_dest_dir / "io.github.thelion.G502ProfileManager.svg"
     if src_icon.exists():
         shutil.copy2(src_icon, dest_icon)
-        print(f"• Icono instalado: {dest_icon}")
+        # Copiar también a rutas estándar de fallback en el entorno de escritorio
+        loose_icons = Path.home() / ".local/share/icons"
+        pixmaps_dir = Path.home() / ".local/share/pixmaps"
+        loose_icons.mkdir(parents=True, exist_ok=True)
+        pixmaps_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src_icon, loose_icons / "io.github.thelion.G502ProfileManager.svg")
+        shutil.copy2(src_icon, pixmaps_dir / "io.github.thelion.G502ProfileManager.svg")
+        print(f"• Icono SVG instalado: {dest_icon}")
+
+    # 3. Instalar versiones rasterizadas PNG multi-resolución para barras de tareas (KDE Plasma, GNOME, XFCE)
+    sizes = [16, 22, 24, 32, 48, 64, 128, 256, 512]
+    for sz in sizes:
+        png_src = repo_root / "data" / "icons" / f"io.github.thelion.G502ProfileManager_{sz}x{sz}.png"
+        sz_dir = hicolor_root / f"{sz}x{sz}" / "apps"
+        sz_dir.mkdir(parents=True, exist_ok=True)
+        sz_dest = sz_dir / "io.github.thelion.G502ProfileManager.png"
+        if png_src.exists():
+            shutil.copy2(png_src, sz_dest)
+        elif src_icon.exists():
+            try:
+                import cairo, gi
+                gi.require_version("Rsvg", "2.0")
+                from gi.repository import Rsvg
+                handle = Rsvg.Handle.new_from_file(str(src_icon))
+                surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, sz, sz)
+                ctx = cairo.Context(surf)
+                rect = Rsvg.Rectangle()
+                rect.x, rect.y, rect.width, rect.height = 0, 0, sz, sz
+                handle.render_document(ctx, rect)
+                surf.write_to_png(str(sz_dest))
+            except Exception:
+                pass
 
     desktop_content = f"""[Desktop Entry]
 Name=G502 Profile Manager
@@ -412,18 +463,18 @@ StartupWMClass=io.github.thelion.G502ProfileManager
     dest_desktop.chmod(0o755)
     print(f"• Acceso directo instalado: {dest_desktop}")
 
-    # Actualizar bases de datos del entorno de escritorio
+    # Actualizar bases de datos del entorno de escritorio y caché de iconos
     for cmd in [
         ["update-desktop-database", str(desktop_dest_dir)],
-        ["kbuildsycoca6"],
-        ["gtk-update-icon-cache", "-q", "-t", "-f", str(Path.home() / ".local/share/icons/hicolor")],
+        ["kbuildsycoca6", "--noincremental"],
+        ["gtk-update-icon-cache", "-q", "-t", "-f", str(hicolor_root)],
     ]:
         try:
             subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
         except FileNotFoundError:
             pass
 
-    print("\n✓ ¡Acceso directo instalado con éxito en el sistema!")
+    print("\n✓ ¡Acceso directo e iconos instalados con éxito en el sistema!")
     print("  Ahora puedes buscar 'G502 Profile Manager' en el menú de KDE Plasma o KRunner.\n")
 
 
@@ -432,6 +483,8 @@ def cmd_uninstall_desktop(args):
 
     desktop_file = Path.home() / ".local/share/applications/io.github.thelion.G502ProfileManager.desktop"
     icon_file = Path.home() / ".local/share/icons/hicolor/scalable/apps/io.github.thelion.G502ProfileManager.svg"
+    loose_icon = Path.home() / ".local/share/icons/io.github.thelion.G502ProfileManager.svg"
+    pixmaps_icon = Path.home() / ".local/share/pixmaps/io.github.thelion.G502ProfileManager.svg"
 
     removed = False
     if desktop_file.exists():
@@ -442,20 +495,37 @@ def cmd_uninstall_desktop(args):
         icon_file.unlink()
         print(f"• Eliminado: {icon_file}")
         removed = True
+    if loose_icon.exists():
+        loose_icon.unlink()
+        removed = True
+    if pixmaps_icon.exists():
+        pixmaps_icon.unlink()
+        removed = True
+
+    # Eliminar iconos rasterizados PNG
+    hicolor_root = Path.home() / ".local/share/icons/hicolor"
+    sizes = [16, 22, 24, 32, 48, 64, 128, 256, 512]
+    for sz in sizes:
+        sz_icon = hicolor_root / f"{sz}x{sz}" / "apps" / "io.github.thelion.G502ProfileManager.png"
+        if sz_icon.exists():
+            sz_icon.unlink()
+            removed = True
+
+    # Actualizar cachés tras desinstalación
+    for cmd in [
+        ["update-desktop-database", str(Path.home() / ".local/share/applications")],
+        ["kbuildsycoca6", "--noincremental"],
+        ["gtk-update-icon-cache", "-q", "-t", "-f", str(hicolor_root)],
+    ]:
+        try:
+            subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+        except FileNotFoundError:
+            pass
 
     if removed:
-        for cmd in [
-            ["update-desktop-database", str(Path.home() / ".local/share/applications")],
-            ["kbuildsycoca6"],
-            ["gtk-update-icon-cache", "-q", "-t", "-f", str(Path.home() / ".local/share/icons/hicolor")],
-        ]:
-            try:
-                subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
-            except FileNotFoundError:
-                pass
-        print("\n✓ Acceso directo desinstalado del sistema correctamente.\n")
+        print("\n✓ ¡Acceso directo e iconos desinstalados correctamente!\n")
     else:
-        print("\nNo se encontró ninguna instalación previa del acceso directo.\n")
+        print("\nNo se encontraron accesos directos o iconos instalados.\n")
 
 
 def cmd_install_service(args):
