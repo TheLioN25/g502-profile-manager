@@ -111,6 +111,24 @@ g502-profile-manager/
 
 ---
 
+## 🧭 Guía Rápida para Revisión Técnica (Code & Architecture Review)
+
+Para facilitar la evaluación de la arquitectura, patrones de diseño y calidad del código, estos son los componentes y rutas clave recomendados:
+
+| Área Técnica | Archivo / Componente | Aspectos Clave a Evaluar |
+| :--- | :--- | :--- |
+| **Arquitectura Global y C4** | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Diagramas C4 en Mermaid (Contexto, Contenedores, Componentes) y separación Clean Architecture. |
+| **Decisiones de Diseño (ADRs)** | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#5-registros-de-decisiones-de-arquitectura-adr) | 6 registros ADR (Cumplimiento Anti-Cheat 1:1, D-Bus SNI puro, persistencia atómica, systemd, etc.). |
+| **Capa de Dominio Puro (DDD)** | [`src/domain/`](src/domain/) | Entidades y Value Objects puros sin librerías externas (`Profile`, `Button`, `Action`, `DpiConfiguration`). |
+| **Persistencia Atómica** | [`src/storage/profile_repository.py`](src/storage/profile_repository.py) | Patrón Repositorio con escritura atómica en 2 fases (`NamedTemporaryFile` + `replace`) y sincronización concurrente por `mtime`. |
+| **Aislamiento de Hardware** | [`src/adapters/ratbag_adapter.py`](src/adapters/ratbag_adapter.py) | Sanitización de memoria física EEPROM del ratón y reseteo preventivo a valores de fábrica (modelo G-HUB). |
+| **Bandeja del Sistema D-Bus** | [`src/gui/tray.py`](src/gui/tray.py) | StatusNotifierItem directo sobre `Gio.DBusConnection` (elimina el conflicto clásico de `AppIndicator3` con GTK4). |
+| **Concurrencia en GUI** | [`src/gui/window.py`](src/gui/window.py) | Monitoreo en hilo secundario independiente (`threading.Thread`) y despacho seguro al renderizado GTK4 con `GLib.idle_add`. |
+| **Suite de Pruebas Unitarias**| [`tests/`](tests/) | 117 pruebas unitarias automatizadas con mocks puros (ejecutables con `python3 -m unittest discover -s tests`). |
+| **Pipeline de CI/CD** | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | Automatización multi-versión de Python con validación en servidor gráfico headless (`xvfb-run`). |
+
+---
+
 ## 📋 Requisitos del Sistema
 
 1. **Linux** con Python 3.10 o superior.
