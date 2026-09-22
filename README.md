@@ -177,33 +177,34 @@ python3 src/engine.py
 * El motor detectará automáticamente el lanzamiento de juegos compatibles (ej. Warframe, Guild Wars 2) y aplicará su perfil asignado.
 * Al salir del juego o detener el motor con `Ctrl+C`, se restablecerá automáticamente el perfil de **Escritorio / Sistema**.
 
-### 5. Interfaz de Línea de Comandos (CLI)
-Para consultar o gestionar aplicaciones desde la terminal:
+### 5. Interfaz de Línea de Comandos (CLI) y Binarios en PATH
+Puedes ejecutar la CLI directamente mediante `python3 src/cli.py` o instalar los accesos directos en tu terminal (`~/.local/bin`):
 ```bash
-# Listar aplicaciones detectadas y estado de configuración
-python3 src/cli.py list
+# Instalar los comandos 'g502' y 'g502-gui' en tu PATH:
+./scripts/install-bin.sh
+# (o mediante la CLI: python3 src/cli.py install-bin)
 
-# Listar perfiles configurados y sus asignaciones
-python3 src/cli.py profiles
-
-# Ver ayuda general
-python3 src/cli.py --help
+# A partir de ese momento, puedes invocar directamente:
+g502 list                       # Listar aplicaciones detectadas
+g502 profiles                   # Listar perfiles configurados
+g502 export respaldo.json       # Exportar perfiles
+g502-gui                        # Abrir la interfaz gráfica
 ```
 
 ### 6. Copia de Seguridad y Portabilidad de Perfiles (`export` / `import`)
 Para compartir tus perfiles entre diferentes equipos o respaldar tus configuraciones:
 ```bash
 # Exportar todos los perfiles configurados a un archivo JSON:
-python3 src/cli.py export mi_respaldo.json
+g502 export mi_respaldo.json
 
 # Exportar únicamente los perfiles de un juego específico:
-python3 src/cli.py export warframe_perfiles.json --app steam:230410
+g502 export warframe_perfiles.json --app steam:230410
 
 # Importar perfiles desde un archivo (omite duplicados de forma segura):
-python3 src/cli.py import mi_respaldo.json
+g502 import mi_respaldo.json
 
 # Importar sobrescribiendo perfiles existentes con el mismo ID:
-python3 src/cli.py import mi_respaldo.json --overwrite
+g502 import mi_respaldo.json --overwrite
 ```
 
 ---
@@ -222,7 +223,7 @@ Si juegas títulos de Windows en Linux mediante **Steam Play / Proton**:
 
 ## 🧪 Ejecución de Pruebas Unitarias
 
-Para ejecutar la suite completa de 111 pruebas automatizadas:
+Para ejecutar la suite completa de 112 pruebas automatizadas:
 ```bash
 python3 -m unittest discover -s tests -v
 ```

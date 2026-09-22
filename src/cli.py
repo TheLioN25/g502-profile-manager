@@ -39,16 +39,13 @@ def cmd_list(args):
     _, manager, discovery, _, catalog = get_services()
 
     print("\nDescubriendo aplicaciones instaladas...")
-    desktop_apps = discovery.discover_desktop_applications()
-    steam_apps = discovery.discover_steam_applications()
-    all_apps = discovery.combine_discovered(desktop_apps, steam_apps)
+    all_apps = discovery.discover_all_applications()
 
     print(f"Total aplicaciones detectadas: {len(all_apps)}\n")
     for app in all_apps:
         profiles = manager.get_profiles_for_application(app.application_id)
         has_preset = "✓ Presets disponibles" if catalog.has_catalog(app.application_id) else "—"
         print(f"• [{app.application_id}] {app.name}")
-        print(f"  Ejecutable: {app.executable_or_path}")
         print(f"  Perfiles: {len(profiles)} configurados | {has_preset}")
         print()
 
@@ -353,7 +350,9 @@ def create_parser():
     # systemd user service integration
     subparsers.add_parser("install-service", help="Instala y activa el demonio como servicio de usuario systemd (--user).")
     subparsers.add_parser("uninstall-service", help="Detiene y desinstala el servicio systemd del usuario.")
-    subparsers.add_parser("service-status", help="Consulta el estado del servicio systemd del usuario.")
+    # bin path integration
+    subparsers.add_parser("install-bin", help="Instala los ejecutables 'g502' y 'g502-gui' en ~/.local/bin.")
+    subparsers.add_parser("uninstall-bin", help="Desinstala los ejecutables 'g502' y 'g502-gui' de ~/.local/bin.")
 
     return parser
 
@@ -529,6 +528,22 @@ def cmd_service_status(args):
     subprocess.run(["systemctl", "--user", "status", "g502-profile-manager.service"])
 
 
+def cmd_install_bin(args):
+    import subprocess
+    repo_root = Path(__file__).resolve().parent.parent
+    script = repo_root / "scripts" / "install-bin.sh"
+    if script.exists():
+        subprocess.run([str(script)], check=False)
+
+
+def cmd_uninstall_bin(args):
+    import subprocess
+    repo_root = Path(__file__).resolve().parent.parent
+    script = repo_root / "scripts" / "uninstall-bin.sh"
+    if script.exists():
+        subprocess.run([str(script)], check=False)
+
+
 def main():
     parser = create_parser()
     args = parser.parse_args()
@@ -552,6 +567,8 @@ def main():
         "install-service": cmd_install_service,
         "uninstall-service": cmd_uninstall_service,
         "service-status": cmd_service_status,
+        "install-bin": cmd_install_bin,
+        "uninstall-bin": cmd_uninstall_bin,
     }
 
     handler = handlers.get(args.command)

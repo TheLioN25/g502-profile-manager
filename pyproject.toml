@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "g502-profile-manager"
+version = "0.3.0"
+description = "Gestor nativo de perfiles, macros, DPI e iluminación para ratón Logitech G502 HERO en Linux"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+authors = [
+    { name = "TheLioN25" }
+]
+keywords = ["logitech", "g502", "gaming", "ratbagd", "libratbag", "linux", "libadwaita", "gtk4"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: X11 Applications :: GTK",
+    "Intended Audience :: End Users/Desktop",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: System :: Hardware",
+    "Topic :: Games/Entertainment",
+]
+dependencies = [
+    "pygobject>=3.42.0",
+    "pycairo>=1.20.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/TheLioN25/g502-profile-manager"
+Repository = "https://github.com/TheLioN25/g502-profile-manager"
+
+[project.scripts]
+g502 = "cli:main"
+g502-gui = "gui.app:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"*" = ["*.css", "*.svg", "*.json"]

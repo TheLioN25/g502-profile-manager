@@ -14,8 +14,10 @@ if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
 
 from cli import (
+    cmd_install_bin,
     cmd_install_desktop,
     cmd_install_service,
+    cmd_uninstall_bin,
     cmd_uninstall_desktop,
     cmd_uninstall_service,
     create_parser,
@@ -96,6 +98,18 @@ class TestCliDesktopIntegration(unittest.TestCase):
             # 2. Desinstalar servicio systemd
             cmd_uninstall_service(None)
             self.assertFalse(service_file.exists(), "El archivo .service debe haberse eliminado.")
+
+    def test_cmd_install_and_uninstall_bin(self):
+        with patch("pathlib.Path.home", return_value=self.fake_home):
+            with patch("subprocess.run") as mock_run:
+                cmd_install_bin(None)
+                mock_run.assert_called_once()
+                self.assertIn("install-bin.sh", mock_run.call_args[0][0][0])
+
+            with patch("subprocess.run") as mock_run:
+                cmd_uninstall_bin(None)
+                mock_run.assert_called_once()
+                self.assertIn("uninstall-bin.sh", mock_run.call_args[0][0][0])
 
     @patch("cli.AutomationEngine")
     def test_cmd_run_instantiates_engine_correctly(self, mock_engine_cls):
