@@ -27,9 +27,10 @@ class G502Application(Adw.Application):
     """
 
     def __init__(self):
+        flags = getattr(Gio.ApplicationFlags, "DEFAULT_FLAGS", Gio.ApplicationFlags.FLAGS_NONE)
         super().__init__(
             application_id="io.github.thelion.G502ProfileManager",
-            flags=Gio.ApplicationFlags.DEFAULT_FLAGS,
+            flags=flags,
         )
         self._window: MainWindow | None = None
 

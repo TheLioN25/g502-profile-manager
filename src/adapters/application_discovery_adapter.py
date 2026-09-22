@@ -49,7 +49,7 @@ class ApplicationDiscoveryAdapter:
         """
         Descubre juegos de Steam instalados y los transforma en entidades Application.
         """
-        if not self._steam_file.exists():
+        if reader is discover_installed_steam_apps and not self._steam_file.exists():
             return []
 
         steam_apps = reader(self._steam_file)

@@ -12,12 +12,20 @@ if str(src_path) not in sys.path:
 
 from adapters import ApplicationDiscoveryAdapter
 from desktop_entries import DesktopEntry
+import tempfile
+
 from steam_discovery import SteamAppManifest
 
 
 class TestApplicationDiscoveryAdapter(unittest.TestCase):
     def setUp(self):
-        self.adapter = ApplicationDiscoveryAdapter()
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.dummy_steam_file = Path(self.temp_dir.name) / "libraryfolders.vdf"
+        self.dummy_steam_file.write_text('"libraryfolders" {}')
+        self.adapter = ApplicationDiscoveryAdapter(steam_libraryfolders_file=self.dummy_steam_file)
+
+    def tearDown(self):
+        self.temp_dir.cleanup()
 
     def test_discover_steam_applications_mocked(self):
         dummy_manifests = [
