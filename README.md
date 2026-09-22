@@ -183,8 +183,27 @@ Para consultar o gestionar aplicaciones desde la terminal:
 # Listar aplicaciones detectadas y estado de configuración
 python3 src/cli.py list
 
+# Listar perfiles configurados y sus asignaciones
+python3 src/cli.py profiles
+
 # Ver ayuda general
 python3 src/cli.py --help
+```
+
+### 6. Copia de Seguridad y Portabilidad de Perfiles (`export` / `import`)
+Para compartir tus perfiles entre diferentes equipos o respaldar tus configuraciones:
+```bash
+# Exportar todos los perfiles configurados a un archivo JSON:
+python3 src/cli.py export mi_respaldo.json
+
+# Exportar únicamente los perfiles de un juego específico:
+python3 src/cli.py export warframe_perfiles.json --app steam:230410
+
+# Importar perfiles desde un archivo (omite duplicados de forma segura):
+python3 src/cli.py import mi_respaldo.json
+
+# Importar sobrescribiendo perfiles existentes con el mismo ID:
+python3 src/cli.py import mi_respaldo.json --overwrite
 ```
 
 ---
@@ -203,11 +222,11 @@ Si juegas títulos de Windows en Linux mediante **Steam Play / Proton**:
 
 ## 🧪 Ejecución de Pruebas Unitarias
 
-Para ejecutar la suite completa de 103 pruebas automatizadas:
+Para ejecutar la suite completa de 111 pruebas automatizadas:
 ```bash
 python3 -m unittest discover -s tests -v
 ```
-Las pruebas validan invariantes de dominio, persistencia atómica en disco, sincronización de hardware mediante mocks y la lógica de la interfaz gráfica sin requerir hardware físico conectado.
+Las pruebas validan invariantes de dominio, persistencia atómica en disco, importación/exportación resiliente, sincronización de hardware mediante mocks y la lógica de la interfaz gráfica sin requerir hardware físico conectado.
 
 ---
 

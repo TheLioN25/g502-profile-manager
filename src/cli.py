@@ -206,7 +206,7 @@ def cmd_assign(args):
 
 
 def cmd_reset(args):
-    repo, manager, _, _ = get_services()
+    repo, manager, *_ = get_services()
     profile = manager.get_profile(args.profile_id)
     if not profile:
         matching = [p for p in repo.list_all() if p.id.startswith(args.profile_id)]
@@ -230,6 +230,45 @@ def cmd_run(args):
         check_interval=args.interval,
     )
     engine.run()
+
+
+def cmd_export(args):
+    _, manager, *_ = get_services()
+    from datetime import datetime
+
+    if args.file:
+        dest_path = Path(args.file)
+    else:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        dest_path = Path(f"g502-profiles-backup-{timestamp}.json")
+
+    try:
+        count = manager.export_to_file(dest_path, application_id=args.app)
+        print(f"\n✓ Se exportaron exitosamente {count} perfil(es) a:")
+        print(f"  {dest_path.resolve()}\n")
+    except Exception as e:
+        print(f"\nError al exportar perfiles: {e}\n")
+
+
+def cmd_import(args):
+    _, manager, *_ = get_services()
+    src_path = Path(args.file)
+
+    if not src_path.exists():
+        print(f"\nError: El archivo '{src_path}' no existe.\n")
+        return
+
+    try:
+        imported, skipped = manager.import_from_file(src_path, overwrite=args.overwrite)
+        print(f"\n✓ Importación completada desde {src_path.resolve()}:")
+        print(f"  • Perfiles importados/actualizados: {imported}")
+        print(f"  • Perfiles omitidos:                {skipped}")
+        if skipped > 0 and not args.overwrite:
+            print("  (Consejo: Usa --overwrite si deseas reemplazar los perfiles existentes con el mismo ID)\n")
+        else:
+            print()
+    except Exception as e:
+        print(f"\nError al importar perfiles: {e}\n")
 
 
 def create_parser():
@@ -297,6 +336,15 @@ def create_parser():
 
     # gui
     subparsers.add_parser("gui", help="Inicia la interfaz gráfica nativa (GTK4 + Libadwaita).")
+
+    # export / import portability
+    export_p = subparsers.add_parser("export", help="Exporta perfiles a un archivo JSON para respaldo o migración.")
+    export_p.add_argument("file", nargs="?", default=None, help="Ruta del archivo JSON de destino (opcional).")
+    export_p.add_argument("--app", default=None, help="Filtrar por ID de aplicación (ej. steam:230410).")
+
+    import_p = subparsers.add_parser("import", help="Importa perfiles desde un archivo JSON externo.")
+    import_p.add_argument("file", help="Ruta al archivo JSON a importar.")
+    import_p.add_argument("--overwrite", action="store_true", help="Sobrescribe perfiles existentes si sus IDs coinciden.")
 
     # desktop integration
     subparsers.add_parser("install-desktop", help="Instala el acceso directo y su icono en el menú de aplicaciones del sistema.")
@@ -497,6 +545,8 @@ def main():
         "run": cmd_run,
         "engine": cmd_run,
         "gui": cmd_gui,
+        "export": cmd_export,
+        "import": cmd_import,
         "install-desktop": cmd_install_desktop,
         "uninstall-desktop": cmd_uninstall_desktop,
         "install-service": cmd_install_service,

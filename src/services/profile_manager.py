@@ -4,6 +4,9 @@ Módulo de servicios de gestión de perfiles (ProfileManager).
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from domain import Action, Button, DpiConfiguration, Profile
 from storage.profile_repository import ProfileRepository
 
@@ -207,3 +210,29 @@ class ProfileManager:
         if profile is None:
             raise KeyError(f"No se encontró el perfil con ID '{profile_id}'.")
         return profile
+
+    def export_to_file(
+        self, file_path: str | Path, application_id: str | None = None
+    ) -> int:
+        """
+        Exporta perfiles a un archivo JSON. Retorna la cantidad de perfiles exportados.
+        """
+        path = Path(file_path).expanduser().resolve()
+        data = self._repository.export_data(application_id)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=4, ensure_ascii=False)
+        return len(data.get("profiles", []))
+
+    def import_from_file(
+        self, file_path: str | Path, overwrite: bool = False
+    ) -> tuple[int, int]:
+        """
+        Importa perfiles desde un archivo JSON. Retorna (importados_o_actualizados, omitidos).
+        """
+        path = Path(file_path).expanduser().resolve()
+        if not path.is_file():
+            raise FileNotFoundError(f"El archivo '{path}' no existe o no es un archivo regular.")
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return self._repository.import_data(data, overwrite=overwrite)

@@ -4,6 +4,7 @@ Módulo de almacenamiento y persistencia para perfiles.
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
@@ -43,6 +44,14 @@ class ProfileRepository(Protocol):
 
     def delete(self, profile_id: str) -> bool:
         """Elimina un perfil por su ID."""
+        ...
+
+    def export_data(self, application_id: str | None = None) -> dict:
+        """Exporta perfiles y predeterminados a un diccionario serializable."""
+        ...
+
+    def import_data(self, data: dict, overwrite: bool = False) -> tuple[int, int]:
+        """Importa perfiles desde un diccionario o respaldo JSON."""
         ...
 
 
@@ -180,6 +189,90 @@ class JsonProfileRepository:
 
         self._flush()
         return True
+
+    def export_data(self, application_id: str | None = None) -> dict:
+        """
+        Exporta los perfiles y mapeos predeterminados a un diccionario serializable.
+        Si se especifica application_id, filtra únicamente dicha aplicación.
+        """
+        self._reload_if_needed()
+        if application_id is not None:
+            clean_app_id = application_id.strip().casefold()
+            profiles = [
+                self._serialize_profile(p)
+                for p in self._profiles.values()
+                if p.application_id.casefold() == clean_app_id
+            ]
+            defaults = {
+                app_id: prof_id
+                for app_id, prof_id in self._default_profiles.items()
+                if app_id.casefold() == clean_app_id
+            }
+        else:
+            profiles = [self._serialize_profile(p) for p in self._profiles.values()]
+            defaults = dict(self._default_profiles)
+
+        return {
+            "version": 1,
+            "exported_at": datetime.now(timezone.utc).isoformat(),
+            "default_profiles": defaults,
+            "profiles": profiles,
+        }
+
+    def import_data(self, data: dict | list, overwrite: bool = False) -> tuple[int, int]:
+        """
+        Importa perfiles desde una estructura de datos exportada.
+
+        Retorna una tupla (importados_o_actualizados, omitidos).
+        Si overwrite es False, se omiten perfiles cuyos IDs ya existen en el repositorio.
+        Si overwrite es True, se sobrescriben los existentes.
+        """
+        if isinstance(data, list):
+            profiles_raw = data
+            defaults_map = {}
+        elif isinstance(data, dict):
+            profiles_raw = data.get("profiles", [])
+            defaults_map = data.get("default_profiles", {})
+        else:
+            raise ValueError("Los datos a importar deben ser un diccionario o lista JSON válida.")
+
+        if not isinstance(profiles_raw, list):
+            raise ValueError("El formato de importación es inválido: 'profiles' debe ser una lista.")
+
+        self._reload_if_needed()
+        imported = 0
+        skipped = 0
+
+        for item in profiles_raw:
+            if not isinstance(item, dict):
+                skipped += 1
+                continue
+            try:
+                profile = self._deserialize_profile(item)
+            except Exception:
+                skipped += 1
+                continue
+
+            if profile.id in self._profiles and not overwrite:
+                skipped += 1
+                continue
+
+            self._profiles[profile.id] = profile
+            imported += 1
+
+        if isinstance(defaults_map, dict):
+            for app_id, prof_id in defaults_map.items():
+                if isinstance(app_id, str) and isinstance(prof_id, str):
+                    clean_app = app_id.strip().casefold()
+                    clean_prof = prof_id.strip()
+                    if clean_prof in self._profiles:
+                        if overwrite or clean_app not in self._default_profiles:
+                            self._default_profiles[clean_app] = clean_prof
+
+        if imported > 0:
+            self._flush()
+
+        return (imported, skipped)
 
     def _load(self) -> None:
         """
