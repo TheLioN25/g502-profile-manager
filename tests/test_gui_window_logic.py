@@ -357,6 +357,58 @@ class TestGuiLogic(unittest.TestCase):
         res_non = window.select_application_by_id("non_existent_app")
         self.assertFalse(res_non)
 
+    def test_main_window_lighting_controls(self):
+        window = MainWindow(
+            app=self.app,
+            profile_manager=self.profile_manager,
+            catalog_service=self.catalog_service,
+            discovery_adapter=self.mock_discovery,
+            ratbag_adapter=self.mock_ratbag,
+        )
+
+        app_warframe = Application(application_id="steam:230410", name="Warframe")
+        window._select_application(app_warframe)
+
+        # 1. Estado inicial
+        self.assertEqual(window._led_mode_row.get_selected(), 0)  # 'on'
+        self.assertTrue(window._color_row.get_sensitive())
+        self.assertFalse(window._duration_row.get_sensitive())
+
+        # 2. Cambiar a modo 'breathing' (índice 1)
+        window._led_mode_row.set_selected(1)
+        self.assertEqual(window._current_profile.led_mode, "breathing")
+        self.assertTrue(window._color_row.get_sensitive())
+        self.assertTrue(window._duration_row.get_sensitive())
+
+        # 3. Ajustar duración del efecto a 3000 ms
+        window._duration_adjustment.set_value(3000)
+        self.assertEqual(window._current_profile.led_duration, 3000)
+        self.assertIn("3000 ms", window._duration_display_label.get_text())
+
+        # 4. Cambiar a modo 'cycle' (índice 2)
+        window._led_mode_row.set_selected(2)
+        self.assertEqual(window._current_profile.led_mode, "cycle")
+        self.assertFalse(window._color_row.get_sensitive())
+        self.assertTrue(window._duration_row.get_sensitive())
+
+        # 5. Cambiar a modo 'off' (índice 3)
+        window._led_mode_row.set_selected(3)
+        self.assertEqual(window._current_profile.led_mode, "off")
+        self.assertFalse(window._color_row.get_sensitive())
+        self.assertFalse(window._duration_row.get_sensitive())
+
+        # 6. Volver a 'on' y seleccionar color calibrado (Púrpura Real #5500DD)
+        window._led_mode_row.set_selected(0)
+        window._make_quick_color_handler("#5500DD")(None)
+        self.assertEqual(window._current_profile.led_color, "#5500DD")
+        self.assertEqual(window._color_hex_entry.get_text(), "#5500DD")
+
+        # 7. Guardar perfil y verificar persistencia
+        window._on_save_profile_clicked(None)
+        saved = self.profile_manager.get_active_profile_for_application("steam:230410")
+        self.assertEqual(saved.led_color, "#5500DD")
+        self.assertEqual(saved.led_mode, "on")
+
 
 if __name__ == "__main__":
     unittest.main()

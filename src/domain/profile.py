@@ -65,6 +65,9 @@ class Assignment:
             raise TypeError("action debe ser una instancia de Action.")
 
 
+VALID_LED_MODES: frozenset[str] = frozenset({"on", "breathing", "cycle", "off"})
+
+
 class Profile:
     """
     Entidad agregada que representa las preferencias de interacción del usuario
@@ -77,6 +80,8 @@ class Profile:
 
     Extensiones:
     - led_color: Color RGB en formato hexadecimal ('#RRGGBB') para feedback visual en el hardware.
+    - led_mode: Modo de iluminación ('on', 'breathing', 'cycle', 'off').
+    - led_duration: Duración/velocidad del efecto en ms (para 'breathing' y 'cycle').
     - created_at / updated_at: Marcas temporales ISO para trazabilidad.
     """
 
@@ -86,6 +91,8 @@ class Profile:
         application_id: str,
         dpi: int | DpiConfiguration = 800,
         led_color: str | None = None,
+        led_mode: str = "on",
+        led_duration: int | None = None,
         profile_id: str | None = None,
         created_at: str | None = None,
         updated_at: str | None = None,
@@ -106,6 +113,11 @@ class Profile:
         self._led_color: str | None = None
         if led_color is not None:
             self.set_led_color(led_color)
+
+        self._led_mode: str = "on"
+        self._led_duration: int | None = None
+        if led_mode is not None:
+            self.set_led_mode(led_mode, led_duration)
 
         self._assignments: dict[str, Assignment] = {}
 
@@ -133,6 +145,16 @@ class Profile:
     def led_color(self) -> str | None:
         """Color RGB en formato '#RRGGBB', o None si no está configurado."""
         return self._led_color
+
+    @property
+    def led_mode(self) -> str:
+        """Modo de iluminación ('on', 'breathing', 'cycle', 'off')."""
+        return self._led_mode
+
+    @property
+    def led_duration(self) -> int | None:
+        """Duración/velocidad del efecto en milisegundos (para 'breathing' y 'cycle')."""
+        return self._led_duration
 
     @property
     def created_at(self) -> str:
@@ -178,6 +200,33 @@ class Profile:
                     f"Formato de color inválido: '{color}'. Debe tener formato hexadecimal '#RRGGBB' (ej. '#00E5FF')."
                 )
             self._led_color = color_clean.upper()
+
+        self._touch()
+
+    def set_led_mode(self, mode: str, duration: int | None = None) -> None:
+        """
+        Establece el modo de iluminación LED y su duración/velocidad opcional.
+        Modos válidos: 'on', 'breathing', 'cycle', 'off'.
+        """
+        if not isinstance(mode, str):
+            raise TypeError("led_mode debe ser una cadena de texto.")
+        mode_clean = mode.strip().lower()
+        if mode_clean not in VALID_LED_MODES:
+            raise ValueError(
+                f"Modo de iluminación no soportado: '{mode}'. Modos válidos: {sorted(VALID_LED_MODES)}"
+            )
+        self._led_mode = mode_clean
+
+        if duration is not None:
+            if not isinstance(duration, int) or isinstance(duration, bool):
+                raise TypeError("led_duration debe ser un número entero en milisegundos.")
+            if duration <= 0:
+                raise ValueError("led_duration debe ser un número entero positivo en milisegundos.")
+            if mode_clean not in ("breathing", "cycle"):
+                raise ValueError(f"led_duration no es aplicable al modo '{mode_clean}'.")
+            self._led_duration = duration
+        elif mode_clean not in ("breathing", "cycle"):
+            self._led_duration = None
 
         self._touch()
 

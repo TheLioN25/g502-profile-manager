@@ -48,13 +48,21 @@ BUTTON_DEFINITIONS = [
 
 QUICK_COLORS = [
     ("#00E5FF", "Cian Neón"),
-    ("#0066FF", "Azul Eléctrico"),
+    ("#0022FF", "Azul Eléctrico Puro"),
     ("#FF0033", "Rojo Furia"),
     ("#00FF66", "Verde Logitech"),
-    ("#9900FF", "Púrpura"),
+    ("#5500DD", "Púrpura Real"),
     ("#FFCC00", "Ámbar"),
-    ("#FFFFFF", "Blanco Puro"),
+    ("#FFE5C8", "Blanco Neutro (Calibrado)"),
+    ("#FFFFFF", "Blanco Frío"),
     ("#000000", "Apagado"),
+]
+
+LED_MODE_OPTIONS = [
+    ("on", "Estático"),
+    ("breathing", "Respiración (Pulsación)"),
+    ("cycle", "Ciclo de Espectro (Arcoíris)"),
+    ("off", "Apagado"),
 ]
 
 QUICK_DPIS = [800, 1200, 1600, 2400, 3200, 8000, 12000, 16000]
@@ -95,6 +103,7 @@ class MainWindow(Adw.ApplicationWindow):
         self._current_profile: Profile | None = None
         self._current_app_profiles: list[Profile] = []
         self._updating_profile_dropdown: bool = False
+        self._updating_lighting_ui: bool = False
         self._app_rows: list[tuple[Gtk.ListBoxRow, Application]] = []
         self._configured_rows: list[tuple[Gtk.ListBoxRow, Application]] = []
         self._unconfigured_rows: list[tuple[Gtk.ListBoxRow, Application]] = []
@@ -504,32 +513,47 @@ class MainWindow(Adw.ApplicationWindow):
 
         led_group = Adw.PreferencesGroup(
             title="Iluminación LIGHTSYNC RGB",
-            description="Personaliza el color del logotipo G y el indicador DPI",
+            description="Personaliza el modo, color y efectos del logotipo G e indicador DPI",
         )
         pref_page.add(led_group)
 
-        # Fila de color actual
-        color_row = Adw.ActionRow(title="Color de Iluminación")
-        self._color_preview = Gtk.Box()
-        self._color_preview.add_css_class("color-preview-box")
-        self._color_preview.set_valign(Gtk.Align.CENTER)
-        color_row.add_suffix(self._color_preview)
+        # 1. Selector de Modo de Iluminación
+        self._led_mode_row = Adw.ComboRow(title="Efecto de Iluminación")
+        mode_strings = [name for _, name in LED_MODE_OPTIONS]
+        self._led_mode_row.set_model(Gtk.StringList.new(mode_strings))
+        self._led_mode_row.connect("notify::selected", self._on_led_mode_row_changed)
+        led_group.add(self._led_mode_row)
+
+        # 2. Fila de color actual y selector interactivo
+        self._color_row = Adw.ActionRow(
+            title="Color de Iluminación",
+            subtitle="Haz clic en la muestra para abrir la paleta o introduce el código hexadecimal",
+        )
+
+        self._color_dialog = Gtk.ColorDialog()
+        self._color_dialog.set_with_alpha(False)
+        self._color_dialog_btn = Gtk.ColorDialogButton(dialog=self._color_dialog)
+        self._color_dialog_btn.set_valign(Gtk.Align.CENTER)
+        self._color_dialog_btn.set_tooltip_text("Selector de color interactivo")
+        self._color_dialog_btn.connect("notify::rgba", self._on_color_dialog_rgba_changed)
+        self._color_row.add_suffix(self._color_dialog_btn)
+        self._color_preview = self._color_dialog_btn
 
         self._color_hex_entry = Gtk.Entry(text="#00E5FF", max_length=7, width_chars=9)
         self._color_hex_entry.set_valign(Gtk.Align.CENTER)
         self._color_hex_entry.connect("changed", self._on_color_hex_changed)
-        color_row.add_suffix(self._color_hex_entry)
-        led_group.add(color_row)
+        self._color_row.add_suffix(self._color_hex_entry)
+        led_group.add(self._color_row)
 
-        # Presets rápidos de color
-        palette_row = Adw.PreferencesRow()
+        # 3. Presets rápidos de color (calibrados para G502 HERO)
+        self._palette_row = Adw.PreferencesRow()
         palette_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         palette_box.set_margin_start(16)
         palette_box.set_margin_end(16)
         palette_box.set_margin_top(12)
         palette_box.set_margin_bottom(12)
 
-        quick_label = Gtk.Label(label="Colores Recomendados:", xalign=0)
+        quick_label = Gtk.Label(label="Colores Calibrados G502:", xalign=0)
         quick_label.add_css_class("dim-label")
         palette_box.append(quick_label)
 
@@ -549,10 +573,57 @@ class MainWindow(Adw.ApplicationWindow):
             btn_box.append(btn)
 
         palette_box.append(btn_box)
-        palette_row.set_child(palette_box)
-        led_group.add(palette_row)
+        self._palette_row.set_child(palette_box)
+        led_group.add(self._palette_row)
+
+        # 4. Velocidad / Duración del Efecto (para Respiración y Ciclo de Espectro)
+        self._duration_row = Adw.ActionRow(
+            title="Velocidad del Efecto",
+            subtitle="Duración de cada pulsación o ciclo de color",
+        )
+        self._duration_display_label = Gtk.Label(label="2.0 s (2000 ms)")
+        self._duration_display_label.set_valign(Gtk.Align.CENTER)
+        self._duration_display_label.add_css_class("dim-label")
+        self._duration_row.add_suffix(self._duration_display_label)
+        led_group.add(self._duration_row)
+
+        self._duration_slider_row = Adw.PreferencesRow()
+        duration_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        duration_box.set_margin_start(16)
+        duration_box.set_margin_end(16)
+        duration_box.set_margin_top(12)
+        duration_box.set_margin_bottom(12)
+
+        self._duration_adjustment = Gtk.Adjustment(
+            value=2000,
+            lower=500,
+            upper=10000,
+            step_increment=100,
+            page_increment=500,
+        )
+        self._duration_scale = Gtk.Scale(
+            orientation=Gtk.Orientation.HORIZONTAL,
+            adjustment=self._duration_adjustment,
+        )
+        self._duration_scale.set_digits(0)
+        self._duration_scale.set_hexpand(True)
+        self._duration_scale.connect("value-changed", self._on_duration_slider_changed)
+        duration_box.append(self._duration_scale)
+
+        # Botones de presets de velocidad
+        duration_presets_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        duration_presets_box.set_halign(Gtk.Align.CENTER)
+        for ms, label_text in [(1000, "1s (Rápido)"), (2000, "2s (Normal)"), (3000, "3s (Suave)"), (5000, "5s (Lento)"), (10000, "10s (Relax)")]:
+            d_btn = Gtk.Button(label=label_text)
+            d_btn.connect("clicked", self._make_quick_duration_handler(ms))
+            duration_presets_box.append(d_btn)
+        duration_box.append(duration_presets_box)
+
+        self._duration_slider_row.set_child(duration_box)
+        led_group.add(self._duration_slider_row)
 
         self._update_color_preview("#00E5FF")
+        self._update_lighting_sensitivity("on")
         return scrolled
 
     # -------------------------------------------------------------------------
@@ -735,6 +806,8 @@ class MainWindow(Adw.ApplicationWindow):
                     application_id=application_id,
                     dpi=8000,
                     led_color="#00E5FF",
+                    led_mode="on",
+                    led_duration=None,
                 )
                 profiles = [new_p]
 
@@ -772,9 +845,27 @@ class MainWindow(Adw.ApplicationWindow):
         if profile.dpi.shift_dpi:
             self._shift_dpi_adjustment.set_value(profile.dpi.shift_dpi)
 
-        if profile.led_color:
-            self._color_hex_entry.set_text(profile.led_color)
-            self._update_color_preview(profile.led_color)
+        self._updating_lighting_ui = True
+        try:
+            mode = getattr(profile, "led_mode", "on")
+            mode_idx = 0
+            for idx, (m, _) in enumerate(LED_MODE_OPTIONS):
+                if m == mode:
+                    mode_idx = idx
+                    break
+            self._led_mode_row.set_selected(mode_idx)
+
+            duration = getattr(profile, "led_duration", None) or 2000
+            self._duration_adjustment.set_value(duration)
+            self._duration_display_label.set_text(f"{duration/1000:.1f} s ({int(duration)} ms)")
+
+            if profile.led_color:
+                self._color_hex_entry.set_text(profile.led_color)
+                self._update_color_preview(profile.led_color)
+
+            self._update_lighting_sensitivity(mode)
+        finally:
+            self._updating_lighting_ui = False
 
         # Actualizar botones y esquema vectorial
         self._refresh_button_assignments()
@@ -847,11 +938,73 @@ class MainWindow(Adw.ApplicationWindow):
         if self._current_profile:
             self._current_profile.set_dpi(DpiConfiguration(self._current_profile.dpi.dpi, val))
 
+    def _update_lighting_sensitivity(self, mode: str):
+        is_off = (mode == "off")
+        is_cycle = (mode == "cycle")
+        has_duration = (mode in ("breathing", "cycle"))
+
+        color_sensitive = not (is_off or is_cycle)
+        self._color_row.set_sensitive(color_sensitive)
+        self._palette_row.set_sensitive(color_sensitive)
+
+        self._duration_row.set_sensitive(has_duration)
+        self._duration_slider_row.set_sensitive(has_duration)
+
+    def _on_led_mode_row_changed(self, row: Adw.ComboRow, _pspec):
+        if getattr(self, "_updating_lighting_ui", False):
+            return
+        selected_idx = row.get_selected()
+        if 0 <= selected_idx < len(LED_MODE_OPTIONS):
+            mode = LED_MODE_OPTIONS[selected_idx][0]
+        else:
+            mode = "on"
+
+        self._update_lighting_sensitivity(mode)
+        if self._current_profile:
+            duration = int(self._duration_adjustment.get_value()) if mode in ("breathing", "cycle") else None
+            self._current_profile.set_led_mode(mode, duration)
+
+    def _on_duration_slider_changed(self, adjustment: Gtk.Adjustment):
+        val = int(adjustment.get_value())
+        self._duration_display_label.set_text(f"{val/1000:.1f} s ({val} ms)")
+        if getattr(self, "_updating_lighting_ui", False):
+            return
+        if self._current_profile:
+            mode = getattr(self._current_profile, "led_mode", "on")
+            if mode in ("breathing", "cycle"):
+                self._current_profile.set_led_mode(mode, val)
+
+    def _make_quick_duration_handler(self, ms: int):
+        def handler(_btn):
+            self._duration_adjustment.set_value(ms)
+        return handler
+
+    def _on_color_dialog_rgba_changed(self, btn: Gtk.ColorDialogButton, _pspec):
+        if getattr(self, "_updating_lighting_ui", False):
+            return
+        rgba = btn.get_rgba()
+        r = int(round(rgba.red * 255))
+        g = int(round(rgba.green * 255))
+        b = int(round(rgba.blue * 255))
+        hex_code = f"#{r:02X}{g:02X}{b:02X}"
+
+        self._updating_lighting_ui = True
+        try:
+            self._color_hex_entry.set_text(hex_code)
+        finally:
+            self._updating_lighting_ui = False
+
+        self._update_color_preview(hex_code, update_dialog=False)
+        if self._current_profile:
+            self._current_profile.set_led_color(hex_code)
+
     def _on_color_hex_changed(self, entry: Gtk.Entry):
-        text = entry.get_text().strip()
+        if getattr(self, "_updating_lighting_ui", False):
+            return
+        text = entry.get_text().strip().upper()
         if len(text) == 7 and text.startswith("#"):
             try:
-                self._update_color_preview(text)
+                self._update_color_preview(text, update_dialog=True)
                 if self._current_profile:
                     self._current_profile.set_led_color(text)
             except Exception:
@@ -859,14 +1012,29 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _make_quick_color_handler(self, hex_code: str):
         def handler(_btn):
-            self._color_hex_entry.set_text(hex_code)
-            self._update_color_preview(hex_code)
+            self._updating_lighting_ui = True
+            try:
+                self._color_hex_entry.set_text(hex_code)
+            finally:
+                self._updating_lighting_ui = False
+            self._update_color_preview(hex_code, update_dialog=True)
             if self._current_profile:
                 self._current_profile.set_led_color(hex_code)
         return handler
 
-    def _update_color_preview(self, hex_code: str):
-        self._apply_box_background(self._color_preview, hex_code)
+    def _update_color_preview(self, hex_code: str, update_dialog: bool = True):
+        if update_dialog and hasattr(self, "_color_dialog_btn"):
+            try:
+                rgba = Gdk.RGBA()
+                if rgba.parse(hex_code):
+                    self._updating_lighting_ui = True
+                    try:
+                        self._color_dialog_btn.set_rgba(rgba)
+                    finally:
+                        self._updating_lighting_ui = False
+            except Exception:
+                pass
+
         if hasattr(self, "_mouse_diagram"):
             self._mouse_diagram.set_led_color(hex_code)
 
@@ -904,6 +1072,8 @@ class MainWindow(Adw.ApplicationWindow):
                 application_id=self._selected_app.application_id,
                 dpi=self._current_profile.dpi.dpi if self._current_profile else 8000,
                 led_color=self._current_profile.led_color if self._current_profile else "#00E5FF",
+                led_mode=self._current_profile.led_mode if self._current_profile else "on",
+                led_duration=self._current_profile.led_duration if self._current_profile else None,
             )
             self._populate_profiles_dropdown(self._selected_app.application_id, select_profile_id=new_p.id)
             self._show_toast(f"Perfil '{name}' creado.")

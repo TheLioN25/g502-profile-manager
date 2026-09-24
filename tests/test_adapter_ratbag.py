@@ -130,6 +130,75 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
         self.assertIn("ratbagctl warbling-mara profile 1 led 0 set color 00e5ff", flattened)
         self.assertIn("ratbagctl warbling-mara profile 1 led 1 set color 00e5ff", flattened)
 
+    def test_build_led_commands_all_modes(self):
+        adapter = RatbagDeviceAdapter()
+
+        # 1. Modo 'on' (Estático)
+        cmds_on = adapter.build_led_commands("warbling-mara", hex_color="#5500DD", mode="on", led_index=0)
+        self.assertEqual(
+            cmds_on,
+            [
+                ["ratbagctl", "warbling-mara", "led", "0", "set", "mode", "on"],
+                ["ratbagctl", "warbling-mara", "led", "0", "set", "color", "5500dd"],
+            ],
+        )
+
+        # 2. Modo 'breathing' (Respiración con duración)
+        cmds_breathe = adapter.build_led_commands("warbling-mara", hex_color="#FF0033", mode="breathing", duration=2500, led_index=1)
+        self.assertEqual(
+            cmds_breathe,
+            [
+                ["ratbagctl", "warbling-mara", "led", "1", "set", "mode", "breathing"],
+                ["ratbagctl", "warbling-mara", "led", "1", "set", "color", "ff0033"],
+                ["ratbagctl", "warbling-mara", "led", "1", "set", "duration", "2500"],
+            ],
+        )
+
+        # 3. Modo 'cycle' (Ciclo de espectro, no requiere color)
+        cmds_cycle = adapter.build_led_commands("warbling-mara", mode="cycle", duration=4000, led_index=0)
+        self.assertEqual(
+            cmds_cycle,
+            [
+                ["ratbagctl", "warbling-mara", "led", "0", "set", "mode", "cycle"],
+                ["ratbagctl", "warbling-mara", "led", "0", "set", "duration", "4000"],
+            ],
+        )
+
+        # 4. Modo 'off' (Apagado)
+        cmds_off = adapter.build_led_commands("warbling-mara", mode="off", led_index=0)
+        self.assertEqual(
+            cmds_off,
+            [
+                ["ratbagctl", "warbling-mara", "led", "0", "set", "mode", "off"],
+            ],
+        )
+
+    def test_set_led_lighting_modes(self):
+        executed_commands = []
+
+        def mock_runner(cmd: list[str]) -> subprocess.CompletedProcess:
+            executed_commands.append(cmd)
+            return subprocess.CompletedProcess(cmd, returncode=0, stdout="", stderr="")
+
+        adapter = RatbagDeviceAdapter(command_runner=mock_runner)
+        success = adapter.set_led_lighting(
+            "warbling-mara",
+            hex_color="#5500DD",
+            slot=0,
+            led_index=0,
+            mode="breathing",
+            duration=3000,
+        )
+        self.assertTrue(success)
+        self.assertEqual(
+            executed_commands,
+            [
+                ["ratbagctl", "warbling-mara", "profile", "0", "led", "0", "set", "mode", "breathing"],
+                ["ratbagctl", "warbling-mara", "profile", "0", "led", "0", "set", "color", "5500dd"],
+                ["ratbagctl", "warbling-mara", "profile", "0", "led", "0", "set", "duration", "3000"],
+            ],
+        )
+
     def test_apply_profile(self):
         executed_commands = []
 

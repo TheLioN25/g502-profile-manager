@@ -131,7 +131,9 @@ class TestProfileManager(unittest.TestCase):
 
 
     def test_duplicate_profile_copies_all_settings_and_assignments(self):
-        original = self.manager.create_profile("Original", self.app_id, 3200, led_color="#123456")
+        original = self.manager.create_profile(
+            "Original", self.app_id, 3200, led_color="#123456", led_mode="breathing", led_duration=2500
+        )
         self.manager.assign_button(original.id, self.btn_g5, self.action_1)
 
         cloned = self.manager.duplicate_profile(original.id, "Copia de Original")
@@ -141,8 +143,22 @@ class TestProfileManager(unittest.TestCase):
         self.assertEqual(cloned.application_id, self.app_id)
         self.assertEqual(cloned.dpi.dpi, 3200)
         self.assertEqual(cloned.led_color, "#123456")
+        self.assertEqual(cloned.led_mode, "breathing")
+        self.assertEqual(cloned.led_duration, 2500)
         self.assertEqual(len(cloned.list_assignments()), 1)
         self.assertEqual(cloned.get_assignment_for_button(self.btn_g5).action.action_id, "habilidad_1")
+
+    def test_set_profile_led_mode(self):
+        profile = self.manager.create_profile("Modo Test", self.app_id)
+        self.assertEqual(profile.led_mode, "on")
+
+        updated = self.manager.set_profile_led_mode(profile.id, "cycle", 3000)
+        self.assertEqual(updated.led_mode, "cycle")
+        self.assertEqual(updated.led_duration, 3000)
+
+        saved = self.repo.get_by_id(profile.id)
+        self.assertEqual(saved.led_mode, "cycle")
+        self.assertEqual(saved.led_duration, 3000)
 
     def test_delete_profile_service(self):
         p = self.manager.create_profile("Por Eliminar", self.app_id)

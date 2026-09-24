@@ -149,14 +149,19 @@ class RatbagDeviceAdapter:
     def build_led_commands(
         self,
         device: str,
-        hex_color: str,
+        hex_color: str | None = None,
         slot: int | None = None,
         led_index: int | None = None,
+        mode: str = "on",
+        duration: int | None = None,
     ) -> list[list[str]]:
-        """Construye los comandos para configurar modo y color de las zonas LED."""
-        color_clean = hex_color.lstrip("#").strip().lower()
-        if len(color_clean) != 6:
-            return []
+        """Construye los comandos para configurar modo, color y duración de las zonas LED."""
+        mode_clean = mode.strip().lower() if isinstance(mode, str) else "on"
+        if mode_clean not in ("on", "breathing", "cycle", "off"):
+            mode_clean = "on"
+
+        color_clean = (hex_color.lstrip("#").strip().lower()) if hex_color else ""
+        has_valid_color = len(color_clean) == 6
 
         indices = (
             [led_index]
@@ -168,14 +173,22 @@ class RatbagDeviceAdapter:
             cmd_mode = ["ratbagctl", device]
             if slot is not None:
                 cmd_mode.extend(["profile", str(slot)])
-            cmd_mode.extend(["led", str(idx), "set", "mode", "on"])
+            cmd_mode.extend(["led", str(idx), "set", "mode", mode_clean])
             commands.append(cmd_mode)
 
-            cmd_color = ["ratbagctl", device]
-            if slot is not None:
-                cmd_color.extend(["profile", str(slot)])
-            cmd_color.extend(["led", str(idx), "set", "color", color_clean])
-            commands.append(cmd_color)
+            if mode_clean in ("on", "breathing") and has_valid_color:
+                cmd_color = ["ratbagctl", device]
+                if slot is not None:
+                    cmd_color.extend(["profile", str(slot)])
+                cmd_color.extend(["led", str(idx), "set", "color", color_clean])
+                commands.append(cmd_color)
+
+            if duration is not None and duration > 0 and mode_clean in ("breathing", "cycle"):
+                cmd_dur = ["ratbagctl", device]
+                if slot is not None:
+                    cmd_dur.extend(["profile", str(slot)])
+                cmd_dur.extend(["led", str(idx), "set", "duration", str(duration)])
+                commands.append(cmd_dur)
 
         return commands
 
@@ -234,19 +247,26 @@ class RatbagDeviceAdapter:
                         pass
         return 2
 
-    def set_led_color(
+    def set_led_lighting(
         self,
         device: str,
-        hex_color: str,
+        hex_color: str | None = None,
         slot: int | None = None,
         led_index: int | None = None,
+        mode: str = "on",
+        duration: int | None = None,
     ) -> bool:
         """
-        Configura el color de iluminación LED en formato hexadecimal RRGGBB.
-        Si led_index es None, aplica el color a todas las zonas LED del ratón
-        (tanto el logo 'G' como los indicadores DPI).
+        Configura el modo, color y duración de la iluminación LED.
         """
-        commands = self.build_led_commands(device, hex_color, slot=slot, led_index=led_index)
+        commands = self.build_led_commands(
+            device,
+            hex_color=hex_color,
+            slot=slot,
+            led_index=led_index,
+            mode=mode,
+            duration=duration,
+        )
         if not commands:
             return False
 
@@ -257,6 +277,24 @@ class RatbagDeviceAdapter:
                 all_success = False
 
         return all_success
+
+    def set_led_color(
+        self,
+        device: str,
+        hex_color: str,
+        slot: int | None = None,
+        led_index: int | None = None,
+    ) -> bool:
+        """
+        Configura el color de iluminación LED en modo estático ('on').
+        """
+        return self.set_led_lighting(
+            device=device,
+            hex_color=hex_color,
+            slot=slot,
+            led_index=led_index,
+            mode="on",
+        )
 
     def apply_button_action(
         self,
@@ -300,8 +338,18 @@ class RatbagDeviceAdapter:
         commands.append(self.build_dpi_command(device, profile.dpi.dpi, slot=target_slot))
 
         # 2. Comandos LED (Logo G + Indicadores DPI)
-        if profile.led_color:
-            commands.extend(self.build_led_commands(device, profile.led_color, slot=target_slot))
+        led_mode = getattr(profile, "led_mode", "on")
+        led_duration = getattr(profile, "led_duration", None)
+        if led_mode == "off" or profile.led_color or led_mode == "cycle":
+            commands.extend(
+                self.build_led_commands(
+                    device,
+                    hex_color=profile.led_color,
+                    slot=target_slot,
+                    mode=led_mode,
+                    duration=led_duration,
+                )
+            )
 
         # 3. Comandos de botones (Asignados y Restauración de no asignados para aislamiento total)
         assigned_button_ids = {

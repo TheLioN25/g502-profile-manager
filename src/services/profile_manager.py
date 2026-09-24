@@ -28,6 +28,8 @@ class ProfileManager:
         application_id: str,
         dpi: int | DpiConfiguration = 800,
         led_color: str | None = None,
+        led_mode: str = "on",
+        led_duration: int | None = None,
     ) -> Profile:
         """
         Crea un nuevo perfil, lo persiste y lo establece automáticamente como
@@ -38,6 +40,8 @@ class ProfileManager:
             application_id=application_id,
             dpi=dpi,
             led_color=led_color,
+            led_mode=led_mode,
+            led_duration=led_duration,
         )
 
         self._repository.save(profile)
@@ -105,6 +109,18 @@ class ProfileManager:
         self._repository.save(profile)
         return profile
 
+    def set_profile_led_mode(
+        self, profile_id: str, mode: str, duration: int | None = None
+    ) -> Profile:
+        """
+        Configura el modo de iluminación LED ('on', 'breathing', 'cycle', 'off')
+        y su duración/velocidad opcional.
+        """
+        profile = self._get_required_profile(profile_id)
+        profile.set_led_mode(mode, duration)
+        self._repository.save(profile)
+        return profile
+
     def assign_button(
         self, profile_id: str, button: Button, action: Action
     ) -> Profile:
@@ -157,6 +173,8 @@ class ProfileManager:
             application_id=source.application_id,
             dpi=DpiConfiguration(source.dpi.dpi, source.dpi.shift_dpi),
             led_color=source.led_color,
+            led_mode=source.led_mode,
+            led_duration=source.led_duration,
         )
         for assignment in source.list_assignments():
             clone.assign(assignment.button, assignment.action)

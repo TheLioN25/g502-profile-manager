@@ -346,6 +346,8 @@ class JsonProfileRepository:
                 "shift": profile.dpi.shift_dpi,
             },
             "led_color": profile.led_color,
+            "led_mode": profile.led_mode,
+            "led_duration": profile.led_duration,
             "created_at": profile.created_at,
             "updated_at": profile.updated_at,
             "assignments": [
@@ -385,6 +387,8 @@ class JsonProfileRepository:
             application_id=item["application_id"],
             dpi=dpi_config,
             led_color=item.get("led_color"),
+            led_mode=item.get("led_mode", "on"),
+            led_duration=item.get("led_duration"),
             profile_id=item["id"],
             created_at=item.get("created_at"),
             updated_at=item.get("updated_at"),

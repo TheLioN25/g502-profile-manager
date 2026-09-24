@@ -52,6 +52,8 @@ class TestJsonProfileRepository(unittest.TestCase):
         self.assertEqual(retrieved.dpi.dpi, 1600)
         self.assertEqual(retrieved.dpi.shift_dpi, 400)
         self.assertEqual(retrieved.led_color, "#00E5FF")
+        self.assertEqual(retrieved.led_mode, "on")
+        self.assertIsNone(retrieved.led_duration)
         self.assertIsNotNone(retrieved.created_at)
         self.assertIsNotNone(retrieved.updated_at)
         self.assertEqual(len(retrieved.list_assignments()), 1)
@@ -62,6 +64,25 @@ class TestJsonProfileRepository(unittest.TestCase):
         self.assertEqual(assignment.action.action_id, "habilidad_1")
         self.assertEqual(assignment.action.binding_type, "key")
         self.assertEqual(assignment.action.binding_value, "1")
+
+    def test_save_and_retrieve_custom_led_mode(self):
+        p_breathe = Profile(
+            name="Breathing RGB",
+            application_id=self.app_id,
+            dpi=DpiConfiguration(2400),
+            led_color="#5500DD",
+            led_mode="breathing",
+            led_duration=3000,
+            profile_id="p-breathe",
+        )
+        self.repo.save(p_breathe)
+
+        loaded = self.repo.get_by_id("p-breathe")
+        self.assertIsNotNone(loaded)
+        self.assertEqual(loaded.led_mode, "breathing")
+        self.assertEqual(loaded.led_duration, 3000)
+        self.assertEqual(loaded.led_color, "#5500DD")
+
 
     def test_persistence_across_instances(self):
         """Comprueba que una nueva instancia cargue exactamente los datos guardados en disco."""

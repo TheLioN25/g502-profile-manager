@@ -209,6 +209,43 @@ class TestDomainProfile(unittest.TestCase):
         with self.assertRaises(TypeError):
             self.profile.set_led_color(12345)  # type: ignore
 
+    def test_led_mode_default_and_custom(self):
+        self.assertEqual(self.profile.led_mode, "on")
+        self.assertIsNone(self.profile.led_duration)
+
+        self.profile.set_led_mode("breathing", 2000)
+        self.assertEqual(self.profile.led_mode, "breathing")
+        self.assertEqual(self.profile.led_duration, 2000)
+
+        self.profile.set_led_mode("cycle", 3500)
+        self.assertEqual(self.profile.led_mode, "cycle")
+        self.assertEqual(self.profile.led_duration, 3500)
+
+        self.profile.set_led_mode("off")
+        self.assertEqual(self.profile.led_mode, "off")
+        self.assertIsNone(self.profile.led_duration)
+
+        self.profile.set_led_mode("on")
+        self.assertEqual(self.profile.led_mode, "on")
+        self.assertIsNone(self.profile.led_duration)
+
+    def test_led_mode_validation(self):
+        with self.assertRaises(ValueError):
+            self.profile.set_led_mode("rainbow")  # modo desconocido
+
+        with self.assertRaises(ValueError):
+            self.profile.set_led_mode("on", duration=1500)  # duración no permitida en 'on'
+
+        with self.assertRaises(ValueError):
+            self.profile.set_led_mode("off", duration=1000)  # duración no permitida en 'off'
+
+        with self.assertRaises(ValueError):
+            self.profile.set_led_mode("breathing", duration=-100)  # duración <= 0
+
+        with self.assertRaises(TypeError):
+            self.profile.set_led_mode("cycle", duration="fast")  # type: ignore
+
+
     def test_timestamps_present_and_update(self):
         self.assertIsNotNone(self.profile.created_at)
         self.assertIsNotNone(self.profile.updated_at)
