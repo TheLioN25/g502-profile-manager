@@ -29,6 +29,9 @@ G502_BUTTON_INDEX_MAP: dict[str, int] = {
 }
 
 G502_DEFAULT_BUTTON_FALLBACKS: dict[str, tuple[str, str]] = {
+    "LEFT": ("button", "1"),
+    "RIGHT": ("button", "2"),
+    "MIDDLE": ("button", "3"),
     "G4": ("button", "4"),
     "G5": ("button", "5"),
     "SNIPER": ("special", "resolution-alternate"),

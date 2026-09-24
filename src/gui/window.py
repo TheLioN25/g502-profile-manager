@@ -656,7 +656,8 @@ class MainWindow(Adw.ApplicationWindow):
         self._unconfigured_list_box.unselect_all()
         for r, app in self._configured_rows:
             if r == row:
-                self._select_application(app)
+                pending_pid = getattr(self, "_pending_profile_id_to_select", None)
+                self._select_application(app, select_profile_id=pending_pid)
                 break
 
     def _on_unconfigured_row_selected(self, _box, row: Gtk.ListBoxRow | None):
@@ -665,7 +666,8 @@ class MainWindow(Adw.ApplicationWindow):
         self._configured_list_box.unselect_all()
         for r, app in self._unconfigured_rows:
             if r == row:
-                self._select_application(app)
+                pending_pid = getattr(self, "_pending_profile_id_to_select", None)
+                self._select_application(app, select_profile_id=pending_pid)
                 break
 
     def _on_app_row_selected(self, _box, row: Gtk.ListBoxRow | None):
@@ -676,11 +678,50 @@ class MainWindow(Adw.ApplicationWindow):
                 self._select_application(app)
                 break
 
-    def _select_application(self, app: Application):
+    def _select_application(self, app: Application, select_profile_id: str | None = None):
         self._selected_app = app
         self._window_title.set_title(app.name)
         self._window_title.set_subtitle(f"ID: {app.application_id}")
-        self._populate_profiles_dropdown(app.application_id)
+        self._populate_profiles_dropdown(app.application_id, select_profile_id=select_profile_id)
+
+    def select_application_by_id(self, app_id: str, profile_id: str | None = None) -> bool:
+        """Selecciona una aplicación por su ID en la barra lateral y carga su perfil en la interfaz."""
+        target_row = None
+        target_app = None
+        is_configured = False
+
+        for row, app in self._configured_rows:
+            if app.application_id == app_id:
+                target_row = row
+                target_app = app
+                is_configured = True
+                break
+
+        if not target_app:
+            for row, app in self._unconfigured_rows:
+                if app.application_id == app_id:
+                    target_row = row
+                    target_app = app
+                    is_configured = False
+                    break
+
+        if not target_app:
+            return False
+
+        self._pending_profile_id_to_select = profile_id
+
+        if is_configured:
+            self._unconfigured_list_box.unselect_all()
+            self._configured_list_box.select_row(target_row)
+        else:
+            self._configured_list_box.unselect_all()
+            self._unconfigured_list_box.select_row(target_row)
+
+        if not self._selected_app or self._selected_app.application_id != app_id or (profile_id and self._current_profile and self._current_profile.id != profile_id):
+            self._select_application(target_app, select_profile_id=profile_id)
+
+        self._pending_profile_id_to_select = None
+        return True
 
     def _populate_profiles_dropdown(self, application_id: str, select_profile_id: str | None = None):
         """Llena el desplegable de perfiles asociados a la aplicación."""
@@ -702,7 +743,7 @@ class MainWindow(Adw.ApplicationWindow):
             default_id = default_p.id if default_p else profiles[0].id
 
             string_list = Gtk.StringList.new([])
-            target_id = select_profile_id or (self._current_profile.id if self._current_profile else default_id)
+            target_id = select_profile_id or default_id
             selected_idx = 0
 
             for idx, p in enumerate(profiles):
@@ -995,8 +1036,14 @@ class MainWindow(Adw.ApplicationWindow):
             return False
 
     def _check_systemd_service_status(self):
-        if self._automation_engine is None and self._is_systemd_service_active():
-            self._auto_box.set_tooltip_text("Auto-detección activa en segundo plano (Servicio systemd --user)")
+        if self._is_systemd_service_active():
+            self._systemd_was_active = True
+            import subprocess
+            try:
+                subprocess.run(["systemctl", "--user", "stop", "g502-profile-manager.service"], check=False)
+            except Exception:
+                pass
+            self._auto_box.set_tooltip_text("Auto-detección activa con sincronización en tiempo real")
             self._auto_box.add_css_class("auto-switch-active")
             self._auto_switch.set_active(True)
 
@@ -1008,23 +1055,20 @@ class MainWindow(Adw.ApplicationWindow):
         is_svc_installed = svc_file.exists()
 
         if switch.get_active():
-            if self._automation_engine is None and is_svc_installed:
-                try:
-                    subprocess.run(["systemctl", "--user", "start", "g502-profile-manager.service"], check=False)
-                    self._auto_box.add_css_class("auto-switch-active")
-                    self._auto_box.set_tooltip_text("Auto-detección activa en segundo plano (Servicio systemd --user)")
-                    self._show_toast("⚡ Servicio systemd activado en segundo plano.")
-                    return
-                except Exception:
-                    pass
-            self._start_automation()
-        else:
-            if self._automation_engine is None and is_svc_installed and self._is_systemd_service_active():
+            if is_svc_installed and self._is_systemd_service_active():
                 try:
                     subprocess.run(["systemctl", "--user", "stop", "g502-profile-manager.service"], check=False)
                 except Exception:
                     pass
+            self._start_automation()
+        else:
+            self._systemd_was_active = False
             self._stop_automation()
+            if is_svc_installed and self._is_systemd_service_active():
+                try:
+                    subprocess.run(["systemctl", "--user", "stop", "g502-profile-manager.service"], check=False)
+                except Exception:
+                    pass
 
     def _start_automation(self):
         self._auto_box.add_css_class("auto-switch-active")
@@ -1060,15 +1104,19 @@ class MainWindow(Adw.ApplicationWindow):
         self._show_toast("Auto-detección desactivada: modo escritorio restaurado.")
 
     def _on_auto_profile_applied(self, app_name: str, profile: Profile):
+        self.select_application_by_id(profile.application_id, profile.id)
         self._window_title.set_subtitle(f"⚡ Auto: {app_name} ({profile.name} · {profile.dpi.dpi} DPI)")
         self._sync_tray()
         return False
 
     def _on_auto_desktop_restored(self):
-        if self._selected_app:
-            self._window_title.set_subtitle(f"ID: {self._selected_app.application_id}")
+        if not self.select_application_by_id("desktop:general"):
+            if self._selected_app:
+                self._window_title.set_subtitle(f"ID: {self._selected_app.application_id}")
+            else:
+                self._window_title.set_subtitle("Selecciona una aplicación")
         else:
-            self._window_title.set_subtitle("Selecciona una aplicación")
+            self._window_title.set_subtitle("⚡ Modo Escritorio (Perfil por defecto)")
         self._sync_tray()
         return False
 
@@ -1094,8 +1142,20 @@ class MainWindow(Adw.ApplicationWindow):
         )
 
     def _on_close_request(self, _window) -> bool:
+        auto_was_active = hasattr(self, "_auto_switch") and self._auto_switch.get_active()
         if self._auto_thread is not None and hasattr(self, "_auto_switch"):
             self._auto_switch.set_active(False)
+
+        if auto_was_active or getattr(self, "_systemd_was_active", False):
+            from pathlib import Path
+            import subprocess
+            svc_file = Path.home() / ".config/systemd/user/g502-profile-manager.service"
+            if svc_file.exists():
+                try:
+                    subprocess.run(["systemctl", "--user", "start", "g502-profile-manager.service"], check=False)
+                except Exception:
+                    pass
+
         if hasattr(self, "_tray") and self._tray:
             self._tray.destroy()
         return False

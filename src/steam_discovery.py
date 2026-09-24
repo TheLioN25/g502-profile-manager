@@ -46,10 +46,8 @@ def extract_steam_app_id(process):
 
     Devuelve None cuando el proceso no representa un lanzamiento reconocible.
     """
-    if process.name.casefold() != "reaper":
-        return None
-
-    match = STEAM_LAUNCH_PATTERN.search(process.command)
+    command = getattr(process, "command", "") or ""
+    match = STEAM_LAUNCH_PATTERN.search(command)
 
     if match is None:
         return None

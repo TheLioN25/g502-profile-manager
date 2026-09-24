@@ -329,6 +329,34 @@ class TestGuiLogic(unittest.TestCase):
         self.assertFalse(window._auto_switch.get_active())
         mock_engine.stop.assert_called()
 
+    def test_main_window_select_application_by_id(self):
+        p_wf = self.profile_manager.create_profile("Warframe Main", "steam:230410", 1200)
+        p_gw2 = self.profile_manager.create_profile("GW2 WvW", "steam:1284210", 2000)
+
+        window = MainWindow(
+            app=self.app,
+            profile_manager=self.profile_manager,
+            catalog_service=self.catalog_service,
+            discovery_adapter=self.mock_discovery,
+            ratbag_adapter=self.mock_ratbag,
+        )
+
+        # Inicialmente está en Warframe (primera configurada)
+        self.assertEqual(window._selected_app.application_id, "steam:230410")
+        self.assertEqual(window._current_profile.id, p_wf.id)
+
+        # Seleccionar Guild Wars 2 mediante su ID y cargar su perfil específico
+        res = window.select_application_by_id("steam:1284210", profile_id=p_gw2.id)
+        self.assertTrue(res)
+        self.assertEqual(window._selected_app.application_id, "steam:1284210")
+        self.assertEqual(window._current_profile.id, p_gw2.id)
+        self.assertEqual(window._current_profile.dpi.dpi, 2000)
+        self.assertEqual(window._dpi_display_label.get_text(), "2000 DPI")
+
+        # Intentar seleccionar un ID inexistente debe devolver False
+        res_non = window.select_application_by_id("non_existent_app")
+        self.assertFalse(res_non)
+
 
 if __name__ == "__main__":
     unittest.main()

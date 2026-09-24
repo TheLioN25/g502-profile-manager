@@ -165,6 +165,9 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
         self.assertIn("ratbagctl --nocommit warbling-mara profile 0 led 0 set color 00ff00", flattened)
         self.assertIn("ratbagctl --nocommit warbling-mara profile 0 button 4 action set key KEY_1", flattened)
         # Comprobar que los botones no asignados se restablecen a sus valores de fábrica
+        self.assertIn("ratbagctl --nocommit warbling-mara profile 0 button 0 action set button 1", flattened)
+        self.assertIn("ratbagctl --nocommit warbling-mara profile 0 button 1 action set button 2", flattened)
+        self.assertIn("ratbagctl --nocommit warbling-mara profile 0 button 2 action set button 3", flattened)
         self.assertIn("ratbagctl --nocommit warbling-mara profile 0 button 3 action set button 4", flattened)
         self.assertIn("ratbagctl --nocommit warbling-mara profile 0 button 5 action set special resolution-alternate", flattened)
         self.assertIn("ratbagctl --nocommit warbling-mara profile 0 button 6 action set special resolution-down", flattened)

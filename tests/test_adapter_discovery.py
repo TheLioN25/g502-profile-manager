@@ -14,7 +14,8 @@ from adapters import ApplicationDiscoveryAdapter
 from desktop_entries import DesktopEntry
 import tempfile
 
-from steam_discovery import SteamAppManifest
+from process_discovery import ProcessInfo
+from steam_discovery import SteamAppManifest, extract_steam_app_id
 
 
 class TestApplicationDiscoveryAdapter(unittest.TestCase):
@@ -94,6 +95,37 @@ class TestApplicationDiscoveryAdapter(unittest.TestCase):
         self.assertIsNotNone(app)
         self.assertEqual(app.application_id, "desktop:general")
         self.assertEqual(app.name, "Escritorio / Sistema")
+
+    def test_extract_steam_app_id_variants(self):
+        # 1. Proceso reaper estándar
+        proc_reaper = ProcessInfo(
+            pid=1001,
+            name="reaper",
+            executable_path="/usr/bin/reaper",
+            real_executable_path="/usr/bin/reaper",
+            command="reaper SteamLaunch AppId=230410 -- /games/Warframe.x64",
+        )
+        self.assertEqual(extract_steam_app_id(proc_reaper), 230410)
+
+        # 2. Proceso srt-bwrap / pressure-vessel sin nombre reaper
+        proc_bwrap = ProcessInfo(
+            pid=1002,
+            name="srt-bwrap",
+            executable_path="/usr/bin/srt-bwrap",
+            real_executable_path="/usr/bin/srt-bwrap",
+            command="/usr/lib/pressure-vessel/bin/srt-bwrap SteamLaunch AppId=1284210 -- /games/GW2.exe",
+        )
+        self.assertEqual(extract_steam_app_id(proc_bwrap), 1284210)
+
+        # 3. Proceso irrelevante sin SteamLaunch
+        proc_other = ProcessInfo(
+            pid=1003,
+            name="bash",
+            executable_path="/usr/bin/bash",
+            real_executable_path="/usr/bin/bash",
+            command="/bin/bash -i",
+        )
+        self.assertIsNone(extract_steam_app_id(proc_other))
 
 
 if __name__ == "__main__":
