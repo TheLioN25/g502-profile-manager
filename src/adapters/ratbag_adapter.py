@@ -213,7 +213,11 @@ class RatbagDeviceAdapter:
 
         if action.binding_type == "key" and action.binding_value:
             key_code = normalize_key_to_input_code(action.binding_value)
-            cmd.extend(["key", key_code])
+            # En libratbag <= 0.18, 'action set key' omite resetear 'modifier_flags' a 0,
+            # manteniendo modificadores residuales (Ctrl/Alt) si el botón tuvo macros previamente.
+            # Al usar 'action set macro <KEY>', libratbag asigna modifiers=0 y limpia explícitamente
+            # los flags de modificadores en la memoria EEPROM del ratón.
+            cmd.extend(["macro", key_code])
         elif action.binding_type == "macro" and action.binding_value:
             cmd.extend(["macro", action.binding_value])
         elif action.binding_type == "special" and action.binding_value:
