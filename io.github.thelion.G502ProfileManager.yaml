@@ -85,5 +85,7 @@ modules:
       - for s in 16 22 24 32 48 64 128 256 512; do install -Dm644 data/icons/io.github.thelion.G502ProfileManager_${s}x${s}.png /app/share/icons/hicolor/${s}x${s}/apps/io.github.thelion.G502ProfileManager.png; done
 
     sources:
-      - type: dir
-        path: .
+      - type: git
+        url: https://github.com/TheLioN25/g502-profile-manager.git
+        tag: v0.3.0
+        commit: be0f7a3e5c368a950689e4e95df540aabc189b4c
