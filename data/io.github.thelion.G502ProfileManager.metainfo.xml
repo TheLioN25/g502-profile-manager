@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.thelion.G502ProfileManager</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>G502 Profile Manager</name>
+  <summary>Administrador avanzado de perfiles y automatización reactiva para Logitech G502 HERO en Linux</summary>
+  <description>
+    <p>
+      G502 Profile Manager es una aplicación gráfica moderna y nativa construida con GTK4 y Libadwaita
+      para configurar botones, macros, sensibilidades (DPI) y zonas de iluminación LED en el ratón Logitech G502 HERO.
+    </p>
+    <p>Características principales:</p>
+    <ul>
+      <li>Plano interactivo vectorial del ratón renderizado en tiempo real con Cairo Canvas.</li>
+      <li>Conmutación reactiva automática de perfiles según el videojuego o aplicación activa en el sistema.</li>
+      <li>Integración completa en la bandeja del sistema (StatusNotifierItem) con tooltips dinámicos.</li>
+      <li>Aislamiento de perfiles para evitar contaminación de teclas en la memoria física del hardware.</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">io.github.thelion.G502ProfileManager.desktop</launchable>
+  <url type="homepage">https://github.com/TheLioN25/g502-profile-manager</url>
+  <url type="bugtracker">https://github.com/TheLioN25/g502-profile-manager/issues</url>
+  <developer id="io.github.thelion">
+    <name>TheLioN25</name>
+  </developer>
+  <categories>
+    <category>Settings</category>
+    <category>HardwareSettings</category>
+    <category>Utility</category>
+    <category>Game</category>
+  </categories>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.3.0" date="2026-09-30">
+      <description>
+        <p>Versión inicial con interfaz GTK4 / Libadwaita, soporte D-Bus y mitigación de modificadores pegados.</p>
+      </description>
+    </release>
+  </releases>
+</component>
