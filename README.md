@@ -147,6 +147,34 @@ Para facilitar la evaluación de la arquitectura, patrones de diseño y calidad 
 
 ---
 
+## 📦 Instalación
+
+### Opción A: Arch Linux / Manjaro / CachyOS / EndeavourOS (Nativo)
+Instalación nativa con `makepkg` (o mediante tu AUR helper favorito como `yay`):
+```bash
+git clone https://github.com/TheLioN25/g502-profile-manager.git
+cd g502-profile-manager/packaging/aur
+makepkg -si
+```
+*(Esto registra la aplicación en `pacman` e instala automáticamente los comandos `g502` y `g502-gui`, el acceso directo con icono SVG de alta resolución en el menú de aplicaciones, los presets y el servicio de usuario de `systemd`).*
+
+### Opción B: Instalación Rápida en el Sistema (Cualquier distribución Linux)
+```bash
+git clone https://github.com/TheLioN25/g502-profile-manager.git
+cd g502-profile-manager
+
+# 1. Instalar ejecutables "g502" y "g502-gui" en ~/.local/bin:
+./scripts/install-bin.sh
+
+# 2. Registrar el acceso directo e icono en el menú de inicio (KDE/GNOME):
+./scripts/install-desktop.sh
+
+# 3. (Opcional) Activar el demonio reactivo con systemd --user:
+./scripts/install-service.sh
+```
+
+---
+
 ## 📋 Requisitos del Sistema
 
 1. **Linux** con Python 3.10 o superior.
