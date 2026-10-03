@@ -1,0 +1,81 @@
+# Maintainer: TheLioN25 <https://github.com/TheLioN25>
+pkgname=g502-profile-manager
+pkgver=0.3.0
+pkgrel=1
+pkgdesc="Gestor avanzado de perfiles y automatización en tiempo real para Logitech G502 HERO en Linux (GTK4 / Libadwaita)"
+arch=('any')
+url="https://github.com/TheLioN25/g502-profile-manager"
+license=('MIT')
+depends=(
+    'python'
+    'python-gobject'
+    'python-cairo'
+    'gtk4'
+    'libadwaita'
+    'libratbag'
+    'hicolor-icon-theme'
+)
+source=("$pkgname-$pkgver.tar.gz::https://github.com/TheLioN25/g502-profile-manager/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('d120e7ba4e20a4acfeb1a3b103192503ea2777066b31e277bbc9f9324dd5e700')
+
+package() {
+    cd "$pkgname-$pkgver"
+
+    # Instalar archivos del proyecto en /usr/share/g502-profile-manager
+    install -d "$pkgdir/usr/share/$pkgname"
+    cp -r src presets data "$pkgdir/usr/share/$pkgname/"
+
+    # Lanzadores ejecutables en /usr/bin
+    install -d "$pkgdir/usr/bin"
+    cat << 'LAUNCHER' > "$pkgdir/usr/bin/g502"
+#!/usr/bin/env bash
+export PYTHONPATH="/usr/share/g502-profile-manager/src:${PYTHONPATH}"
+exec /usr/bin/python3 /usr/share/g502-profile-manager/src/cli.py "$@"
+LAUNCHER
+    chmod 755 "$pkgdir/usr/bin/g502"
+
+    cat << 'LAUNCHER' > "$pkgdir/usr/bin/g502-gui"
+#!/usr/bin/env bash
+export PYTHONPATH="/usr/share/g502-profile-manager/src:${PYTHONPATH}"
+exec /usr/bin/python3 /usr/share/g502-profile-manager/src/gui/app.py "$@"
+LAUNCHER
+    chmod 755 "$pkgdir/usr/bin/g502-gui"
+
+    # Acceso directo de escritorio
+    install -Dm644 data/io.github.thelion.G502ProfileManager.desktop \
+        "$pkgdir/usr/share/applications/io.github.thelion.G502ProfileManager.desktop"
+
+    # Icono SVG vectorial
+    install -Dm644 data/icons/io.github.thelion.G502ProfileManager.svg \
+        "$pkgdir/usr/share/icons/hicolor/scalable/apps/io.github.thelion.G502ProfileManager.svg"
+
+    # Iconos PNG multi-resolución
+    for size in 16 22 24 32 48 64 128 256 512; do
+        if [ -f "data/icons/io.github.thelion.G502ProfileManager_${size}x${size}.png" ]; then
+            install -Dm644 "data/icons/io.github.thelion.G502ProfileManager_${size}x${size}.png" \
+                "$pkgdir/usr/share/icons/hicolor/${size}x${size}/apps/io.github.thelion.G502ProfileManager.png"
+        fi
+    done
+
+    # Servicio de usuario systemd
+    install -d "$pkgdir/usr/lib/systemd/user"
+    cat << 'SERVICE' > "$pkgdir/usr/lib/systemd/user/g502-profile-manager.service"
+[Unit]
+Description=G502 Profile Manager - Demonio de automatización en segundo plano
+Documentation=https://github.com/TheLioN25/g502-profile-manager
+After=default.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/g502 run
+Restart=on-failure
+RestartSec=5s
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=default.target
+SERVICE
+
+    # Licencia
+    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

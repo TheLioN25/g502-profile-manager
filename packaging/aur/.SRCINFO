@@ -1,0 +1,18 @@
+pkgbase = g502-profile-manager
+	pkgdesc = Gestor avanzado de perfiles y automatización en tiempo real para Logitech G502 HERO en Linux (GTK4 / Libadwaita)
+	pkgver = 0.3.0
+	pkgrel = 1
+	url = https://github.com/TheLioN25/g502-profile-manager
+	arch = any
+	license = MIT
+	depends = python
+	depends = python-gobject
+	depends = python-cairo
+	depends = gtk4
+	depends = libadwaita
+	depends = libratbag
+	depends = hicolor-icon-theme
+	source = g502-profile-manager-0.3.0.tar.gz::https://github.com/TheLioN25/g502-profile-manager/archive/refs/tags/v0.3.0.tar.gz
+	sha256sums = d120e7ba4e20a4acfeb1a3b103192503ea2777066b31e277bbc9f9324dd5e700
+
+pkgname = g502-profile-manager
