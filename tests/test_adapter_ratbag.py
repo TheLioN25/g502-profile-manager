@@ -224,6 +224,17 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
         cmd_ctrl = adapter.build_button_command("dev", "G4", action_ctrl, slot=0)
         self.assertEqual(cmd_ctrl, ["ratbagctl", "dev", "profile", "0", "button", "3", "action", "set", "key", "KEY_LEFTCTRL"])
 
+        # 4. Tecla de puntuación '.' (debe convertirse en KEY_DOT y no fallar con KEY_.)
+        action_dot = Action(
+            action_id="dot_key",
+            name="Tecla .",
+            application_id="app",
+            binding_type="key",
+            binding_value=".",
+        )
+        cmd_dot = adapter.build_button_command("dev", "G4", action_dot, slot=0)
+        self.assertEqual(cmd_dot, ["ratbagctl", "dev", "profile", "0", "button", "3", "action", "set", "macro", "KEY_DOT"])
+
         # 3. Tecla estándar (debe usar 'macro' para limpiar flags residuales de libratbag 0.18)
         action_regular = Action(
             action_id="skill",
