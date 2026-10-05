@@ -94,6 +94,35 @@ class TestActionCatalogService(unittest.TestCase):
         self.assertIn("desktop:general", app_ids)
         self.assertNotIn("steam:1284210", app_ids)
 
+    def test_aion2_catalog_and_alias_resolution(self):
+        # Coincidencia con catálogo nativo
+        self.assertTrue(self.catalog.has_catalog("steam:3393110"))
+        self.assertEqual(self.catalog.get_application_name("steam:3393110"), "AION 2")
+        
+        # Coincidencia por alias directos y variantes comunes
+        aliases = ["steam:261430", "desktop:aion2", "desktop:aion", "aion2", "aion", "Aion Classic"]
+        for alias in aliases:
+            self.assertTrue(self.catalog.has_catalog(alias), f"Fallo al resolver alias {alias}")
+            actions = self.catalog.get_actions_for_application(alias)
+            self.assertEqual(len(actions), 77, f"Se esperaban 77 acciones para {alias}")
+
+        # Verificar categorías especializadas de MMORPG
+        categories = self.catalog.get_categories_for_application("steam:3393110")
+        self.assertIn("Combate y Fijación de Objetivos", categories)
+        self.assertIn("Habilidades Principales", categories)
+        self.assertIn("Habilidades Secundarias y Combos", categories)
+        self.assertIn("Movimiento y Vuelo", categories)
+        self.assertIn("Interacción y Consumibles", categories)
+        self.assertIn("Interfaz y Menús", categories)
+
+        # Sincronización no genera shooter actions si el juego coincide por nombre
+        detected_app = Application(application_id="wine:aion_custom", name="AION 2 - Online")
+        synced = self.catalog.sync_with_installed_applications([detected_app], persist=False)
+        self.assertEqual(synced, [])
+        self.assertTrue(self.catalog.has_catalog("wine:aion_custom"))
+        actions = self.catalog.get_actions_for_application("wine:aion_custom")
+        self.assertEqual(len(actions), 77)
+
     def test_custom_action_isolated_directory(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)

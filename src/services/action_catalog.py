@@ -78,6 +78,7 @@ class ActionCatalogService:
 
         # Estructura: app_id (casefold) -> {"name": str, "description": str, "actions": dict[str, Action]}
         self._catalogs: dict[str, dict] = {}
+        self._alias_map: dict[str, str] = {}
         self.reload()
 
     def reload(self) -> None:
@@ -87,6 +88,7 @@ class ActionCatalogService:
         los anteriores (permitiendo al usuario personalizar presets integrados).
         """
         self._catalogs.clear()
+        self._alias_map.clear()
 
         for directory in self._search_paths:
             if not directory.is_dir():
@@ -124,6 +126,16 @@ class ActionCatalogService:
             if app_name and app_name != app_id:
                 self._catalogs[app_key]["name"] = app_name
 
+        self._alias_map[app_key] = app_key
+        if app_name:
+            self._alias_map[app_name.casefold()] = app_key
+
+        raw_aliases = data.get("aliases", [])
+        if isinstance(raw_aliases, (list, tuple)):
+            for alias in raw_aliases:
+                if isinstance(alias, str) and alias.strip():
+                    self._alias_map[alias.strip().casefold()] = app_key
+
         raw_actions = data.get("actions", [])
         if isinstance(raw_actions, list):
             for item in raw_actions:
@@ -145,26 +157,64 @@ class ActionCatalogService:
                 )
                 self._catalogs[app_key]["actions"][action.action_id] = action
 
-    def has_catalog(self, application_id: str) -> bool:
-        """Determina si existe un catálogo cargado para el identificador dado."""
+    def _resolve_app_key(self, application_id: str) -> str | None:
+        """
+        Resuelve un identificador de aplicación o alias hacia la clave canónica del catálogo.
+        Soporta coincidencias exactas, prefijos (steam:, desktop:, etc.), alias registrados
+        y búsqueda por similitud normalizada para variantes de nombres o lanzadores.
+        """
         if not isinstance(application_id, str):
-            return False
-        return application_id.strip().casefold() in self._catalogs
+            return None
+        raw = application_id.strip().casefold()
+        if not raw:
+            return None
+
+        if raw in self._catalogs:
+            return raw
+        if raw in self._alias_map:
+            return self._alias_map[raw]
+
+        if ":" in raw:
+            bare = raw.split(":", 1)[1].strip()
+            if bare in self._catalogs:
+                return bare
+            if bare in self._alias_map:
+                return self._alias_map[bare]
+
+        norm_query = "".join(c for c in raw if c.isalnum())
+        if norm_query:
+            for alias, target_key in self._alias_map.items():
+                norm_alias = "".join(c for c in alias if c.isalnum())
+                if norm_query == norm_alias:
+                    return target_key
+            if len(norm_query) >= 4:
+                for alias, target_key in self._alias_map.items():
+                    norm_alias = "".join(c for c in alias if c.isalnum())
+                    if len(norm_alias) >= 4 and (norm_query.startswith(norm_alias) or norm_alias in norm_query):
+                        return target_key
+
+        return None
+
+    def has_catalog(self, application_id: str) -> bool:
+        """Determina si existe un catálogo cargado para el identificador dado o sus alias."""
+        return self._resolve_app_key(application_id) is not None
 
     def get_application_name(self, application_id: str) -> str | None:
         """Obtiene el nombre representativo del juego o aplicación en el catálogo."""
-        if not isinstance(application_id, str):
+        resolved = self._resolve_app_key(application_id)
+        if not resolved:
             return None
-        catalog = self._catalogs.get(application_id.strip().casefold())
+        catalog = self._catalogs.get(resolved)
         return catalog["name"] if catalog else None
 
     def get_actions_for_application(self, application_id: str) -> tuple[Action, ...]:
         """
         Retorna la lista completa de acciones disponibles para una aplicación.
         """
-        if not isinstance(application_id, str):
+        resolved = self._resolve_app_key(application_id)
+        if not resolved:
             return ()
-        catalog = self._catalogs.get(application_id.strip().casefold())
+        catalog = self._catalogs.get(resolved)
         if not catalog:
             return ()
         return tuple(catalog["actions"].values())
@@ -263,10 +313,15 @@ class ActionCatalogService:
         """
         newly_added = []
         for app in installed_apps:
+            resolved = self._resolve_app_key(app.application_id) or self._resolve_app_key(app.name)
+            if resolved:
+                app_key = app.application_id.strip().casefold()
+                self._alias_map[app_key] = resolved
+                continue
+
             app_key = app.application_id.strip().casefold()
-            if app_key not in self._catalogs:
-                is_game = app.application_id.startswith("steam:") or app.application_id.startswith("epic:")
-                if is_game and auto_generate_for_games:
+            is_game = app.application_id.startswith("steam:") or app.application_id.startswith("epic:")
+            if is_game and auto_generate_for_games:
                     name_lower = app.name.strip().casefold()
                     if any(ignored in name_lower for ignored in IGNORED_GAME_PATTERNS):
                         continue
@@ -312,11 +367,16 @@ class ActionCatalogService:
         las aplicaciones que efectivamente están instaladas en el sistema.
         """
         result = []
+        installed_resolved: set[str] | None = None
+        if installed_app_ids is not None:
+            installed_resolved = {
+                self._resolve_app_key(i) or i.casefold() for i in installed_app_ids
+            }
+
         for cat in self._catalogs.values():
             app_id = cat["application_id"]
-            if installed_app_ids is not None:
-                installed_lower = {i.casefold() for i in installed_app_ids}
-                if app_id != "desktop:general" and app_id.casefold() not in installed_lower:
+            if installed_resolved is not None:
+                if app_id != "desktop:general" and app_id.casefold() not in installed_resolved:
                     continue
 
             result.append(
