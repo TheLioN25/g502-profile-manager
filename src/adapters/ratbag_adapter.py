@@ -45,14 +45,30 @@ G502_DEFAULT_BUTTON_FALLBACKS: dict[str, tuple[str, str]] = {
 KEY_TRANSLATIONS: dict[str, str] = {
     "ctrl": "KEY_LEFTCTRL",
     "leftctrl": "KEY_LEFTCTRL",
+    "rightctrl": "KEY_RIGHTCTRL",
     "shift": "KEY_LEFTSHIFT",
     "leftshift": "KEY_LEFTSHIFT",
+    "rightshift": "KEY_RIGHTSHIFT",
     "alt": "KEY_LEFTALT",
     "leftalt": "KEY_LEFTALT",
+    "rightalt": "KEY_RIGHTALT",
+    "meta": "KEY_LEFTMETA",
+    "super": "KEY_LEFTMETA",
     "space": "KEY_SPACE",
     "enter": "KEY_ENTER",
     "tab": "KEY_TAB",
     "esc": "KEY_ESC",
+}
+
+MODIFIER_KEYCODES: set[str] = {
+    "KEY_LEFTSHIFT",
+    "KEY_RIGHTSHIFT",
+    "KEY_LEFTCTRL",
+    "KEY_RIGHTCTRL",
+    "KEY_LEFTALT",
+    "KEY_RIGHTALT",
+    "KEY_LEFTMETA",
+    "KEY_RIGHTMETA",
 }
 
 
@@ -213,11 +229,16 @@ class RatbagDeviceAdapter:
 
         if action.binding_type == "key" and action.binding_value:
             key_code = normalize_key_to_input_code(action.binding_value)
-            # En libratbag <= 0.18, 'action set key' omite resetear 'modifier_flags' a 0,
-            # manteniendo modificadores residuales (Ctrl/Alt) si el botón tuvo macros previamente.
-            # Al usar 'action set macro <KEY>', libratbag asigna modifiers=0 y limpia explícitamente
-            # los flags de modificadores en la memoria EEPROM del ratón.
-            cmd.extend(["macro", key_code])
+            # Para modificadores (Shift, Ctrl, Alt, Meta), el driver hidpp20 de libratbag
+            # rechaza 'macro <KEY>' con error -22 (EINVAL) al escribir en la EEPROM del ratón.
+            # Además, 'key' es obligatorio para permitir mantener presionada la tecla (hold)
+            # al correr, acelerar en vuelo o esquivar en el juego.
+            # Para teclas estándar simples (ej. 1, 2, e, r), se utiliza 'macro <KEY>' para
+            # forzar modifiers=0 y neutralizar modificadores residuales pegados (bug libratbag 0.18).
+            if key_code in MODIFIER_KEYCODES:
+                cmd.extend(["key", key_code])
+            else:
+                cmd.extend(["macro", key_code])
         elif action.binding_type == "macro" and action.binding_value:
             cmd.extend(["macro", action.binding_value])
         elif action.binding_type == "special" and action.binding_value:

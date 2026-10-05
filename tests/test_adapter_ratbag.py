@@ -199,6 +199,42 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
             ],
         )
 
+    def test_build_button_command_modifiers_vs_macros(self):
+        adapter = RatbagDeviceAdapter()
+        
+        # 1. Modificador LeftShift (debe usar 'key' para hold y evitar error -22 en hidpp20)
+        action_shift = Action(
+            action_id="sprint",
+            name="Acelerar",
+            application_id="app",
+            binding_type="key",
+            binding_value="leftshift",
+        )
+        cmd_shift = adapter.build_button_command("dev", "G4", action_shift, slot=0)
+        self.assertEqual(cmd_shift, ["ratbagctl", "dev", "profile", "0", "button", "3", "action", "set", "key", "KEY_LEFTSHIFT"])
+
+        # 2. Modificador LeftCtrl
+        action_ctrl = Action(
+            action_id="crouch",
+            name="Agacharse",
+            application_id="app",
+            binding_type="key",
+            binding_value="leftctrl",
+        )
+        cmd_ctrl = adapter.build_button_command("dev", "G4", action_ctrl, slot=0)
+        self.assertEqual(cmd_ctrl, ["ratbagctl", "dev", "profile", "0", "button", "3", "action", "set", "key", "KEY_LEFTCTRL"])
+
+        # 3. Tecla estándar (debe usar 'macro' para limpiar flags residuales de libratbag 0.18)
+        action_regular = Action(
+            action_id="skill",
+            name="Habilidad 1",
+            application_id="app",
+            binding_type="key",
+            binding_value="1",
+        )
+        cmd_reg = adapter.build_button_command("dev", "G5", action_regular, slot=0)
+        self.assertEqual(cmd_reg, ["ratbagctl", "dev", "profile", "0", "button", "4", "action", "set", "macro", "KEY_1"])
+
     def test_apply_profile(self):
         executed_commands = []
 
