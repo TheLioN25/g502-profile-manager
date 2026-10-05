@@ -21,6 +21,10 @@ Memoria técnica del proyecto entre sesiones (~40 líneas). Estado y decisiones 
 - NUNCA usar `action set key` con `ratbagctl` en botones laterales o con historial de macros: siempre usar `action set macro <TECLA>`.
 - NUNCA llamar a métodos de widgets GTK desde hilos de trabajo: usar obligatoriamente `GLib.idle_add`.
 
-## Próximos pasos (Backlog futuro opcional)
-- Empaquetado para distribución (crear PKGBUILD para Arch Linux / AUR o manifiesto Flatpak).
-- Explorar detección fina de foco por ventanas nativas en Wayland (vía protocolos de compositor) si se requiere alternar perfiles por ventana en lugar de por proceso.
+## Próximos pasos y Hoja de Ruta Prioritaria
+- **🎯 OBJETIVO PRINCIPAL PRÓXIMA SESIÓN:** Ampliar compatibilidad a toda la familia Logitech G502:
+  - Variantes a soportar: *G502 Proteus Core*, *G502 Proteus Spectrum*, *G502 LIGHTSPEED* (inalámbrico/USB receiver) y *G502 X / X PLUS*.
+  - Lectura dinámica de IDs y perfiles de hardware desde `libratbag` (`ratbagctl list`).
+  - Detección automática del modelo conectado para que la interfaz adapte el título y los comandos sin perder la asignación 1:1.
+- Paquete AUR publicado en cuanto se reactiven registros en aur.archlinux.org (PKGBUILD ya probado).
+- Explorar detección fina de foco por ventanas nativas en Wayland si se requiere alternar perfiles por ventana.
