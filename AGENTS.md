@@ -27,9 +27,9 @@ Administrador avanzado de perfiles de hardware y motor de automatización reacti
 - **Idioma:** Código, variables y pruebas en inglés o español técnico según el módulo preexistente; comentarios y docstrings explicativos en español.
 
 ## Reglas de dominio / Trampas conocidas
-1. **Mapeo de teclas y mitigación de `libratbag 0.18`:**
-   - Para teclas modificadoras (`Shift`, `Ctrl`, `Alt`, `Meta`): Usar obligatoriamente `button X action set key <KEY>`. En HID++ 2.0, los modificadores en macros son rechazados con `-22 (EINVAL)` y además `key` es indispensable para mantener la tecla presionada (*hold*) al correr o acelerar.
-   - Para teclas alfanuméricas estándar (`1`, `2`, `e`, `r`, etc.): Usar `button X action set macro <KEY>`, lo que fuerza a libratbag a asignar `modifiers = 0` y sobreescribir limpiamente el byte en la EEPROM, neutralizando modificadores fantasma pegados.
+1. **Mapeo de teclas y soporte continuo (Hold) en `libratbag`:**
+   - Para todas las acciones de tipo `key` (modificadores, alfanuméricas y puntuación como `.`, `1`, `2`, `q`, `e`, `shift`): Usar siempre `button X action set key <KEY>`. Proporciona emulación de hardware 1:1 indispensable para mantener presionada la tecla (*hold*) al correr/sprint, esquivar o canalizar habilidades sin que la señal se corte a los pocos milisegundos.
+   - Para macros reales (`binding_type == "macro"`): Usar `button X action set macro <MACRO_VAL>`.
    - Para símbolos y puntuación (`.`, `,`, `-`, etc.): Mapear siempre a su identificador de input-event-codes (`KEY_DOT`, `KEY_COMMA`, etc.) antes de invocar `ratbagctl`.
 2. **Concurrencia e Hilos en GTK4:**
    - El bucle de eventos de GTK4 corre en el hilo principal. El motor `AutomationEngine` corre en un `threading.Thread` secundario.

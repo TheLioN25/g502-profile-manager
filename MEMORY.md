@@ -14,9 +14,9 @@ Memoria técnica del proyecto entre sesiones (~45 líneas). Estado y decisiones 
 
 ## Decisiones arquitectónicas (y por qué)
 - **StatusNotifierItem directo en D-Bus (`Gio.DBusConnection`):** En lugar de usar `AppIndicator3` (GTK3 que crashea en GTK4), se implementó D-Bus nativo, logrando cero dependencias externas conflictivas.
-- **Sintaxis híbrida `key` vs `macro` en `ratbag_adapter`:**
-  - Teclas modificadoras (`Shift`, `Ctrl`, `Alt`, `Meta`): Usar obligatoriamente `action set key <KEY>`. El protocolo HID++ 2.0 rechaza modificadores en macros con `-22 (EINVAL)` y `key` permite mantener presionado (*hold*) para correr/acelerar.
-  - Teclas estándar alfanuméricas (`1`, `2`, `e`, `r`): Usar `action set macro <KEY>` para forzar `modifiers=0` y neutralizar modificadores residuales pegados de `libratbag 0.18`.
+- **Sintaxis de emulación `key` 1:1 en `ratbag_adapter`:**
+  - Todas las acciones de tipo `key` (`Shift`, `.`, `1`, `2`, `q`, `e`, `Space`): Usar `action set key <KEY>`. Permite emulación de hardware 1:1 y mantener presionado (*hold*) para correr/sprint, esquivar o canalizar habilidades de forma continua.
+  - Macros de combinaciones (`binding_type == "macro"`): Usar `action set macro <VAL>`.
   - Puntuación y navegación (`.`, `,`, `-`, `=`, `/`, `[`, `]`, `space`, etc.): Mapeo integral a `KEY_DOT`, `KEY_COMMA`, etc., evitando errores de `ratbagctl`.
 - **Aceleración Adaptativa (`Adaptive`) en KDE/Wayland:** Se mantiene `PointerAccelerationProfile=1` en `kcminputrc` y D-Bus para preservar la fluidez natural y evitar la resistencia artificial del perfil Flat a altos DPIs.
 - **Persistencia atómica temporal (`.tmp` + rename atómico):** Evita archivos JSON corruptos ante caídas o reinicios.

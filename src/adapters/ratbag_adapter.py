@@ -322,20 +322,17 @@ class RatbagDeviceAdapter:
 
         if action.binding_type == "key" and action.binding_value:
             key_code = normalize_key_to_input_code(action.binding_value)
-            # Para modificadores (Shift, Ctrl, Alt, Meta), el driver hidpp20 de libratbag
-            # rechaza 'macro <KEY>' con error -22 (EINVAL) al escribir en la EEPROM del ratón.
-            # Además, 'key' es obligatorio para permitir mantener presionada la tecla (hold)
-            # al correr, acelerar en vuelo o esquivar en el juego.
-            # Para teclas estándar simples (ej. 1, 2, e, r), se utiliza 'macro <KEY>' para
-            # forzar modifiers=0 y neutralizar modificadores residuales pegados (bug libratbag 0.18).
-            if key_code in MODIFIER_KEYCODES:
-                cmd.extend(["key", key_code])
-            else:
-                cmd.extend(["macro", key_code])
+            # Para asignaciones 1:1 de teclas (key), usamos siempre 'action set key <KEY>'.
+            # Esto garantiza que el ratón emule un teclado real manteniendo la tecla pulsada (hold)
+            # mientras el usuario tenga el botón presionado (indispensable para correr/sprint, esquivar,
+            # desplazamiento y canalizaciones).
+            cmd.extend(["key", key_code])
         elif action.binding_type == "macro" and action.binding_value:
             cmd.extend(["macro", action.binding_value])
         elif action.binding_type == "special" and action.binding_value:
             cmd.extend(["special", action.binding_value])
+        elif action.binding_type == "disabled":
+            cmd.extend(["disabled"])
         else:
             return None
 
