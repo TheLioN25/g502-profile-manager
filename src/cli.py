@@ -545,6 +545,7 @@ Type=simple
 ExecStart={sys.executable} {repo_root / 'src/cli.py'} run
 Restart=on-failure
 RestartSec=5s
+TimeoutStopSec=15s
 Environment=PYTHONUNBUFFERED=1
 
 [Install]

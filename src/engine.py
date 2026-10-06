@@ -132,7 +132,9 @@ class AutomationEngine:
         Devuelve True si la iteración se completó con éxito.
         """
         if not self._device_id:
-            return False
+            self._device_id = self._device_adapter.find_device(self._target_device_name)
+            if not self._device_id:
+                return False
 
         # Cada 15 ciclos (~30s), revisar si se terminó de descargar un juego nuevo
         self._tick_counter += 1
@@ -171,9 +173,13 @@ class AutomationEngine:
 
         # 5. Aplicar o restaurar según corresponda
         if target_profile is not None:
+            current_slot = self._device_adapter.get_active_profile_slot(self._device_id)
+            hardware_drifted = (current_slot is not None and current_slot != 0)
+
             needs_apply = (
                 self._current_profile_id != target_profile.id
                 or self._current_profile_updated_at != target_profile.updated_at
+                or hardware_drifted
             )
             if needs_apply:
                 self._log(f"\n[ACTIVO] Detectado: {detected_app_name} ({target_profile.application_id})")
@@ -216,13 +222,16 @@ class AutomationEngine:
         try:
             import signal
             if threading.current_thread() is threading.main_thread():
-                signal.signal(signal.SIGTERM, lambda *_: self.stop())
+                signal.signal(signal.SIGTERM, lambda *_: self._stop_event.set())
         except (ValueError, AttributeError):
             pass
 
         try:
             while not self._stop_event.is_set():
-                self.step()
+                try:
+                    self.step()
+                except Exception as ex:
+                    self._log(f"Advertencia en ciclo de supervisión: {ex}")
                 if self._stop_event.wait(timeout=self._check_interval):
                     break
 

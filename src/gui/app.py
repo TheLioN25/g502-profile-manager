@@ -89,6 +89,7 @@ class G502Application(Adw.Application):
                 catalog_service=catalog_service,
                 discovery_adapter=discovery_adapter,
                 ratbag_adapter=ratbag_adapter,
+                start_auto=True,
             )
 
         self._window.present()

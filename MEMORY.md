@@ -21,6 +21,7 @@ Memoria técnica del proyecto entre sesiones (~45 líneas). Estado y decisiones 
 - **Aceleración Adaptativa (`Adaptive`) en KDE/Wayland:** Se mantiene `PointerAccelerationProfile=1` en `kcminputrc` y D-Bus para preservar la fluidez natural y evitar la resistencia artificial del perfil Flat a altos DPIs.
 - **Persistencia atómica temporal (`.tmp` + rename atómico):** Evita archivos JSON corruptos ante caídas o reinicios.
 - **Diseño Domain-Driven (DDD):** El dominio de botones, DPI y acciones es agnóstico a GTK y a ratbagctl, permitiendo testear el 100% de la lógica con mocks puros en milisegundos.
+- **Sincronización anti-drift y aislamiento de tests:** En engine.py, step() detecta deriva de slot (hardware_drifted) para restaurar perfiles si se presiona G9; y en test_gui_window_logic.py se aisla subprocess.run para proteger el demonio systemd real.
 
 ## Próximos pasos y Hoja de Ruta Prioritaria
 - **🎯 OBJETIVO PRINCIPAL PRÓXIMA SESIÓN:** Ampliar compatibilidad a toda la familia Logitech G502:

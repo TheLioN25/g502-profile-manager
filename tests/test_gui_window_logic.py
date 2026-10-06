@@ -55,8 +55,13 @@ class TestGuiLogic(unittest.TestCase):
         self.mock_ratbag.apply_profile.return_value = True
 
         self.app = G502Application()
+        self._subp_patcher = patch('subprocess.run')
+        self.mock_subp = self._subp_patcher.start()
+        self.mock_subp.return_value.returncode = 0
+        self.mock_subp.return_value.stdout = 'inactive'
 
     def tearDown(self):
+        self._subp_patcher.stop()
         self.temp_dir.cleanup()
 
     def test_application_instantiation(self):

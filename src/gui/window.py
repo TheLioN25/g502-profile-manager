@@ -81,6 +81,7 @@ class MainWindow(Adw.ApplicationWindow):
         discovery_adapter: ApplicationDiscoveryAdapter,
         ratbag_adapter: RatbagDeviceAdapter | None = None,
         automation_engine: AutomationEngine | None = None,
+        start_auto: bool = False,
     ):
         super().__init__(
             application=app,
@@ -141,6 +142,8 @@ class MainWindow(Adw.ApplicationWindow):
         self._load_applications()
         self._update_mouse_hardware_status()
         self._check_systemd_service_status()
+        if start_auto and not self._auto_switch.get_active():
+            self._auto_switch.set_active(True)
 
     # -------------------------------------------------------------------------
     # Panel Izquierdo: Sidebar de Juegos
