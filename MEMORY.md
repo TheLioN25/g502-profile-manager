@@ -18,7 +18,7 @@ Memoria técnica del proyecto entre sesiones (~45 líneas). Estado y decisiones 
   - Teclas modificadoras (`Shift`, `Ctrl`, `Alt`, `Meta`): Usar obligatoriamente `action set key <KEY>`. El protocolo HID++ 2.0 rechaza modificadores en macros con `-22 (EINVAL)` y `key` permite mantener presionado (*hold*) para correr/acelerar.
   - Teclas estándar alfanuméricas (`1`, `2`, `e`, `r`): Usar `action set macro <KEY>` para forzar `modifiers=0` y neutralizar modificadores residuales pegados de `libratbag 0.18`.
   - Puntuación y navegación (`.`, `,`, `-`, `=`, `/`, `[`, `]`, `space`, etc.): Mapeo integral a `KEY_DOT`, `KEY_COMMA`, etc., evitando errores de `ratbagctl`.
-- **Aceleración Plana (`Flat`) en KDE/Wayland:** Se persiste `pointerAccelerationProfile=1` en `kcminputrc` para garantizar lectura 1:1 pura del sensor HERO sin frenado ni resistencia no lineal.
+- **Aceleración Adaptativa (`Adaptive`) en KDE/Wayland:** Se mantiene `PointerAccelerationProfile=1` en `kcminputrc` y D-Bus para preservar la fluidez natural y evitar la resistencia artificial del perfil Flat a altos DPIs.
 - **Persistencia atómica temporal (`.tmp` + rename atómico):** Evita archivos JSON corruptos ante caídas o reinicios.
 - **Diseño Domain-Driven (DDD):** El dominio de botones, DPI y acciones es agnóstico a GTK y a ratbagctl, permitiendo testear el 100% de la lógica con mocks puros en milisegundos.
 
