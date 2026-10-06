@@ -1,7 +1,7 @@
 # Logitech G502 HERO Profile Manager (Linux)
 
 [![CI Pipeline](https://github.com/TheLioN25/g502-profile-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/TheLioN25/g502-profile-manager/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-126%20passed-brightgreen.svg)](#-ejecución-de-pruebas-unitarias)
+[![Tests](https://img.shields.io/badge/tests-128%20passed-brightgreen.svg)](#-ejecución-de-pruebas-unitarias)
 [![Python](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](pyproject.toml)
 
@@ -68,7 +68,7 @@ Permite configurar visualmente los botones, macros, sensibilidades (DPI) y zonas
   * Presets integrados en formato JSON ampliables para juegos como **Warframe** y **Guild Wars 2** (incluyendo mecánicas de profesión F1–F5 y habilidades personalizables), además de atajos de productividad para el escritorio.
 
 * 🧪 **Suite de Pruebas Exhaustiva:**
-  * 126 pruebas unitarias automatizadas con cobertura en dominio, persistencia atómica, adaptadores de hardware, lógica de interfaz gráfica, bandeja del sistema, empaquetado de escritorio y servicio systemd.
+  * 128 pruebas unitarias automatizadas con cobertura en dominio, persistencia atómica, adaptadores de hardware, lógica de interfaz gráfica, bandeja del sistema, empaquetado de escritorio y servicio systemd.
 
 ---
 
@@ -124,7 +124,7 @@ g502-profile-manager/
 │   ├── epic_discovery.py        # Descubrimiento de juegos de Epic Games
 │   ├── desktop_entries.py       # Parser de archivos .desktop de Linux
 │   └── process_discovery.py     # Inspección de procesos del sistema
-└── tests/                       # Suite de 126 pruebas unitarias
+└── tests/                       # Suite de 128 pruebas unitarias
 ```
 
 ---
@@ -142,7 +142,7 @@ Para facilitar la evaluación de la arquitectura, patrones de diseño y calidad 
 | **Aislamiento de Hardware** | [`src/adapters/ratbag_adapter.py`](src/adapters/ratbag_adapter.py) | Sanitización de memoria física EEPROM del ratón y reseteo preventivo a valores de fábrica (modelo G-HUB). |
 | **Bandeja del Sistema D-Bus** | [`src/gui/tray.py`](src/gui/tray.py) | StatusNotifierItem directo sobre `Gio.DBusConnection` (elimina el conflicto clásico de `AppIndicator3` con GTK4). |
 | **Concurrencia en GUI** | [`src/gui/window.py`](src/gui/window.py) | Monitoreo en hilo secundario independiente (`threading.Thread`) y despacho seguro al renderizado GTK4 con `GLib.idle_add`. |
-| **Suite de Pruebas Unitarias**| [`tests/`](tests/) | 126 pruebas unitarias automatizadas con mocks puros (ejecutables con `python3 -m unittest discover -s tests`). |
+| **Suite de Pruebas Unitarias**| [`tests/`](tests/) | 128 pruebas unitarias automatizadas con mocks puros (ejecutables con `python3 -m unittest discover -s tests`). |
 | **Pipeline de CI/CD** | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | Automatización multi-versión de Python con validación en servidor gráfico headless (`xvfb-run`). |
 
 ---
@@ -304,7 +304,7 @@ Si juegas títulos de Windows en Linux mediante **Steam Play / Proton**:
 
 ## 🧪 Ejecución de Pruebas Unitarias
 
-Para ejecutar la suite completa de 126 pruebas automatizadas:
+Para ejecutar la suite completa de 128 pruebas automatizadas:
 ```bash
 python3 -m unittest discover -s tests -v
 ```
