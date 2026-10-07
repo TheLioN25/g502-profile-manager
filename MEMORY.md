@@ -3,8 +3,8 @@
 Memoria técnica del proyecto entre sesiones (~45 líneas). Estado y decisiones consolidadas.
 
 ## Estado actual
-- **Soporte Multi-Variante Familia Logitech G502 (Fase 2) e Internacionalización Bilingüe (Fase 3 & 3.2) implementados.**
-- **154 pruebas unitarias automatizadas** pasando al 100% (`153/153 OK`) en local y CI.
+- **Soporte Multi-Variante Familia Logitech G502 (Fase 2) e Internacionalización Bilingüe (Fases 3, 3.1 y 3.2) 100% completados.**
+- **154 pruebas unitarias automatizadas** pasando al 100% (`154/154 OK`) en local y GitHub Actions CI.
 - **Variantes soportadas:** *G502 Proteus Core*, *G502 Proteus Spectrum*, *G502 HERO*, *G502 LIGHTSPEED*, *G502 X* y *G502 X PLUS / Wireless*.
 - **Características operativas:**
   - Reconocimiento de variantes en 2 pasos (`ratbagctl list` + desambiguación con `info` para LEDs/DPI).
@@ -13,6 +13,7 @@ Memoria técnica del proyecto entre sesiones (~45 líneas). Estado y decisiones 
   - Comando CLI `status` añadido (`python3 src/cli.py status`) para diagnóstico instantáneo de hardware y perfiles.
   - Internacionalización bilingüe completa (ES/EN): `src/i18n.py`, selector en HeaderBar, tray D-Bus, catálogo, diagrama Cairo, iluminación LED (paleta, velocidades, descripciones), diálogos modales (feedback comunitario, nuevo perfil, asignación) y persistencia atómica en `~/.config/g502-preferences.json`.
   - Script de detección regional de idioma (`scripts/detect-locale.sh`) integrado en primera ejecución e instalador (`scripts/install-bin.sh`).
+  - Documentación bilingüe oficial en GitHub (Fase 3.1): `README.md` (inglés primario), `README.es.md` (español) y selector de navegación lingüística recíproco.
 
 ## Decisiones arquitectónicas (y por qué)
 - **Detección regional automática (Fase 3.2):** Si no existe configuración previa, `I18nManager` analiza `$LC_ALL`, `$LC_MESSAGES`, `$LANG` para auto-seleccionar `es` o `en` (resto del mundo).
@@ -24,5 +25,4 @@ Memoria técnica del proyecto entre sesiones (~45 líneas). Estado y decisiones 
 - **Persistencia atómica y DDD:** Perfiles universales agnósticos al modelo físico sin tocar esquema JSON existente.
 
 ## Próximos pasos y Hoja de Ruta Prioritaria
-- Fase 3.1: Documentación bilingüe en GitHub (`README.md` en inglés con selector y `README.es.md` en español).
 - Paquete AUR publicado en cuanto se reactiven registros en aur.archlinux.org (PKGBUILD ya probado).
