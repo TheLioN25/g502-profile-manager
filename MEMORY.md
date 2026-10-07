@@ -25,4 +25,5 @@ Memoria técnica del proyecto entre sesiones (~45 líneas). Estado y decisiones 
 - **Persistencia atómica y DDD:** Perfiles universales agnósticos al modelo físico sin tocar esquema JSON existente.
 
 ## Próximos pasos y Hoja de Ruta Prioritaria
+- Optimización de ciclo de vida (prioridad inmediata): perfilar y reducir latencia en arranque (escaneo asíncrono/diferido de apps y ratbag) y agilizar finalización (teardown limpio de hilos/D-Bus sin bloqueos).
 - Paquete AUR publicado en cuanto se reactiven registros en aur.archlinux.org (PKGBUILD ya probado).
