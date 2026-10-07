@@ -341,6 +341,7 @@ def create_parser():
     engine_p.add_argument("-v", "--verbose", action="store_true", help="Habilita registros detallados de depuración (DEBUG).")
 
     # gui
+    subparsers.add_parser("status", help="Muestra el estado del hardware conectado y los perfiles.")
     subparsers.add_parser("gui", help="Inicia la interfaz gráfica nativa (GTK4 + Libadwaita).")
 
     # export / import portability
@@ -364,6 +365,30 @@ def create_parser():
     subparsers.add_parser("uninstall-bin", help="Desinstala los ejecutables 'g502' y 'g502-gui' de ~/.local/bin.")
 
     return parser
+
+
+def cmd_status(args):
+    repo, manager, discovery, adapter, _ = get_services()
+    device = adapter.find_device()
+    print("\n=========================================")
+    print("      G502 Profile Manager - Estado      ")
+    print("=========================================")
+    if device:
+        variant = adapter.detect_device_variant(device)
+        bat = adapter.get_battery_level(device) if variant.capabilities.has_battery else None
+        bat_str = f" | Batería: 🔋 {bat}%" if bat is not None else ""
+        print(f"• Hardware:     {variant.name}")
+        print(f"  ID libratbag: {device}{bat_str}")
+        print(f"  Sensor máx:   {variant.capabilities.max_dpi:,} DPI")
+        rgb_str = "RGB" if variant.capabilities.has_rgb else "Sin RGB"
+        print(f"  Iluminación:  {variant.capabilities.led_zones} zona(s) ({rgb_str})")
+        if variant.key != "g502_hero":
+            print("  Soporte:      Experimental (reporta anomalías en: https://github.com/TheLioN25/g502-profile-manager/issues)")
+    else:
+        print("• Hardware:     Ningún ratón G502 detectado vía libratbag.")
+    profiles = repo.list_all()
+    print(f"• Repositorio:  {len(profiles)} perfil(es) registrado(s)")
+    print("=========================================\n")
 
 
 def cmd_gui(args):
@@ -639,6 +664,7 @@ def main():
         "reset": cmd_reset,
         "run": cmd_run,
         "engine": cmd_run,
+        "status": cmd_status,
         "gui": cmd_gui,
         "export": cmd_export,
         "import": cmd_import,

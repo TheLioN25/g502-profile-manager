@@ -15,7 +15,11 @@ from gi.repository import Adw, Gdk, GLib, Gtk, Pango
 
 from adapters.application_discovery_adapter import ApplicationDiscoveryAdapter
 from adapters.ratbag_adapter import RatbagDeviceAdapter
-from domain import Action, Application, Button, DpiConfiguration, Profile
+from domain import Action, Application, Button, DEFAULT_VARIANT, DeviceVariant, DpiConfiguration, Profile
+
+REDDIT_COMMUNITY_URL = "https://www.reddit.com/r/G502MasterRace/comments/1wwvyk5/i_built_a_native_gtk4_libadwaita_profile_manager/"
+GITHUB_ISSUES_URL = "https://github.com/TheLioN25/g502-profile-manager/issues"
+
 from engine import AutomationEngine
 from gui.dialogs import ActionPickerDialog, NewProfileDialog
 from gui.mouse_diagram import G502MouseDiagram
@@ -96,6 +100,7 @@ class MainWindow(Adw.ApplicationWindow):
         self._catalog_service = catalog_service
         self._discovery_adapter = discovery_adapter
         self._ratbag_adapter = ratbag_adapter or RatbagDeviceAdapter()
+        self._current_variant: DeviceVariant = DEFAULT_VARIANT
         self._automation_engine: AutomationEngine | None = automation_engine
         self._auto_thread: threading.Thread | None = None
         self.connect("close-request", self._on_close_request)
@@ -308,6 +313,15 @@ class MainWindow(Adw.ApplicationWindow):
 
         box.append(self._main_header)
 
+        # Banner informativo y de feedback comunitario para modelos no HERO
+        self._community_banner = Adw.Banner(
+            title="Soporte experimental: Ayúdanos a calibrar este modelo reportando cualquier anomalía."
+        )
+        self._community_banner.set_button_label("Dar Feedback / Reportar")
+        self._community_banner.connect("button-clicked", self._on_report_community_issue)
+        self._community_banner.set_revealed(False)
+        box.append(self._community_banner)
+
         # Barra de cambio de vista (ViewSwitcher)
         self._view_stack = Adw.ViewStack()
         self._view_stack.set_vexpand(True)
@@ -518,6 +532,7 @@ class MainWindow(Adw.ApplicationWindow):
             title="Iluminación LIGHTSYNC RGB",
             description="Personaliza el modo, color y efectos del logotipo G e indicador DPI",
         )
+        self._led_group = led_group
         pref_page.add(led_group)
 
         # 1. Selector de Modo de Iluminación
@@ -941,7 +956,65 @@ class MainWindow(Adw.ApplicationWindow):
         if self._current_profile:
             self._current_profile.set_dpi(DpiConfiguration(self._current_profile.dpi.dpi, val))
 
+    def _adapt_ui_to_variant(self, variant: DeviceVariant):
+        self._current_variant = variant
+        max_dpi = variant.capabilities.max_dpi
+        if hasattr(self, "_dpi_adjustment"):
+            self._dpi_adjustment.set_upper(max_dpi)
+        if hasattr(self, "_shift_dpi_adjustment"):
+            self._shift_dpi_adjustment.set_upper(max_dpi)
+
+        if hasattr(self, "_led_group"):
+            if not variant.capabilities.has_lighting:
+                self._led_group.set_description(
+                    f"Iluminación no disponible en {variant.short_name} (modelo sin iluminación RGB)"
+                )
+            elif not variant.capabilities.has_rgb:
+                self._led_group.set_description(
+                    f"Iluminación monocromo azul (1 zona) en {variant.short_name}"
+                )
+            else:
+                self._led_group.set_description(
+                    f"Personaliza el modo, color y efectos del logotipo G e indicadores DPI ({variant.capabilities.led_zones} zonas)"
+                )
+
+        if hasattr(self, "_led_mode_row"):
+            selected_idx = self._led_mode_row.get_selected()
+            mode = LED_MODE_OPTIONS[selected_idx][0] if selected_idx < len(LED_MODE_OPTIONS) else "on"
+            self._update_lighting_sensitivity(mode)
+
+        # Activar banner de soporte experimental solo si no es el G502 HERO
+        if hasattr(self, "_community_banner"):
+            if variant.key != "g502_hero":
+                self._community_banner.set_title(
+                    f"Soporte experimental para {variant.short_name}: Ayúdanos a calibrarlo reportando cualquier anomalía."
+                )
+                self._community_banner.set_revealed(True)
+            else:
+                self._community_banner.set_revealed(False)
+
     def _update_lighting_sensitivity(self, mode: str):
+        if hasattr(self, "_current_variant"):
+            if not self._current_variant.capabilities.has_lighting:
+                self._led_mode_row.set_sensitive(False)
+                self._color_row.set_sensitive(False)
+                self._palette_row.set_sensitive(False)
+                if hasattr(self, "_duration_row"):
+                    self._duration_row.set_sensitive(False)
+                if hasattr(self, "_duration_slider_row"):
+                    self._duration_slider_row.set_sensitive(False)
+                return
+            elif not self._current_variant.capabilities.has_rgb:
+                self._led_mode_row.set_sensitive(True)
+                self._color_row.set_sensitive(False)
+                self._palette_row.set_sensitive(False)
+                has_duration = (mode in ("breathing", "cycle"))
+                if hasattr(self, "_duration_row"):
+                    self._duration_row.set_sensitive(has_duration)
+                if hasattr(self, "_duration_slider_row"):
+                    self._duration_slider_row.set_sensitive(has_duration)
+                return
+
         is_off = (mode == "off")
         is_cycle = (mode == "cycle")
         has_duration = (mode in ("breathing", "cycle"))
@@ -1135,6 +1208,40 @@ class MainWindow(Adw.ApplicationWindow):
         self._show_toast(f"Perfil '{saved_profile.name}' guardado.")
         self._load_applications(select_app_id=self._selected_app.application_id)
 
+    def _on_report_community_issue(self, _banner):
+        variant_name = getattr(self._current_variant, "short_name", "G502")
+        dialog = Adw.MessageDialog(
+            transient_for=self,
+            heading="Ayúdanos a Mejorar y Calibrar tu Ratón",
+            body=(
+                f"Has conectado un {variant_name}. El soporte para este modelo se basa en especificaciones de libratbag "
+                "y tu experiencia real es clave para seguir perfeccionándolo.\n\n"
+                "¿Dónde te gustaría compartir tu opinión o reportar alguna anomalía?\n\n"
+                "• Reddit: Ideal para comentar rápido en la comunidad sin necesidad de conocimientos de desarrollo.\n"
+                "• GitHub: Recomendado para reportes técnicos detallados y seguimiento de bugs."
+            ),
+        )
+        dialog.add_response("cancel", "Cancelar")
+        dialog.add_response("github", "🐙 GitHub Issues")
+        dialog.add_response("reddit", "💬 Abrir en Reddit")
+        dialog.set_response_appearance("reddit", Adw.ResponseAppearance.SUGGESTED)
+        dialog.set_default_response("reddit")
+
+        def on_response(_d, response_id):
+            if response_id == "reddit":
+                try:
+                    Gtk.show_uri(self, REDDIT_COMMUNITY_URL, Gdk.CURRENT_TIME)
+                except Exception:
+                    pass
+            elif response_id == "github":
+                try:
+                    Gtk.show_uri(self, GITHUB_ISSUES_URL, Gdk.CURRENT_TIME)
+                except Exception:
+                    pass
+
+        dialog.connect("response", on_response)
+        dialog.present()
+
     def _on_apply_to_mouse_clicked(self, _btn):
         if not self._current_profile:
             return
@@ -1144,15 +1251,18 @@ class MainWindow(Adw.ApplicationWindow):
         self._apply_mouse_btn.set_label("Aplicando...")
 
         def worker():
-            msg = "¡Perfil aplicado con éxito al ratón G502 HERO!"
+            msg = "¡Perfil aplicado con éxito al ratón!"
             try:
                 device = self._ratbag_adapter.find_device()
                 if not device:
-                    msg = "Error: No se detectó ningún ratón G502 HERO conectado."
+                    msg = "Error: No se detectó ningún ratón de la familia G502 conectado."
                 else:
                     success = self._ratbag_adapter.apply_profile(device, target_profile)
+                    variant_name = getattr(self._current_variant, "short_name", "G502")
                     if not success:
-                        msg = "Advertencia: No se pudo aplicar completamente al hardware."
+                        msg = f"Advertencia: No se pudo aplicar completamente al ratón {variant_name}."
+                    else:
+                        msg = f"¡Perfil aplicado con éxito al ratón {variant_name}!"
             except Exception as e:
                 msg = f"Error al comunicar con ratbagctl: {e}"
 
@@ -1170,9 +1280,26 @@ class MainWindow(Adw.ApplicationWindow):
         try:
             device = self._ratbag_adapter.find_device()
             if device:
-                self._mouse_status_label.set_text("● G502 HERO Conectado")
+                variant = None
+                if hasattr(self._ratbag_adapter, "detect_device_variant"):
+                    res = self._ratbag_adapter.detect_device_variant(device)
+                    if isinstance(res, DeviceVariant):
+                        variant = res
+                if variant is None:
+                    variant = DEFAULT_VARIANT
+
+                self._current_variant = variant
+
+                bat_text = ""
+                if variant.capabilities.has_battery and hasattr(self._ratbag_adapter, "get_cached_battery_level"):
+                    bat = self._ratbag_adapter.get_cached_battery_level(device, ttl_seconds=30.0)
+                    if isinstance(bat, int):
+                        bat_text = f" (🔋 {bat}%)"
+
+                self._mouse_status_label.set_text(f"● {variant.short_name} Conectado{bat_text}")
                 self._mouse_status_label.remove_css_class("mouse-status-disconnected")
                 self._mouse_status_label.add_css_class("mouse-status-connected")
+                self._adapt_ui_to_variant(variant)
             else:
                 self._mouse_status_label.set_text("○ Ratón Desconectado")
                 self._mouse_status_label.remove_css_class("mouse-status-connected")
@@ -1307,11 +1434,20 @@ class MainWindow(Adw.ApplicationWindow):
         app_name = self._selected_app.name if self._selected_app else "Sistema"
         dpi = self._current_profile.dpi.dpi if self._current_profile else 1200
         auto_active = self._auto_switch.get_active() if hasattr(self, "_auto_switch") else False
+        battery_level = None
+        if hasattr(self, "_current_variant") and self._current_variant.capabilities.has_battery:
+            if hasattr(self, "_ratbag_adapter") and hasattr(self._ratbag_adapter, "get_cached_battery_level"):
+                dev = self._ratbag_adapter.find_device()
+                if dev:
+                    bat = self._ratbag_adapter.get_cached_battery_level(dev)
+                    if isinstance(bat, int):
+                        battery_level = bat
         self._tray.update_status(
             profile_name=prof_name,
             app_name=app_name,
             dpi=dpi,
             auto_active=auto_active,
+            battery_level=battery_level,
         )
 
     def _on_close_request(self, _window) -> bool:

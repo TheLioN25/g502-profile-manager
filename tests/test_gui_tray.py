@@ -66,6 +66,18 @@ class TestGuiTray(unittest.TestCase):
         self.assertIn("8000 DPI", unpacked_tooltip[3])
         self.assertIn("Auto: Activo", unpacked_tooltip[3])
 
+        # Probar con nivel de batería incluido
+        tray.update_status(
+            profile_name="Lightspeed Game",
+            app_name="Warframe",
+            dpi=1600,
+            auto_active=True,
+            battery_level=85,
+        )
+        tooltip_with_bat = tray._handle_get_property(mock_bus, "caller", "/StatusNotifierItem", "org.kde.StatusNotifierItem", "ToolTip")
+        unpacked_bat = tooltip_with_bat.unpack()
+        self.assertIn("🔋 85%", unpacked_bat[3])
+
     @patch("gi.repository.Gio.bus_get_sync")
     def test_tray_method_calls_and_callbacks(self, mock_bus_get):
         mock_bus = MagicMock()

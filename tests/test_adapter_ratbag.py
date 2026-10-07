@@ -15,7 +15,7 @@ from adapters import (
     RatbagDeviceAdapter,
     normalize_key_to_input_code,
 )
-from domain import Action, Button, DpiConfiguration, Profile
+from domain import Action, Button, DpiConfiguration, Profile, G502_VARIANTS, DEFAULT_VARIANT
 
 
 class TestRatbagDeviceAdapter(unittest.TestCase):
@@ -298,6 +298,156 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
         self.assertIn("ratbagctl --nocommit warbling-mara profile 0 button 4 action set macro KEY_1", flattened_default)
         self.assertIn("ratbagctl --nocommit warbling-mara profile 0 button 5 action set special resolution-alternate", flattened_default)
         self.assertIn("ratbagctl warbling-mara profile active set 0", flattened_default)
+
+
+
+    def test_find_device_regex_matching_without_target(self):
+        def mock_runner(cmd: list[str]) -> subprocess.CompletedProcess:
+            if cmd == ["ratbagctl", "list"]:
+                stdout = "warbling-mara: Logitech G502 LIGHTSPEED Wireless Gaming Mouse\n"
+                return subprocess.CompletedProcess(cmd, returncode=0, stdout=stdout, stderr="")
+            return subprocess.CompletedProcess(cmd, returncode=0, stdout="", stderr="")
+
+        adapter = RatbagDeviceAdapter(command_runner=mock_runner)
+        device_id = adapter.find_device()
+        self.assertEqual(device_id, "warbling-mara")
+
+    def test_detect_device_variants_all(self):
+        # 1. G502 HERO
+        def mock_hero(cmd: list[str]) -> subprocess.CompletedProcess:
+            if cmd == ["ratbagctl", "list"]:
+                return subprocess.CompletedProcess(cmd, 0, "dev1: Logitech G502 HERO Gaming Mouse\n", "")
+            return subprocess.CompletedProcess(cmd, 0, "", "")
+
+        adapter = RatbagDeviceAdapter(command_runner=mock_hero)
+        var_hero = adapter.detect_device_variant("dev1")
+        self.assertEqual(var_hero, G502_VARIANTS["g502_hero"])
+
+        # 2. G502 LIGHTSPEED
+        def mock_lightspeed(cmd: list[str]) -> subprocess.CompletedProcess:
+            if cmd == ["ratbagctl", "list"]:
+                return subprocess.CompletedProcess(cmd, 0, "dev2: Logitech G502 LIGHTSPEED Wireless Gaming Mouse\n", "")
+            return subprocess.CompletedProcess(cmd, 0, "", "")
+
+        adapter = RatbagDeviceAdapter(command_runner=mock_lightspeed)
+        var_ls = adapter.detect_device_variant("dev2")
+        self.assertEqual(var_ls, G502_VARIANTS["g502_lightspeed"])
+        self.assertTrue(var_ls.capabilities.has_battery)
+
+        # 3. G502 X (sin RGB)
+        def mock_x(cmd: list[str]) -> subprocess.CompletedProcess:
+            if cmd == ["ratbagctl", "list"]:
+                return subprocess.CompletedProcess(cmd, 0, "dev3: Logitech G502 X Gaming Mouse\n", "")
+            if cmd == ["ratbagctl", "dev3", "info"]:
+                return subprocess.CompletedProcess(cmd, 0, "number of leds: 0\n", "")
+            return subprocess.CompletedProcess(cmd, 0, "", "")
+
+        adapter = RatbagDeviceAdapter(command_runner=mock_x)
+        var_x = adapter.detect_device_variant("dev3")
+        self.assertEqual(var_x, G502_VARIANTS["g502_x"])
+        self.assertFalse(var_x.capabilities.has_lighting)
+
+        # 4. G502 X Wireless / PLUS
+        def mock_x_plus(cmd: list[str]) -> subprocess.CompletedProcess:
+            if cmd == ["ratbagctl", "list"]:
+                return subprocess.CompletedProcess(cmd, 0, "dev4: Logitech G502 X PLUS Wireless Gaming Mouse\n", "")
+            return subprocess.CompletedProcess(cmd, 0, "", "")
+
+        adapter = RatbagDeviceAdapter(command_runner=mock_x_plus)
+        var_x_plus = adapter.detect_device_variant("dev4")
+        self.assertEqual(var_x_plus, G502_VARIANTS["g502_x_wireless"])
+        self.assertEqual(var_x_plus.capabilities.led_zones, 8)
+
+        # 5. Proteus Core (desambiguación por info: 1 LED)
+        def mock_core(cmd: list[str]) -> subprocess.CompletedProcess:
+            if cmd == ["ratbagctl", "list"]:
+                return subprocess.CompletedProcess(cmd, 0, "dev5: Logitech Gaming Mouse G502\n", "")
+            if cmd == ["ratbagctl", "dev5", "info"]:
+                return subprocess.CompletedProcess(cmd, 0, "Profile 0:\n  number of leds: 1\n  max dpi: 12000\n", "")
+            return subprocess.CompletedProcess(cmd, 0, "", "")
+
+        adapter = RatbagDeviceAdapter(command_runner=mock_core)
+        var_core = adapter.detect_device_variant("dev5")
+        self.assertEqual(var_core, G502_VARIANTS["g502_proteus_core"])
+        self.assertEqual(var_core.capabilities.max_dpi, 12000)
+
+        # 6. Proteus Spectrum (desambiguación por info: 2 LEDs + 12000 DPI)
+        def mock_spectrum(cmd: list[str]) -> subprocess.CompletedProcess:
+            if cmd == ["ratbagctl", "list"]:
+                return subprocess.CompletedProcess(cmd, 0, "dev6: Logitech Gaming Mouse G502\n", "")
+            if cmd == ["ratbagctl", "dev6", "info"]:
+                return subprocess.CompletedProcess(cmd, 0, "Profile 0:\n  number of leds: 2\n  max dpi: 12000\n", "")
+            return subprocess.CompletedProcess(cmd, 0, "", "")
+
+        adapter = RatbagDeviceAdapter(command_runner=mock_spectrum)
+        var_spec = adapter.detect_device_variant("dev6")
+        self.assertEqual(var_spec, G502_VARIANTS["g502_proteus_spectrum"])
+
+    def test_get_battery_level_and_cached(self):
+        info_output = """Device 'singing-porcupine'
+Capabilities: dpi, profile, switchable-resolution, led, battery
+Battery: 78% (discharging)
+number of leds: 2
+"""
+        def mock_runner(cmd: list[str]) -> subprocess.CompletedProcess:
+            if cmd == ["ratbagctl", "singing-porcupine", "info"]:
+                return subprocess.CompletedProcess(cmd, 0, info_output, "")
+            return subprocess.CompletedProcess(cmd, 1, "", "error")
+
+        adapter = RatbagDeviceAdapter(command_runner=mock_runner)
+        level = adapter.get_battery_level("singing-porcupine")
+        self.assertEqual(level, 78)
+
+        # Prueba de caché diferido
+        cached = adapter.get_cached_battery_level("singing-porcupine", ttl_seconds=60.0)
+        self.assertEqual(cached, 78)
+
+        # Dispositivo sin batería
+        self.assertIsNone(adapter.get_battery_level("cable-device"))
+
+    def test_apply_profile_dpi_clamping_and_variant_lighting(self):
+        executed_commands = []
+
+        def mock_runner(cmd: list[str]) -> subprocess.CompletedProcess:
+            executed_commands.append(cmd)
+            return subprocess.CompletedProcess(cmd, 0, "", "")
+
+        adapter = RatbagDeviceAdapter(command_runner=mock_runner)
+
+        # Perfil con 16.000 DPI (superior al sensor de Proteus Core que es 12.000)
+        profile_high_dpi = Profile(
+            name="High DPI",
+            application_id="app",
+            dpi=DpiConfiguration(16000),
+            led_color="#00FFCC",
+            led_mode="on",
+        )
+
+        # 1. Aplicar a Proteus Core: debe clampear a 12.000 DPI y no mandar hex color RGB
+        core_variant = G502_VARIANTS["g502_proteus_core"]
+        success = adapter.apply_profile("dev_core", profile_high_dpi, slot=0, variant=core_variant)
+        self.assertTrue(success)
+
+        flattened = [" ".join(cmd) for cmd in executed_commands]
+        # DPI debe estar clampeado a 12000
+        self.assertIn("ratbagctl --nocommit dev_core profile 0 dpi set 12000", flattened)
+        # Proteus Core solo tiene 1 LED (0) y modo 'on', sin comando de color RGB
+        self.assertIn("ratbagctl --nocommit dev_core profile 0 led 0 set mode on", flattened)
+        color_cmds = [c for c in flattened if "led 0 set color" in c]
+        self.assertEqual(len(color_cmds), 0)
+
+        # 2. Aplicar a G502 X (sin iluminación)
+        executed_commands.clear()
+        x_variant = G502_VARIANTS["g502_x"]
+        success_x = adapter.apply_profile("dev_x", profile_high_dpi, slot=0, variant=x_variant)
+        self.assertTrue(success_x)
+
+        flattened_x = [" ".join(cmd) for cmd in executed_commands]
+        # DPI en G502 X es hasta 25600, por lo que 16000 no se clampa
+        self.assertIn("ratbagctl --nocommit dev_x profile 0 dpi set 16000", flattened_x)
+        # No debe haber ningún comando de LED
+        led_cmds = [c for c in flattened_x if "led" in c]
+        self.assertEqual(len(led_cmds), 0)
 
 
 if __name__ == "__main__":

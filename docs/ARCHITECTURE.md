@@ -322,6 +322,23 @@ La solución aplica rigurosamente la regla de dependencia de Clean Architecture:
 
 ---
 
+### ADR-007: Soporte Multi-Variante Familia Logitech G502 y Detección Dinámica en Dos Pasos
+
+* **Estado:** Aceptado
+* **Contexto:**  
+  La familia de ratones Logitech G502 cuenta con 6 variantes comerciales principales en el mercado (*Proteus Core*, *Proteus Spectrum*, *HERO*, *LIGHTSPEED*, *G502 X* y *G502 X PLUS / Wireless*). Si bien todas comparten la misma topología de 11 botones físicos y operan bajo el protocolo HID++ 2.0 (`Driver=hidpp20` en `libratbag`), presentan variaciones de hardware críticas: sensores de 12.000 vs 25.600 DPI, sistemas de iluminación dispares (monocromo azul, 2 zonas RGB, sin RGB u 8 zonas Lightform) y alimentación con batería inalámbrica.
+* **Decisión:**  
+  1. **Catálogo de Dominio Inmutable:** Se introdujeron las entidades puras `DeviceCapabilities` y `DeviceVariant` con las 6 variantes canónicas y fallback transparente a `G502 HERO`. Los perfiles guardados permanecen 100% universales y agnósticos al hardware sin alterar el esquema JSON preexistente.
+  2. **Heurística de Detección en Dos Pasos:** En `RatbagDeviceAdapter`, se inspecciona primero el nombre devuelto por `ratbagctl list`. Si la denominación es ambigua o genérica (ej. `Logitech Gaming Mouse G502`), se consulta `ratbagctl <dev> info` (conteo de LEDs y sensor) para desambiguar entre Proteus Core y Spectrum.
+  3. **Clampeo Dinámico en Hardware:** Se aplica clampeo automático de sensibilidad (`min(dpi, variant.capabilities.max_dpi)`) al construir los comandos hacia el ratón, impidiendo rechazos de comando por exceso de rango.
+  4. **Caché Diferido de Batería:** Para dispositivos inalámbricos, el nivel de batería se cachea con una ventana temporal de 30 segundos, evitando saturar procesos CLI ni despertar el hardware suspendido en cada ciclo.
+  5. **Banner de Feedback Comunitario Condicional:** Se implementó un componente `Adw.Banner` nativo en la GUI que permanece completamente oculto cuando se conecta el G502 HERO (hardware primario probado físicamente), y se despliega exclusivamente con los otros modelos, ofreciendo un diálogo modal con accesos directos a Reddit y GitHub Issues.
+* **Consecuencias:**  
+  - *Positivas:* Extensión universal de la aplicación a toda la línea G502 sin romper ninguno de los tests preexistentes; protección total contra fallos de libratbag; feedback comunitario accesible para nuevos usuarios de Linux.
+  - *Negativas:* Requiere mantener la matriz de capacidades si Logitech lanza nuevas revisiones comerciales en el futuro.
+
+---
+
 ## 6. Estrategia de Calidad, Pruebas y CI/CD
 
 La robustez del proyecto se valida mediante una estrategia de pruebas exhaustiva que permite verificar el 100% de los casos de uso sin requerir hardware físico conectado:
@@ -334,7 +351,7 @@ La robustez del proyecto se valida mediante una estrategia de pruebas exhaustiva
        +---------------------------------------------+
                              |
        +---------------------------------------------+
-       |             117 Pruebas Unitarias           |
+       |             139 Pruebas Unitarias           |
        |  - Dominio puro (invariantes, validaciones) |
        |  - Repositorio atómico y persistencia       |
        |  - Aislamiento de hardware (Mocks ratbag)   |

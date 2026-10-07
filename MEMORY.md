@@ -1,31 +1,25 @@
-# MEMORY.md — Logitech G502 HERO Profile Manager
+# MEMORY.md — Logitech G502 Family Profile Manager
 
 Memoria técnica del proyecto entre sesiones (~45 líneas). Estado y decisiones consolidadas.
 
 ## Estado actual
-- **Versión v1.0.0 pública y 100% funcional** en GitHub (`TheLioN25/g502-profile-manager`).
-- **128 pruebas unitarias automatizadas** pasando al 100% en local y en el pipeline CI de GitHub Actions.
+- **Soporte Multi-Variante Familia Logitech G502 (Fase 2) 100% implementado y probado.**
+- **139 pruebas unitarias automatizadas** pasando al 100% (`139/139 OK`) en local y CI.
+- **Variantes soportadas:** *G502 Proteus Core*, *G502 Proteus Spectrum*, *G502 HERO*, *G502 LIGHTSPEED*, *G502 X* y *G502 X PLUS / Wireless*.
 - **Características operativas:**
-  - GUI completa en GTK4/Libadwaita con plano vectorial interactivo (Cairo) y selector de perfiles por aplicación.
-  - Auto-detección reactiva integrada en HeaderBar (`engine.py` en hilo secundario con Steam VDF, Epic y Desktop).
-  - Bandeja del sistema (`tray.py`) mediante StatusNotifierItem D-Bus nativo para KDE Plasma y GNOME.
-  - Catálogo modular de acciones extensible con soporte dinámico de alias y coincidencia difusa (MMORPGs, Shooters, etc.).
-  - Aislamiento total de perfiles en hardware y servicio `systemd --user` configurable.
+  - Reconocimiento de variantes en 2 pasos (`ratbagctl list` + desambiguación con `info` para LEDs/DPI).
+  - Adaptación contextual: límites de sensor (12.000 vs 25.600 DPI), clampeo automático en hardware, ocultamiento de RGB en G502 X y fijación de azul en Proteus Core.
+  - Gestión diferida de batería (caché 30-60s) reflejada en HeaderBar de la GUI y Tooltip del Tray (`org.kde.StatusNotifierItem`).
+  - Comando CLI `status` añadido (`python3 src/cli.py status`) para diagnóstico instantáneo de hardware y perfiles.
 
 ## Decisiones arquitectónicas (y por qué)
-- **StatusNotifierItem directo en D-Bus (`Gio.DBusConnection`):** En lugar de usar `AppIndicator3` (GTK3 que crashea en GTK4), se implementó D-Bus nativo, logrando cero dependencias externas conflictivas.
+- **StatusNotifierItem directo en D-Bus (`Gio.DBusConnection`):** En lugar de usar `AppIndicator3` (GTK3 que crashea en GTK4), se implementó D-Bus nativo con porcentaje de batería sin modificar XML.
 - **Sintaxis híbrida `key` vs `macro` en `ratbag_adapter`:**
-  - Teclas modificadoras (`Shift`, `Ctrl`, `Alt`, `Meta`): Usar obligatoriamente `action set key <KEY>`. El protocolo HID++ 2.0 rechaza modificadores en macros con `-22 (EINVAL)` y `key` permite mantener presionado (*hold*) para correr/acelerar.
-  - Teclas estándar alfanuméricas y símbolos (`1`, `2`, `q`, `e`, `.`, etc.): Usar `action set macro <KEY>` (`↕KEY`). Genera la secuencia completa de pulsación/liberación requerida por Proton/Wine/UE5 en AION 2 y neutraliza modificadores residuales pegados de libratbag 0.18.
-  - Puntuación y navegación (`.`, `,`, `-`, `=`, `/`, `[`, `]`, `space`, etc.): Mapeo integral a `KEY_DOT`, `KEY_COMMA`, etc., evitando errores de `ratbagctl`.
-- **Aceleración Adaptativa (`Adaptive`) en KDE/Wayland:** Se mantiene `PointerAccelerationProfile=1` en `kcminputrc` y D-Bus para preservar la fluidez natural y evitar la resistencia artificial del perfil Flat a altos DPIs.
-- **Persistencia atómica temporal (`.tmp` + rename atómico):** Evita archivos JSON corruptos ante caídas o reinicios.
-- **Diseño Domain-Driven (DDD):** El dominio de botones, DPI y acciones es agnóstico a GTK y a ratbagctl, permitiendo testear el 100% de la lógica con mocks puros en milisegundos.
-- **Sincronización anti-drift y aislamiento de tests:** En engine.py, step() detecta deriva de slot (hardware_drifted) para restaurar perfiles si se presiona G9; y en test_gui_window_logic.py se aisla subprocess.run para proteger el demonio systemd real.
+  - Teclas modificadoras (`Shift`, `Ctrl`, `Alt`, `Meta`): `action set key <KEY>` obligatorio por HID++ 2.0 (-22 EINVAL en macros) y soporte continuo (hold).
+  - Teclas estándar alfanuméricas y símbolos: `action set macro <KEY>` (`↕KEY`) para Proton/Wine/UE5 en AION 2 y neutralización de modificadores pegados en libratbag 0.18.
+- **Aceleración Adaptativa (`Adaptive`) en KDE/Wayland:** `PointerAccelerationProfile=1` en `kcminputrc` y D-Bus para evitar resistencia artificial a altos DPIs.
+- **Persistencia atómica y DDD:** Perfiles universales agnósticos al modelo físico sin tocar esquema JSON existente.
+- **Aislamiento total y anti-drift:** Restauración de botones a fábrica en hardware y re-sincronización ante derive físico (G9).
 
 ## Próximos pasos y Hoja de Ruta Prioritaria
-- **🎯 OBJETIVO PRINCIPAL PRÓXIMA SESIÓN:** Ampliar compatibilidad a toda la familia Logitech G502:
-  - Variantes a soportar: *G502 Proteus Core*, *G502 Proteus Spectrum*, *G502 LIGHTSPEED* (inalámbrico/USB receiver) y *G502 X / X PLUS*.
-  - Lectura dinámica de IDs y perfiles de hardware desde `libratbag` (`ratbagctl list`).
-  - Detección automática del modelo conectado para que la interfaz adapte el título y los comandos sin perder la asignación 1:1.
 - Paquete AUR publicado en cuanto se reactiven registros en aur.archlinux.org (PKGBUILD ya probado).

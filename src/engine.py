@@ -33,7 +33,7 @@ from desktop_entries import (
     discover_desktop_entries,
     parse_desktop_entry,
 )
-from domain import Profile
+from domain import DeviceVariant, DEFAULT_VARIANT, Profile
 from process_discovery import discover_processes
 from services import ActionCatalogService, ProfileManager
 from steam_discovery import (
@@ -82,6 +82,8 @@ class AutomationEngine:
         self._stop_event = threading.Event()
 
         self._device_id: str | None = None
+        self._device_variant: DeviceVariant = DEFAULT_VARIANT
+        self._battery_level: int | None = None
         self._current_profile_id: str | None = None
         self._current_profile_updated_at: str | None = None
         self._desktop_entries_cache = None
@@ -92,17 +94,41 @@ class AutomationEngine:
         """ID del perfil de dominio actualmente aplicado al mouse, o None si está en escritorio."""
         return self._current_profile_id
 
+    @property
+    def device_variant(self) -> DeviceVariant:
+        """Variante de hardware de la familia G502 actualmente detectada."""
+        return self._device_variant
+
+    @property
+    def battery_level(self) -> int | None:
+        """Nivel de batería actual en porcentaje (0..100) o None si no aplica."""
+        return self._battery_level
+
     def initialize(self) -> bool:
         """
         Verifica la conexión con el hardware del ratón, sincroniza catálogos
         con las descargas instaladas y cachea las entradas de escritorio.
         """
-        self._device_id = self._device_adapter.find_device(self._target_device_name)
+        # Si target_device_name es el genérico por defecto, buscar dinámicamente cualquier variante
+        if self._target_device_name == "Logitech G502 HERO Gaming Mouse":
+            self._device_id = self._device_adapter.find_device()
+        else:
+            self._device_id = self._device_adapter.find_device(self._target_device_name)
+
         if not self._device_id:
             self._log(f"Error: Dispositivo '{self._target_device_name}' no encontrado con ratbagctl.")
             return False
 
-        self._log(f"Dispositivo detectado: '{self._target_device_name}' (libratbag ID: {self._device_id})")
+        if hasattr(self._device_adapter, "detect_device_variant"):
+            self._device_variant = self._device_adapter.detect_device_variant(self._device_id)
+        else:
+            self._device_variant = DEFAULT_VARIANT
+
+        if self._device_variant.capabilities.has_battery and hasattr(self._device_adapter, "get_cached_battery_level"):
+            self._battery_level = self._device_adapter.get_cached_battery_level(self._device_id, ttl_seconds=30.0)
+
+        bat_str = f" [Batería: 🔋 {self._battery_level}%]" if self._battery_level is not None else ""
+        self._log(f"Dispositivo detectado: '{self._device_variant.name}' (libratbag ID: {self._device_id}){bat_str}")
 
         # Cachear entradas de escritorio
         self._desktop_entries_cache = [
@@ -132,9 +158,19 @@ class AutomationEngine:
         Devuelve True si la iteración se completó con éxito.
         """
         if not self._device_id:
-            self._device_id = self._device_adapter.find_device(self._target_device_name)
+            if self._target_device_name == "Logitech G502 HERO Gaming Mouse":
+                self._device_id = self._device_adapter.find_device()
+            else:
+                self._device_id = self._device_adapter.find_device(self._target_device_name)
             if not self._device_id:
                 return False
+            if hasattr(self._device_adapter, "detect_device_variant"):
+                self._device_variant = self._device_adapter.detect_device_variant(self._device_id)
+            else:
+                self._device_variant = DEFAULT_VARIANT
+
+        if self._device_variant.capabilities.has_battery and hasattr(self._device_adapter, "get_cached_battery_level"):
+            self._battery_level = self._device_adapter.get_cached_battery_level(self._device_id, ttl_seconds=30.0)
 
         # Cada 15 ciclos (~30s), revisar si se terminó de descargar un juego nuevo
         self._tick_counter += 1

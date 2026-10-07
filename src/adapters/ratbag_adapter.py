@@ -7,10 +7,18 @@ reales de ratbagctl sobre el ratón Logitech G502 HERO.
 
 from __future__ import annotations
 
+import re
 import subprocess
+import time
 from typing import Callable
 
-from domain import Action, Profile
+from domain import (
+    Action,
+    DeviceVariant,
+    Profile,
+    G502_VARIANTS,
+    DEFAULT_VARIANT,
+)
 
 
 G502_BUTTON_INDEX_MAP: dict[str, int] = {
@@ -193,6 +201,12 @@ def default_command_runner(command: list[str]) -> subprocess.CompletedProcess:
     )
 
 
+G502_DEVICE_REGEXES: tuple[re.Pattern, ...] = (
+    re.compile(r"Logitech.*G502", re.IGNORECASE),
+    re.compile(r"Logitech.*Lightspeed", re.IGNORECASE),
+)
+
+
 class RatbagDeviceAdapter:
     """
     Adaptador de hardware para comunicación con ratbagctl.
@@ -203,13 +217,17 @@ class RatbagDeviceAdapter:
         command_runner: Callable[[list[str]], subprocess.CompletedProcess] = default_command_runner,
     ):
         self._runner = command_runner
+        self._battery_cache: dict[str, tuple[float, int | None]] = {}
 
     def find_device(
-        self, target_name: str = "Logitech G502 HERO Gaming Mouse"
+        self, target_name: str | None = None
     ) -> str | None:
         """
         Localiza el identificador de libratbag correspondiente al dispositivo buscado
         (ej. 'warbling-mara').
+
+        Si target_name es None, busca cualquier variante compatible de la familia Logitech G502.
+        Si target_name es un string, busca por coincidencia en el nombre reportado por ratbagctl.
         """
         result = self._runner(["ratbagctl", "list"])
         if result.returncode != 0 or not result.stdout:
@@ -218,10 +236,123 @@ class RatbagDeviceAdapter:
         for line in result.stdout.strip().splitlines():
             if ":" in line:
                 dev_id, dev_name = line.split(":", 1)
-                if target_name.casefold() in dev_name.casefold():
-                    return dev_id.strip()
+                dev_id = dev_id.strip()
+                dev_name = dev_name.strip()
+                if target_name:
+                    if target_name.casefold() in dev_name.casefold():
+                        return dev_id
+                else:
+                    for regex in G502_DEVICE_REGEXES:
+                        if regex.search(dev_name):
+                            return dev_id
 
         return None
+
+    def detect_device_variant(self, device: str) -> DeviceVariant:
+        """
+        Determina la variante exacta de la familia Logitech G502 conectada.
+        Aplica una heurística en dos pasos:
+        1. Comprueba la denominación del modelo en 'ratbagctl list'.
+        2. Si el nombre es genérico o ambiguo, consulta 'ratbagctl <device> info'
+           (número de LEDs, sensor máximo) para desambiguar entre Proteus Core y Spectrum.
+        """
+        device_clean = device.strip()
+        matched_name = ""
+
+        # 1. Obtener el nombre descriptivo mediante 'ratbagctl list'
+        list_res = self._runner(["ratbagctl", "list"])
+        if list_res.returncode == 0 and list_res.stdout:
+            for line in list_res.stdout.strip().splitlines():
+                if ":" in line:
+                    dev_id, dev_name = line.split(":", 1)
+                    if dev_id.strip() == device_clean:
+                        matched_name = dev_name.strip()
+                        break
+
+        matched_name_lower = matched_name.casefold()
+
+        # Detección directa por nombres inequívocos
+        if "lightspeed" in matched_name_lower:
+            return G502_VARIANTS["g502_lightspeed"]
+        if "g502 x" in matched_name_lower or "g502x" in matched_name_lower:
+            if "wireless" in matched_name_lower or "plus" in matched_name_lower:
+                return G502_VARIANTS["g502_x_wireless"]
+            # Verificar si info reporta 8 LEDs para el modelo X Plus
+            info_res = self._runner(["ratbagctl", device_clean, "info"])
+            if info_res.returncode == 0 and info_res.stdout and "number of leds: 8" in info_res.stdout.casefold():
+                return G502_VARIANTS["g502_x_wireless"]
+            return G502_VARIANTS["g502_x"]
+        if "hero" in matched_name_lower:
+            return G502_VARIANTS["g502_hero"]
+        if "proteus spectrum" in matched_name_lower or "spectrum" in matched_name_lower:
+            return G502_VARIANTS["g502_proteus_spectrum"]
+        if "proteus core" in matched_name_lower or "core" in matched_name_lower:
+            return G502_VARIANTS["g502_proteus_core"]
+
+        # 2. Paso de desambiguación si el nombre es genérico (ej. 'Logitech Gaming Mouse G502')
+        info_res = self._runner(["ratbagctl", device_clean, "info"])
+        if info_res.returncode == 0 and info_res.stdout:
+            stdout_lower = info_res.stdout.casefold()
+            # Si tiene 1 LED -> Proteus Core
+            if "number of leds: 1" in stdout_lower:
+                return G502_VARIANTS["g502_proteus_core"]
+            # Si tiene 2 LEDs y sensor max 12000 -> Proteus Spectrum
+            if "number of leds: 2" in stdout_lower:
+                if "12000" in stdout_lower:
+                    return G502_VARIANTS["g502_proteus_spectrum"]
+            if "number of leds: 8" in stdout_lower:
+                return G502_VARIANTS["g502_x_wireless"]
+            if "number of leds: 0" in stdout_lower:
+                return G502_VARIANTS["g502_x"]
+
+        # Si coincide con Proteus Spectrum o genérico G502
+        if "g502" in matched_name_lower:
+            return DEFAULT_VARIANT
+
+        return DEFAULT_VARIANT
+
+    def get_battery_level(self, device: str) -> int | None:
+        """
+        Obtiene el porcentaje de batería actual (0..100) para dispositivos inalámbricos.
+        Devuelve None si el dispositivo no posee batería, está apagado o no responde.
+        """
+        result = self._runner(["ratbagctl", device, "info"])
+        if result.returncode == 0 and result.stdout:
+            match = re.search(r"battery(?: level)?:\s*(\d+)%?", result.stdout, re.IGNORECASE)
+            if match:
+                try:
+                    level = int(match.group(1))
+                    return max(0, min(100, level))
+                except ValueError:
+                    pass
+
+        # Intento de lectura secundaria con comando específico
+        res_bat = self._runner(["ratbagctl", device, "battery", "get"])
+        if res_bat.returncode == 0 and res_bat.stdout:
+            match = re.search(r"(\d+)%?", res_bat.stdout)
+            if match:
+                try:
+                    level = int(match.group(1))
+                    return max(0, min(100, level))
+                except ValueError:
+                    pass
+
+        return None
+
+    def get_cached_battery_level(self, device: str, ttl_seconds: float = 30.0) -> int | None:
+        """
+        Devuelve el nivel de batería cacheado para evitar sobrecarga de llamadas a libratbag.
+        Refresca el valor si han transcurrido más de ttl_seconds (por defecto 30 segundos).
+        """
+        now = time.time()
+        if device in self._battery_cache:
+            ts, val = self._battery_cache[device]
+            if now - ts < ttl_seconds:
+                return val
+
+        val = self.get_battery_level(device)
+        self._battery_cache[device] = (now, val)
+        return val
 
     def get_active_profile_slot(self, device: str) -> int | None:
         """
@@ -263,6 +394,7 @@ class RatbagDeviceAdapter:
         led_index: int | None = None,
         mode: str = "on",
         duration: int | None = None,
+        led_count: int | None = None,
     ) -> list[list[str]]:
         """Construye los comandos para configurar modo, color y duración de las zonas LED."""
         mode_clean = mode.strip().lower() if isinstance(mode, str) else "on"
@@ -272,11 +404,12 @@ class RatbagDeviceAdapter:
         color_clean = (hex_color.lstrip("#").strip().lower()) if hex_color else ""
         has_valid_color = len(color_clean) == 6
 
-        indices = (
-            [led_index]
-            if led_index is not None
-            else [0, 1]  # G502 HERO posee exactamente 2 zonas: Logo 'G' (0) y DPI (1)
-        )
+        if led_index is not None:
+            indices = [led_index]
+        elif led_count is not None:
+            indices = list(range(led_count))
+        else:
+            indices = [0, 1]  # G502 HERO posee exactamente 2 zonas: Logo 'G' (0) y DPI (1)
         commands = []
         for idx in indices:
             cmd_mode = ["ratbagctl", device]
@@ -439,12 +572,13 @@ class RatbagDeviceAdapter:
         device: str,
         profile: Profile,
         slot: int | None = None,
+        variant: DeviceVariant | None = None,
     ) -> bool:
         """
         Aplica integralmente un Profile de dominio al hardware:
-        - Ajusta el DPI activo.
-        - Ajusta el color LED en todas las zonas.
-        - Asigna los botones físicos correspondientes.
+        - Ajusta el DPI activo (clampeado dinámicamente al límite de la variante).
+        - Ajusta la iluminación adaptada a las zonas y capacidades de la variante.
+        - Asigna los botones físicos correspondientes y restaura los no asignados.
 
         Ejecución Atómica:
         Aplica los comandos preparatorios con '--nocommit' para evitar múltiples
@@ -453,24 +587,43 @@ class RatbagDeviceAdapter:
         y asegura que la ranura de hardware quede explícitamente activa en el ratón.
         """
         target_slot = slot if slot is not None else 0
+        actual_variant = variant or self.detect_device_variant(device)
         commands: list[list[str]] = []
 
-        # 1. Comando DPI
-        commands.append(self.build_dpi_command(device, profile.dpi.dpi, slot=target_slot))
+        # 1. Comando DPI (clampeado al sensor máximo de la variante)
+        effective_dpi = min(profile.dpi.dpi, actual_variant.capabilities.max_dpi)
+        commands.append(self.build_dpi_command(device, effective_dpi, slot=target_slot))
 
-        # 2. Comandos LED (Logo G + Indicadores DPI)
-        led_mode = getattr(profile, "led_mode", "on")
-        led_duration = getattr(profile, "led_duration", None)
-        if led_mode == "off" or profile.led_color or led_mode == "cycle":
-            commands.extend(
-                self.build_led_commands(
-                    device,
-                    hex_color=profile.led_color,
-                    slot=target_slot,
-                    mode=led_mode,
-                    duration=led_duration,
+        # 2. Comandos LED adaptados a capacidades de la variante
+        if actual_variant.capabilities.has_lighting:
+            led_mode = getattr(profile, "led_mode", "on")
+            led_duration = getattr(profile, "led_duration", None)
+            led_count = actual_variant.capabilities.led_zones
+
+            # Proteus Core: monocromo azul fijo (sin RGB configurable)
+            if not actual_variant.capabilities.has_rgb:
+                if led_mode in ("on", "off", "breathing"):
+                    commands.extend(
+                        self.build_led_commands(
+                            device,
+                            hex_color=None,
+                            slot=target_slot,
+                            mode=led_mode,
+                            duration=led_duration,
+                            led_count=led_count,
+                        )
+                    )
+            elif led_mode == "off" or profile.led_color or led_mode == "cycle":
+                commands.extend(
+                    self.build_led_commands(
+                        device,
+                        hex_color=profile.led_color,
+                        slot=target_slot,
+                        mode=led_mode,
+                        duration=led_duration,
+                        led_count=led_count,
+                    )
                 )
-            )
 
         # 3. Comandos de botones (Asignados y Restauración de no asignados para aislamiento total)
         assigned_button_ids = {

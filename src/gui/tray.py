@@ -74,6 +74,7 @@ class TrayIndicator:
         self._app_name: str = "Escritorio"
         self._dpi: int = 1200
         self._auto_active: bool = False
+        self._battery_level: int | None = None
 
         self._object_path = f"/StatusNotifierItem/{id(self)}"
 
@@ -126,6 +127,7 @@ class TrayIndicator:
         app_name: str,
         dpi: int = 1200,
         auto_active: bool = False,
+        battery_level: int | None = None,
     ) -> None:
         """
         Actualiza los datos expuestos en el Tooltip y emite la señal de refresco.
@@ -134,6 +136,7 @@ class TrayIndicator:
         self._app_name = app_name
         self._dpi = dpi
         self._auto_active = auto_active
+        self._battery_level = battery_level
 
         if self._bus and self._is_registered:
             try:
@@ -195,7 +198,8 @@ class TrayIndicator:
         elif prop_name == "ToolTip":
             auto_str = "Auto: Activo" if self._auto_active else "Auto: Inactivo"
             title = f"G502: {self._profile_name}"
-            desc = f"{self._app_name} | {self._dpi} DPI | {auto_str}"
+            bat_str = f" | 🔋 {self._battery_level}%" if self._battery_level is not None else ""
+            desc = f"{self._app_name} | {self._dpi} DPI{bat_str} | {auto_str}"
             return GLib.Variant("(sa(iiay)ss)", (self._icon_name, [], title, desc))
         return None
 

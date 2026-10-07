@@ -20,7 +20,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Adw, Gtk
 
-from domain import Action, Application, Button, Profile
+from domain import Action, Application, Button, Profile, G502_VARIANTS
 from gui.app import G502Application
 from gui.dialogs import ActionPickerDialog, NewProfileDialog
 from gui.window import MainWindow, BUTTON_DEFINITIONS
@@ -413,6 +413,50 @@ class TestGuiLogic(unittest.TestCase):
         saved = self.profile_manager.get_active_profile_for_application("steam:230410")
         self.assertEqual(saved.led_color, "#5500DD")
         self.assertEqual(saved.led_mode, "on")
+
+
+    def test_main_window_variant_adaptation_multi_models(self):
+        window = MainWindow(
+            app=self.app,
+            profile_manager=self.profile_manager,
+            catalog_service=self.catalog_service,
+            discovery_adapter=self.mock_discovery,
+            ratbag_adapter=self.mock_ratbag,
+        )
+
+        # 1. Variante Proteus Core (12.000 DPI max, monocromo azul)
+        self.mock_ratbag.detect_device_variant.return_value = G502_VARIANTS["g502_proteus_core"]
+        self.mock_ratbag.get_cached_battery_level.return_value = None
+        window._update_mouse_hardware_status()
+
+        self.assertIn("G502 Proteus Core Conectado", window._mouse_status_label.get_text())
+        self.assertEqual(window._dpi_adjustment.get_upper(), 12000)
+        self.assertFalse(window._color_row.get_sensitive())
+        self.assertTrue(window._community_banner.get_revealed())
+
+        # 2. Variante LIGHTSPEED con batería
+        self.mock_ratbag.detect_device_variant.return_value = G502_VARIANTS["g502_lightspeed"]
+        self.mock_ratbag.get_cached_battery_level.return_value = 92
+        window._update_mouse_hardware_status()
+
+        self.assertIn("G502 LIGHTSPEED Conectado (🔋 92%)", window._mouse_status_label.get_text())
+        self.assertEqual(window._dpi_adjustment.get_upper(), 25600)
+
+        # 3. Variante G502 X (sin iluminación)
+        self.mock_ratbag.detect_device_variant.return_value = G502_VARIANTS["g502_x"]
+        self.mock_ratbag.get_cached_battery_level.return_value = None
+        window._update_mouse_hardware_status()
+
+        self.assertIn("G502 X Conectado", window._mouse_status_label.get_text())
+        self.assertFalse(window._led_mode_row.get_sensitive())
+        self.assertFalse(window._color_row.get_sensitive())
+        self.assertTrue(window._community_banner.get_revealed())
+
+        # 4. Variante G502 HERO (hardware principal, el banner debe permanecer oculto)
+        self.mock_ratbag.detect_device_variant.return_value = G502_VARIANTS["g502_hero"]
+        window._update_mouse_hardware_status()
+        self.assertIn("G502 HERO Conectado", window._mouse_status_label.get_text())
+        self.assertFalse(window._community_banner.get_revealed())
 
 
 if __name__ == "__main__":

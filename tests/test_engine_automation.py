@@ -112,5 +112,28 @@ class TestAutomationEngine(unittest.TestCase):
         self.assertEqual(len(restored_events), 1)
 
 
+    def test_engine_detects_variant_and_battery(self):
+        from domain import G502_VARIANTS
+
+        class VariantBatteryAdapter(DummyDeviceAdapter):
+            def detect_device_variant(self, device: str):
+                return G502_VARIANTS["g502_lightspeed"]
+
+            def get_cached_battery_level(self, device: str, ttl_seconds: float = 30.0):
+                return 88
+
+        bat_adapter = VariantBatteryAdapter()
+        engine = AutomationEngine(
+            profile_manager=self.manager,
+            device_adapter=bat_adapter,
+            check_interval=1.0,
+            logger=lambda msg: self.logs.append(msg),
+        )
+        self.assertTrue(engine.initialize())
+        self.assertEqual(engine.device_variant, G502_VARIANTS["g502_lightspeed"])
+        self.assertEqual(engine.battery_level, 88)
+        self.assertTrue(any("88%" in log for log in self.logs))
+
+
 if __name__ == "__main__":
     unittest.main()
