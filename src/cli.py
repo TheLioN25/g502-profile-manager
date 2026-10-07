@@ -24,6 +24,7 @@ from domain import Action, Button, DpiConfiguration
 from engine import AutomationEngine, DEFAULT_PROFILES_FILE
 from services import ActionCatalogService, ProfileManager
 from storage import JsonProfileRepository
+from i18n import _, get_language, set_language
 
 
 def get_services():
@@ -36,7 +37,7 @@ def get_services():
 
 
 def cmd_list(args):
-    _, manager, discovery, _, catalog = get_services()
+    _repo, manager, discovery, _ad, catalog = get_services()
 
     print("\nDescubriendo aplicaciones instaladas...")
     all_apps = discovery.discover_all_applications()
@@ -51,7 +52,7 @@ def cmd_list(args):
 
 
 def cmd_profiles(args):
-    repo, _, _, _, _ = get_services()
+    repo, _mgr, _disc, _ad, _cat = get_services()
     profiles = repo.list_all()
 
     if not profiles:
@@ -76,7 +77,7 @@ def cmd_profiles(args):
 
 
 def cmd_create(args):
-    _, manager, _, _, catalog = get_services()
+    _repo, manager, _disc, _ad, catalog = get_services()
 
     dpi_config = DpiConfiguration(dpi=args.dpi, shift_dpi=args.shift_dpi)
     profile = manager.create_profile(
@@ -102,7 +103,7 @@ def cmd_create(args):
 
 
 def cmd_presets(args):
-    _, _, discovery, _, catalog = get_services()
+    _repo, _mgr, discovery, _ad, catalog = get_services()
 
     # Sincronizar catálogo al vuelo con aplicaciones instaladas en Steam y Epic Games
     installed_apps = discovery.discover_all_applications()
@@ -142,7 +143,7 @@ def cmd_presets(args):
 
 
 def cmd_add_action(args):
-    _, _, _, _, catalog = get_services()
+    _repo, _mgr, _disc, _ad, catalog = get_services()
 
     action = Action(
         action_id=args.action_id,
@@ -169,7 +170,7 @@ def cmd_add_action(args):
 
 
 def cmd_assign(args):
-    repo, manager, _, _, catalog = get_services()
+    repo, manager, _disc, _ad, catalog = get_services()
     profile = manager.get_profile(args.profile_id)
     if not profile:
         # Buscar por prefijo de ID
@@ -203,7 +204,7 @@ def cmd_assign(args):
 
 
 def cmd_reset(args):
-    repo, manager, *_ = get_services()
+    repo, manager, *_rest = get_services()
     profile = manager.get_profile(args.profile_id)
     if not profile:
         matching = [p for p in repo.list_all() if p.id.startswith(args.profile_id)]
@@ -237,7 +238,7 @@ def cmd_run(args):
 
 
 def cmd_export(args):
-    _, manager, *_ = get_services()
+    _repo, manager, *_rest = get_services()
     from datetime import datetime
 
     if args.file:
@@ -255,7 +256,7 @@ def cmd_export(args):
 
 
 def cmd_import(args):
-    _, manager, *_ = get_services()
+    _repo, manager, *_rest = get_services()
     src_path = Path(args.file)
 
     if not src_path.exists():
@@ -284,6 +285,12 @@ def create_parser():
         "--version",
         action="version",
         version="g502-profile 0.3.0",
+    )
+    parser.add_argument(
+        "--lang",
+        choices=["es", "en"],
+        default=None,
+        help="Forzar idioma de la sesión (es | en)",
     )
 
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -368,26 +375,26 @@ def create_parser():
 
 
 def cmd_status(args):
-    repo, manager, discovery, adapter, _ = get_services()
+    repo, manager, discovery, adapter, _cat = get_services()
     device = adapter.find_device()
     print("\n=========================================")
-    print("      G502 Profile Manager - Estado      ")
+    print(f"      G502 Profile Manager - {_('Estado')}      ")
     print("=========================================")
     if device:
         variant = adapter.detect_device_variant(device)
         bat = adapter.get_battery_level(device) if variant.capabilities.has_battery else None
-        bat_str = f" | Batería: 🔋 {bat}%" if bat is not None else ""
-        print(f"• Hardware:     {variant.name}")
+        bat_str = f" | {_('Batería')}: 🔋 {bat}%" if bat is not None else ""
+        print(f"• {_('Hardware')}:     {variant.name}")
         print(f"  ID libratbag: {device}{bat_str}")
-        print(f"  Sensor máx:   {variant.capabilities.max_dpi:,} DPI")
-        rgb_str = "RGB" if variant.capabilities.has_rgb else "Sin RGB"
-        print(f"  Iluminación:  {variant.capabilities.led_zones} zona(s) ({rgb_str})")
+        print(f"  {_('Sensor máx')}:   {variant.capabilities.max_dpi:,} DPI")
+        rgb_str = "RGB" if variant.capabilities.has_rgb else _("Sin RGB")
+        print(f"  {_('Iluminación')}:  {variant.capabilities.led_zones} {_('zona(s)')} ({rgb_str})")
         if variant.key != "g502_hero":
-            print("  Soporte:      Experimental (reporta anomalías en: https://github.com/TheLioN25/g502-profile-manager/issues)")
+            print(f"  {_('Soporte')}:      {_('Experimental (reporta anomalías en:')} https://github.com/TheLioN25/g502-profile-manager/issues)")
     else:
-        print("• Hardware:     Ningún ratón G502 detectado vía libratbag.")
+        print(f"• {_('Hardware')}:     {_('Ningún ratón G502 detectado vía libratbag.')}")
     profiles = repo.list_all()
-    print(f"• Repositorio:  {len(profiles)} perfil(es) registrado(s)")
+    print(f"• {_('Repositorio')}:  {len(profiles)} {_('perfil(es) registrado(s)')}")
     print("=========================================\n")
 
 
@@ -652,6 +659,8 @@ def cmd_uninstall_bin(args):
 def main():
     parser = create_parser()
     args = parser.parse_args()
+    if getattr(args, "lang", None):
+        set_language(args.lang, persist=False)
 
     handlers = {
         "list": cmd_list,

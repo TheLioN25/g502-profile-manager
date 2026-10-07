@@ -459,5 +459,115 @@ class TestGuiLogic(unittest.TestCase):
         self.assertFalse(window._community_banner.get_revealed())
 
 
+
+    def test_main_window_language_switching(self):
+        from i18n import get_language, set_language
+
+        window = MainWindow(
+            app=self.app,
+            profile_manager=self.profile_manager,
+            catalog_service=self.catalog_service,
+            discovery_adapter=self.mock_discovery,
+            ratbag_adapter=self.mock_ratbag,
+        )
+
+        self.assertIsNotNone(window._lang_menu_btn)
+        self.assertEqual(get_language(), "es")
+
+        # 1. Cambiar a inglés mediante _on_change_language
+        window._on_change_language("en")
+        self.assertEqual(get_language(), "en")
+        self.assertEqual(window._apply_mouse_btn.get_label(), "Apply to Mouse")
+        self.assertEqual(window._save_btn.get_label(), "Save")
+        self.assertEqual(window._auto_label.get_label(), "Auto-Profile")
+        self.assertIn("My Games & Apps", window._sidebar_title.get_title())
+
+        # 2. Cambiar de regreso a español
+        window._on_change_language("es")
+        self.assertEqual(get_language(), "es")
+        self.assertEqual(window._apply_mouse_btn.get_label(), "Aplicar al Ratón")
+        self.assertEqual(window._save_btn.get_label(), "Guardar")
+        self.assertEqual(window._auto_label.get_label(), "Auto-Perfil")
+        self.assertIn("Mis Juegos y Apps", window._sidebar_title.get_title())
+
+
+    def test_action_picker_dialog_and_window_full_english_i18n(self):
+        from i18n import set_language
+        from gui.dialogs import ActionPickerDialog
+        from domain import Action
+
+        set_language("en", persist=False)
+        try:
+            # 1. Probar ActionPickerDialog en inglés
+            categories = {
+                "Portapapeles": [
+                    Action(action_id="gen_copy", name="Copiar", application_id="desktop:general", description="Copiar selección al portapapeles (Ctrl+C)", binding_type="macro", binding_value="ctrl+c"),
+                    Action(action_id="gen_paste", name="Pegar", application_id="desktop:general", description="Pegar contenido del portapapeles (Ctrl+V)", binding_type="macro", binding_value="ctrl+v"),
+                ],
+                "Navegación": [
+                    Action(action_id="gen_next_tab", name="Pestaña Siguiente", application_id="desktop:general", description="Avanzar a la siguiente pestaña en navegador o IDE (Ctrl+Tab)", binding_type="macro", binding_value="ctrl+tab"),
+                ],
+            }
+
+            dialog = ActionPickerDialog(
+                parent_window=Gtk.Window(),
+                button_id="G5",
+                button_name="Botón G5 (Lateral Delantero)",
+                app_id="desktop:general",
+                app_name="Desktop",
+                categories=categories,
+                current_action=None,
+                on_action_selected=lambda act: None,
+            )
+
+            # Verificar título traducido
+            self.assertIn("Assign", dialog.get_title())
+            self.assertIn("Button G5 (Front Side)", dialog.get_title())
+
+            # Verificar que las filas de acciones y categorías estén traducidas
+            row_titles = [row.get_title() for row, _ in dialog._rows]
+            self.assertIn("Copy", row_titles)
+            self.assertIn("Paste", row_titles)
+            self.assertIn("Next Tab", row_titles)
+
+            row_subtitles = [row.get_subtitle() for row, _ in dialog._rows]
+            self.assertTrue(any("Copy selection to clipboard" in s for s in row_subtitles))
+
+            # 2. Probar MainWindow en inglés
+            window = MainWindow(
+                app=self.app,
+                profile_manager=self.profile_manager,
+                catalog_service=self.catalog_service,
+                discovery_adapter=self.mock_discovery,
+                ratbag_adapter=self.mock_ratbag,
+            )
+
+            # Buscador
+            self.assertEqual(window._app_search_entry.get_placeholder_text(), "Search game or app...")
+
+            # Columna de botones
+            group_titles = [grp.get_title() for grp, _ in window._button_pref_groups]
+            self.assertIn("Side Buttons", group_titles)
+            self.assertIn("Top Buttons", group_titles)
+            self.assertIn("Scroll Wheel", group_titles)
+            self.assertIn("Primary Clicks", group_titles)
+
+            row_widget = window._button_row_widgets["G5"]
+            self.assertEqual(row_widget[0].get_title(), "Button G5 (Front Side)")
+            self.assertEqual(row_widget[1].get_text(), "Unassigned")
+            self.assertEqual(row_widget[2].get_label(), "Change")
+
+            # Pestaña DPI
+            self.assertEqual(window._dpi_group.get_title(), "HERO 25K Sensor Sensitivity")
+            self.assertEqual(window._dpi_row.get_title(), "Primary Sensitivity")
+
+            # Pestaña Iluminación
+            self.assertEqual(window._led_group.get_title(), "LIGHTSYNC RGB Lighting")
+            self.assertEqual(window._led_mode_row.get_title(), "Lighting Effect")
+            self.assertEqual(window._color_row.get_title(), "Lighting Color")
+            self.assertEqual(window._duration_row.get_title(), "Effect Speed")
+        finally:
+            set_language("es", persist=False)
+
 if __name__ == "__main__":
     unittest.main()

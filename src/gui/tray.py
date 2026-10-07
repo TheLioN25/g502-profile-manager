@@ -13,6 +13,7 @@ from typing import Callable
 
 import gi
 from gi.repository import Gio, GLib
+from i18n import _
 
 logger = logging.getLogger("g502.tray")
 
@@ -196,7 +197,7 @@ class TrayIndicator:
         elif prop_name == "Menu":
             return GLib.Variant("o", "/NO_DBUSMENU")
         elif prop_name == "ToolTip":
-            auto_str = "Auto: Activo" if self._auto_active else "Auto: Inactivo"
+            auto_str = _("Auto: Activo") if self._auto_active else _("Auto: Inactivo")
             title = f"G502: {self._profile_name}"
             bat_str = f" | 🔋 {self._battery_level}%" if self._battery_level is not None else ""
             desc = f"{self._app_name} | {self._dpi} DPI{bat_str} | {auto_str}"

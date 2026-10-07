@@ -15,6 +15,7 @@ gi.require_version("Gdk", "4.0")
 from gi.repository import Gdk, Gtk
 
 from domain import Profile
+from i18n import _
 
 
 BUTTON_METADATA: dict[str, dict[str, str | int]] = {
@@ -414,13 +415,13 @@ class G502MouseDiagram(Gtk.DrawingArea):
             cr.select_font_face("Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
             if action:
                 cr.set_source_rgb(0.0, 0.898, 1.0)
-                name_disp = action.name
+                name_disp = _(action.name)
                 if len(name_disp) > 10:
                     name_disp = name_disp[:9] + "…"
                 txt = f"[{action.binding_value}] {name_disp}"
             else:
                 cr.set_source_rgba(0.6, 0.65, 0.7, 0.5)
-                txt = "Sin asignar"
+                txt = _("Sin asignar")
 
             cr.move_to(box_x + 6, tag_y + 18)
             cr.show_text(txt)
