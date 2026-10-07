@@ -87,6 +87,7 @@ class MainWindow(Adw.ApplicationWindow):
         ratbag_adapter: RatbagDeviceAdapter | None = None,
         automation_engine: AutomationEngine | None = None,
         start_auto: bool = False,
+        preview_hero_banner: bool = False,
     ):
         super().__init__(
             application=app,
@@ -101,6 +102,7 @@ class MainWindow(Adw.ApplicationWindow):
         self._catalog_service = catalog_service
         self._discovery_adapter = discovery_adapter
         self._ratbag_adapter = ratbag_adapter or RatbagDeviceAdapter()
+        self._preview_hero_banner: bool = preview_hero_banner
         self._current_variant: DeviceVariant = DEFAULT_VARIANT
         self._automation_engine: AutomationEngine | None = automation_engine
         self._auto_thread: threading.Thread | None = None
@@ -348,15 +350,6 @@ class MainWindow(Adw.ApplicationWindow):
 
         box.append(self._main_header)
 
-        # Banner informativo y de feedback comunitario para modelos no HERO
-        self._community_banner = Adw.Banner(
-            title=_("Soporte experimental: Ayúdanos a calibrar este modelo reportando cualquier anomalía.")
-        )
-        self._community_banner.set_button_label(_("Dar Feedback / Reportar"))
-        self._community_banner.connect("button-clicked", self._on_report_community_issue)
-        self._community_banner.set_revealed(False)
-        box.append(self._community_banner)
-
         # Barra de cambio de vista (ViewSwitcher)
         self._view_stack = Adw.ViewStack()
         self._view_stack.set_vexpand(True)
@@ -492,6 +485,23 @@ class MainWindow(Adw.ApplicationWindow):
                 group.add(row)
                 self._button_rows[btn_id] = (row, chip)
                 self._button_row_widgets[btn_id] = (row, chip, assign_btn, btn_name)
+
+        # Banner / Tarjeta de Soporte Comunitario para la familia Logitech
+        self._community_group = Adw.PreferencesGroup()
+        self._community_group.set_title(_("Comunidad y Calibración"))
+        self._community_group.set_margin_top(24)
+        self._community_group.set_margin_bottom(12)
+
+        self._community_banner = Adw.Banner(
+            title=_("Soporte experimental: Ayúdanos a calibrar este modelo reportando cualquier anomalía.")
+        )
+        self._community_banner.set_button_label(_("Dar Feedback / Reportar"))
+        self._community_banner.connect("button-clicked", self._on_report_community_issue)
+        self._community_banner.add_css_class("community-banner-card")
+        self._community_banner.set_revealed(False)
+        self._community_group.add(self._community_banner)
+        self._community_group.set_visible(False)
+        pref_page.add(self._community_group)
 
         paned.set_end_child(scrolled)
         return paned
@@ -1047,17 +1057,22 @@ class MainWindow(Adw.ApplicationWindow):
             mode = LED_MODE_OPTIONS[selected_idx][0] if selected_idx < len(LED_MODE_OPTIONS) else "on"
             self._update_lighting_sensitivity(mode)
 
-        # Activar banner de soporte experimental solo si no es el G502 HERO
+        # Activar banner de soporte experimental solo si no es el G502 HERO (o modo vista previa local)
         if hasattr(self, "_community_banner"):
-            if variant.key != "g502_hero":
+            show_banner = (variant.key != "g502_hero") or getattr(self, "_preview_hero_banner", False)
+            if show_banner:
                 self._community_banner.set_title(
                     _("Soporte experimental para {short_name}: Ayúdanos a calibrarlo reportando cualquier anomalía.").format(
                         short_name=variant.short_name
                     )
                 )
                 self._community_banner.set_revealed(True)
+                if hasattr(self, "_community_group"):
+                    self._community_group.set_visible(True)
             else:
                 self._community_banner.set_revealed(False)
+                if hasattr(self, "_community_group"):
+                    self._community_group.set_visible(False)
 
     def _update_lighting_sensitivity(self, mode: str):
         if hasattr(self, "_current_variant"):
@@ -1424,8 +1439,19 @@ class MainWindow(Adw.ApplicationWindow):
         if hasattr(self, "_lang_menu_btn"):
             self._lang_menu_btn.set_tooltip_text(_("Cambiar idioma"))
 
+        if hasattr(self, "_community_group"):
+            self._community_group.set_title(_("Comunidad y Calibración"))
+
         if hasattr(self, "_community_banner"):
-            self._community_banner.set_title(_("Soporte experimental: Ayúdanos a calibrar este modelo reportando cualquier anomalía."))
+            variant_name = getattr(self._current_variant, "short_name", "G502")
+            if hasattr(self, "_current_variant") and (self._current_variant.key != "g502_hero" or getattr(self, "_preview_hero_banner", False)):
+                self._community_banner.set_title(
+                    _("Soporte experimental para {short_name}: Ayúdanos a calibrarlo reportando cualquier anomalía.").format(
+                        short_name=variant_name
+                    )
+                )
+            else:
+                self._community_banner.set_title(_("Soporte experimental: Ayúdanos a calibrar este modelo reportando cualquier anomalía."))
             self._community_banner.set_button_label(_("Dar Feedback / Reportar"))
 
         # Pestañas del ViewStack

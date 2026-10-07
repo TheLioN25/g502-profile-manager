@@ -3,7 +3,7 @@
 Memoria técnica del proyecto entre sesiones (~45 líneas). Estado y decisiones consolidadas.
 
 ## Estado actual
-- **Soporte Multi-Variante Familia Logitech G502 (Fase 2) e Internacionalización Bilingüe (Fases 3, 3.1 y 3.2) 100% completados.**
+- **Versión 0.4.0: Soporte Multi-Variante Familia Logitech G502 e Internacionalización Bilingüe (Fases 2, 3, 3.1, 3.2 y UI refinada) 100% completados.**
 - **154 pruebas unitarias automatizadas** pasando al 100% (`154/154 OK`) en local y GitHub Actions CI.
 - **Variantes soportadas:** *G502 Proteus Core*, *G502 Proteus Spectrum*, *G502 HERO*, *G502 LIGHTSPEED*, *G502 X* y *G502 X PLUS / Wireless*.
 - **Características operativas:**

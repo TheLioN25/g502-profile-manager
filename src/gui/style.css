@@ -101,3 +101,19 @@
     font-weight: 600;
 }
 
+
+/* Tarjeta de soporte comunitario en la vista de botones */
+banner.community-banner-card {
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(0, 229, 255, 0.08) 0%, rgba(53, 132, 228, 0.08) 100%);
+    border: 1px solid rgba(0, 229, 255, 0.25);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    margin: 4px 0;
+}
+
+banner.community-banner-card revealer > widget {
+    border-radius: 12px;
+    background: transparent;
+    border-bottom: none;
+    padding: 10px 14px;
+}

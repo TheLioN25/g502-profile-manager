@@ -302,6 +302,7 @@ TRANSLATIONS_EN: dict[str, str] = {
     "Iluminación monocromo azul (1 zona) en {short_name}": "Monochrome blue lighting (1 zone) on {short_name}",
 
     # Soporte Experimental y Banner Comunitario
+    "Comunidad y Calibración": "Community and Calibration",
     "Soporte experimental: Ayúdanos a calibrar este modelo reportando cualquier anomalía.": "Experimental support: Help us calibrate this model by reporting any anomalies.",
     "Soporte experimental para {short_name}: Ayúdanos a calibrarlo reportando cualquier anomalía.": "Experimental support for {short_name}: Help us calibrate it by reporting any issues.",
     "Ayúdanos a Mejorar y Calibrar tu Ratón": "Help Us Improve and Calibrate Your Mouse",

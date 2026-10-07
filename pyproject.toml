@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "g502-profile-manager"
-version = "0.3.0"
+version = "0.4.0"
 description = "Gestor nativo de perfiles, macros, DPI e iluminación para ratón Logitech G502 HERO en Linux"
 readme = "README.md"
 requires-python = ">=3.9"

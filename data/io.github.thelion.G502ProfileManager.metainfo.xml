@@ -32,6 +32,11 @@
   </categories>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.4.0" date="2026-10-07">
+      <description>
+        <p>Soporte ampliado para la familia Logitech G502, internacionalización completa (ES/EN), detección automática regional y refinamiento visual del banner en la vista de botones.</p>
+      </description>
+    </release>
     <release version="0.3.0" date="2026-09-30">
       <description>
         <p>Versión inicial con interfaz GTK4 / Libadwaita, soporte D-Bus y mitigación de modificadores pegados.</p>

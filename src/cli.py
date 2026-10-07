@@ -284,7 +284,7 @@ def create_parser():
     parser.add_argument(
         "--version",
         action="version",
-        version="g502-profile 0.3.0",
+        version="g502-profile 0.4.0",
     )
     parser.add_argument(
         "--lang",
