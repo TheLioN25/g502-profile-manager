@@ -15,6 +15,10 @@ from gui.tray import TrayIndicator
 
 
 class TestGuiTray(unittest.TestCase):
+    def setUp(self):
+        from i18n import set_language
+        set_language("es", persist=False)
+
     @patch("gi.repository.Gio.bus_get_sync")
     def test_tray_initialization_and_registration(self, mock_bus_get):
         mock_bus = MagicMock()
@@ -118,6 +122,25 @@ class TestGuiTray(unittest.TestCase):
         mock_bus.unregister_object.assert_called_once_with(42)
         self.assertFalse(tray.is_available)
 
+
+
+    @patch("gi.repository.Gio.bus_get_sync")
+    def test_tray_tooltip_respects_i18n_language(self, mock_bus_get):
+        from i18n import set_language
+        mock_bus = MagicMock()
+        mock_bus.register_object.return_value = 42
+        mock_bus_get.return_value = mock_bus
+
+        tray = TrayIndicator()
+        tray.update_status("Game", "App", dpi=2400, auto_active=True)
+
+        set_language("en", persist=False)
+        try:
+            tooltip_val = tray._handle_get_property(mock_bus, "caller", "/StatusNotifierItem", "org.kde.StatusNotifierItem", "ToolTip")
+            unpacked = tooltip_val.unpack()
+            self.assertIn("Auto: Active", unpacked[3])
+        finally:
+            set_language("es", persist=False)
 
 if __name__ == "__main__":
     unittest.main()

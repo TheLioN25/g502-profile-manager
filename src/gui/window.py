@@ -16,6 +16,7 @@ from gi.repository import Adw, Gdk, GLib, Gtk, Pango
 from adapters.application_discovery_adapter import ApplicationDiscoveryAdapter
 from adapters.ratbag_adapter import RatbagDeviceAdapter
 from domain import Action, Application, Button, DEFAULT_VARIANT, DeviceVariant, DpiConfiguration, Profile
+from i18n import _, get_language, set_language, get_available_languages
 
 REDDIT_COMMUNITY_URL = "https://www.reddit.com/r/G502MasterRace/comments/1wwvyk5/i_built_a_native_gtk4_libadwaita_profile_manager/"
 GITHUB_ISSUES_URL = "https://github.com/TheLioN25/g502-profile-manager/issues"
@@ -114,6 +115,8 @@ class MainWindow(Adw.ApplicationWindow):
         self._configured_rows: list[tuple[Gtk.ListBoxRow, Application]] = []
         self._unconfigured_rows: list[tuple[Gtk.ListBoxRow, Application]] = []
         self._button_rows: dict[str, tuple[Adw.ActionRow, Gtk.Label]] = {}
+        self._button_pref_groups: list[tuple[Adw.PreferencesGroup, str]] = []
+        self._button_row_widgets: dict[str, tuple[Adw.ActionRow, Gtk.Label, Gtk.Button, str]] = {}
 
         # Inicializar indicador de bandeja del sistema (System Tray)
         try:
@@ -160,10 +163,12 @@ class MainWindow(Adw.ApplicationWindow):
         # Cabecera de la barra lateral
         sidebar_header = Adw.HeaderBar()
         sidebar_header.set_show_end_title_buttons(False)
-        title = Adw.WindowTitle(title="Mis Juegos y Apps", subtitle="Instalados en el sistema")
+        self._sidebar_title = Adw.WindowTitle(title=_("Mis Juegos y Apps"), subtitle=_("Instalados en el sistema"))
+        title = self._sidebar_title
         sidebar_header.set_title_widget(title)
 
-        refresh_btn = Gtk.Button(icon_name="view-refresh-symbolic", tooltip_text="Refrescar biblioteca")
+        self._sidebar_refresh_btn = Gtk.Button(icon_name="view-refresh-symbolic", tooltip_text=_("Refrescar biblioteca"))
+        refresh_btn = self._sidebar_refresh_btn
         refresh_btn.connect("clicked", lambda _: self._load_applications())
         sidebar_header.pack_start(refresh_btn)
         box.append(sidebar_header)
@@ -193,7 +198,7 @@ class MainWindow(Adw.ApplicationWindow):
         search_box.set_margin_top(2)
         search_box.set_margin_bottom(6)
 
-        self._app_search_entry = Gtk.SearchEntry(placeholder_text="Buscar juego o app...")
+        self._app_search_entry = Gtk.SearchEntry(placeholder_text=_("Buscar juego o app..."))
         self._app_search_entry.set_hexpand(True)
         self._app_search_entry.connect("search-changed", self._on_app_search_changed)
         search_box.append(self._app_search_entry)
@@ -223,11 +228,11 @@ class MainWindow(Adw.ApplicationWindow):
 
         # HeaderBar del panel principal
         self._main_header = Adw.HeaderBar()
-        self._window_title = Adw.WindowTitle(title="G502 Profile Manager", subtitle="Selecciona una aplicación")
+        self._window_title = Adw.WindowTitle(title=_("G502 Profile Manager"), subtitle=_("Selecciona una aplicación"))
         self._main_header.set_title_widget(self._window_title)
 
         # Indicador de estado del mouse
-        self._mouse_status_label = Gtk.Label(label="Buscando mouse...")
+        self._mouse_status_label = Gtk.Label(label=_("Buscando mouse..."))
         self._mouse_status_label.set_margin_end(8)
         self._main_header.pack_start(self._mouse_status_label)
 
@@ -240,12 +245,13 @@ class MainWindow(Adw.ApplicationWindow):
         # Interruptor de Auto-Detección de Juegos
         self._auto_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         self._auto_box.add_css_class("auto-switch-box")
-        self._auto_box.set_tooltip_text("Conmutación automática de perfiles según el juego o aplicación activa")
+        self._auto_box.set_tooltip_text(_("Conmutación automática de perfiles según el juego o aplicación activa"))
 
         auto_icon = Gtk.Image.new_from_icon_name("media-flash-symbolic")
         self._auto_box.append(auto_icon)
 
-        auto_label = Gtk.Label(label="Auto-Perfil")
+        self._auto_label = Gtk.Label(label=_("Auto-Perfil"))
+        auto_label = self._auto_label
         auto_label.add_css_class("auto-switch-label")
         self._auto_box.append(auto_label)
 
@@ -257,12 +263,12 @@ class MainWindow(Adw.ApplicationWindow):
         self._main_header.pack_start(self._auto_box)
 
         # Botón Aplicar al Mouse
-        self._apply_mouse_btn = Gtk.Button(label="Aplicar al Ratón", tooltip_text="Escribir perfil directamente al G502 HERO")
+        self._apply_mouse_btn = Gtk.Button(label=_("Aplicar al Ratón"), tooltip_text=_("Escribir perfil directamente al G502 HERO"))
         self._apply_mouse_btn.add_css_class("suggested-action")
         self._apply_mouse_btn.connect("clicked", self._on_apply_to_mouse_clicked)
 
         # Botón Guardar
-        self._save_btn = Gtk.Button(label="Guardar", tooltip_text="Guardar cambios del perfil")
+        self._save_btn = Gtk.Button(label=_("Guardar"), tooltip_text=_("Guardar cambios del perfil"))
         self._save_btn.connect("clicked", self._on_save_profile_clicked)
 
         # Controles de Gestión de Perfiles
@@ -271,15 +277,15 @@ class MainWindow(Adw.ApplicationWindow):
 
         self._profile_string_list = Gtk.StringList.new([])
         self._profile_dropdown = Gtk.DropDown.new(self._profile_string_list, None)
-        self._profile_dropdown.set_tooltip_text("Seleccionar perfil para este juego")
+        self._profile_dropdown.set_tooltip_text(_("Seleccionar perfil para este juego"))
         self._profile_dropdown.connect("notify::selected", self._on_profile_dropdown_changed)
         profile_controls.append(self._profile_dropdown)
 
-        self._new_profile_btn = Gtk.Button(icon_name="list-add-symbolic", tooltip_text="Crear nuevo perfil")
+        self._new_profile_btn = Gtk.Button(icon_name="list-add-symbolic", tooltip_text=_("Crear nuevo perfil"))
         self._new_profile_btn.connect("clicked", self._on_new_profile_clicked)
         profile_controls.append(self._new_profile_btn)
 
-        self._profile_menu_btn = Gtk.MenuButton(icon_name="view-more-symbolic", tooltip_text="Opciones del perfil")
+        self._profile_menu_btn = Gtk.MenuButton(icon_name="view-more-symbolic", tooltip_text=_("Opciones del perfil"))
         self._profile_popover = Gtk.Popover()
         pop_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         pop_box.set_margin_top(6)
@@ -287,17 +293,20 @@ class MainWindow(Adw.ApplicationWindow):
         pop_box.set_margin_start(6)
         pop_box.set_margin_end(6)
 
-        set_def_btn = Gtk.Button(label="⭐ Marcar como Predeterminado")
+        self._set_def_btn = Gtk.Button(label=_("⭐ Marcar como Predeterminado"))
+        set_def_btn = self._set_def_btn
         set_def_btn.add_css_class("flat")
         set_def_btn.connect("clicked", self._on_set_default_profile_clicked)
         pop_box.append(set_def_btn)
 
-        dup_btn = Gtk.Button(label="📋 Duplicar Perfil")
+        self._dup_btn = Gtk.Button(label=_("📋 Duplicar Perfil"))
+        dup_btn = self._dup_btn
         dup_btn.add_css_class("flat")
         dup_btn.connect("clicked", self._on_duplicate_profile_clicked)
         pop_box.append(dup_btn)
 
-        del_btn = Gtk.Button(label="🗑️ Eliminar Perfil")
+        self._del_btn = Gtk.Button(label=_("🗑️ Eliminar Perfil"))
+        del_btn = self._del_btn
         del_btn.add_css_class("flat")
         del_btn.add_css_class("destructive-action")
         del_btn.connect("clicked", self._on_delete_profile_clicked)
@@ -307,6 +316,32 @@ class MainWindow(Adw.ApplicationWindow):
         self._profile_menu_btn.set_popover(self._profile_popover)
         profile_controls.append(self._profile_menu_btn)
 
+        # Selector de Idioma (ES / EN)
+        self._lang_menu_btn = Gtk.MenuButton(
+            icon_name="preferences-desktop-locale-symbolic",
+            tooltip_text=_("Cambiar idioma"),
+        )
+        self._lang_popover = Gtk.Popover()
+        lang_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        lang_box.set_margin_top(6)
+        lang_box.set_margin_bottom(6)
+        lang_box.set_margin_start(6)
+        lang_box.set_margin_end(6)
+
+        lang_es_btn = Gtk.Button(label="🇪🇸 Español")
+        lang_es_btn.add_css_class("flat")
+        lang_es_btn.connect("clicked", lambda _: self._on_change_language("es"))
+        lang_box.append(lang_es_btn)
+
+        lang_en_btn = Gtk.Button(label="🇺🇸 English")
+        lang_en_btn.add_css_class("flat")
+        lang_en_btn.connect("clicked", lambda _: self._on_change_language("en"))
+        lang_box.append(lang_en_btn)
+
+        self._lang_popover.set_child(lang_box)
+        self._lang_menu_btn.set_popover(self._lang_popover)
+
+        self._main_header.pack_end(self._lang_menu_btn)
         self._main_header.pack_end(self._apply_mouse_btn)
         self._main_header.pack_end(self._save_btn)
         self._main_header.pack_end(profile_controls)
@@ -315,9 +350,9 @@ class MainWindow(Adw.ApplicationWindow):
 
         # Banner informativo y de feedback comunitario para modelos no HERO
         self._community_banner = Adw.Banner(
-            title="Soporte experimental: Ayúdanos a calibrar este modelo reportando cualquier anomalía."
+            title=_("Soporte experimental: Ayúdanos a calibrar este modelo reportando cualquier anomalía.")
         )
-        self._community_banner.set_button_label("Dar Feedback / Reportar")
+        self._community_banner.set_button_label(_("Dar Feedback / Reportar"))
         self._community_banner.connect("button-clicked", self._on_report_community_issue)
         self._community_banner.set_revealed(False)
         box.append(self._community_banner)
@@ -336,28 +371,28 @@ class MainWindow(Adw.ApplicationWindow):
 
         # 1. Vista de Botones
         buttons_view = self._build_buttons_view()
-        self._view_stack.add_titled_with_icon(
+        self._buttons_stack_page = self._view_stack.add_titled_with_icon(
             buttons_view,
             "buttons",
-            "Botones",
+            _("Botones"),
             "input-mouse-symbolic",
         )
 
         # 2. Vista de Rendimiento (DPI)
         perf_view = self._build_performance_view()
-        self._view_stack.add_titled_with_icon(
+        self._perf_stack_page = self._view_stack.add_titled_with_icon(
             perf_view,
             "performance",
-            "Rendimiento (DPI)",
+            _("Rendimiento (DPI)"),
             "speedometer-symbolic",
         )
 
         # 3. Vista de Iluminación (LED RGB)
         lighting_view = self._build_lighting_view()
-        self._view_stack.add_titled_with_icon(
+        self._lighting_stack_page = self._view_stack.add_titled_with_icon(
             lighting_view,
             "lighting",
-            "Iluminación LED",
+            _("Iluminación LED"),
             "weather-clear-symbolic",
         )
 
@@ -392,9 +427,11 @@ class MainWindow(Adw.ApplicationWindow):
         diagram_header.set_margin_top(12)
         diagram_header.set_margin_bottom(4)
 
-        diagram_title = Gtk.Label(label="Esquema Interactivo G502 HERO", xalign=0)
+        self._diagram_title = Gtk.Label(label=_("Esquema Interactivo G502 HERO"), xalign=0)
+        diagram_title = self._diagram_title
         diagram_title.add_css_class("heading")
-        diagram_subtitle = Gtk.Label(label="Haz clic en cualquier botón del ratón para asignar una acción", xalign=0)
+        self._diagram_subtitle = Gtk.Label(label=_("Haz clic en cualquier botón del ratón para asignar una acción"), xalign=0)
+        diagram_subtitle = self._diagram_subtitle
         diagram_subtitle.add_css_class("caption")
         diagram_subtitle.add_css_class("dim-label")
 
@@ -418,12 +455,16 @@ class MainWindow(Adw.ApplicationWindow):
         pref_page = Adw.PreferencesPage()
         scrolled.set_child(pref_page)
 
+        self._button_pref_groups.clear()
+        self._button_row_widgets.clear()
+
         for group_title, buttons in BUTTON_DEFINITIONS:
-            group = Adw.PreferencesGroup(title=group_title)
+            group = Adw.PreferencesGroup(title=_(group_title))
+            self._button_pref_groups.append((group, group_title))
             pref_page.add(group)
 
             for btn_id, btn_name, icon_name in buttons:
-                row = Adw.ActionRow(title=btn_name, subtitle=f"ID: {btn_id}")
+                row = Adw.ActionRow(title=_(btn_name), subtitle=f"ID: {btn_id}")
                 row.set_title_lines(1)
                 row.set_subtitle_lines(1)
                 row.add_prefix(Gtk.Image.new_from_icon_name(icon_name))
@@ -435,7 +476,7 @@ class MainWindow(Adw.ApplicationWindow):
                 row.add_controller(motion)
 
                 # Chip que muestra la acción asignada
-                chip = Gtk.Label(label="Sin asignar")
+                chip = Gtk.Label(label=_("Sin asignar"))
                 chip.add_css_class("action-chip-empty")
                 chip.set_valign(Gtk.Align.CENTER)
                 chip.set_ellipsize(Pango.EllipsizeMode.END)
@@ -443,13 +484,14 @@ class MainWindow(Adw.ApplicationWindow):
                 row.add_suffix(chip)
 
                 # Botón para asignar/cambiar
-                assign_btn = Gtk.Button(label="Cambiar")
+                assign_btn = Gtk.Button(label=_("Cambiar"))
                 assign_btn.set_valign(Gtk.Align.CENTER)
                 assign_btn.connect("clicked", lambda _b, bid=btn_id, bname=btn_name: self._open_assign_dialog(bid, bname))
                 row.add_suffix(assign_btn)
 
                 group.add(row)
                 self._button_rows[btn_id] = (row, chip)
+                self._button_row_widgets[btn_id] = (row, chip, assign_btn, btn_name)
 
         paned.set_end_child(scrolled)
         return paned
@@ -462,14 +504,16 @@ class MainWindow(Adw.ApplicationWindow):
         pref_page = Adw.PreferencesPage()
         scrolled.set_child(pref_page)
 
-        dpi_group = Adw.PreferencesGroup(
-            title="Sensibilidad del Sensor HERO 25K",
-            description="Ajusta los puntos por pulgada (DPI) para una puntería precisa",
+        self._dpi_group = Adw.PreferencesGroup(
+            title=_("Sensibilidad del Sensor HERO 25K"),
+            description=_("Ajusta los puntos por pulgada (DPI) para una puntería precisa"),
         )
+        dpi_group = self._dpi_group
         pref_page.add(dpi_group)
 
         # Fila con valor actual grande
-        dpi_row = Adw.ActionRow(title="Sensibilidad Principal")
+        self._dpi_row = Adw.ActionRow(title=_("Sensibilidad Principal"))
+        dpi_row = self._dpi_row
         self._dpi_display_label = Gtk.Label(label="8000 DPI")
         self._dpi_display_label.add_css_class("dpi-value-label")
         self._dpi_display_label.set_valign(Gtk.Align.CENTER)
@@ -504,13 +548,15 @@ class MainWindow(Adw.ApplicationWindow):
         dpi_group.add(slider_row)
 
         # DPI Shift / Sniper
-        shift_group = Adw.PreferencesGroup(
-            title="Sensibilidad del Botón Sniper (DPI Shift)",
-            description="Sensibilidad temporal activada al mantener presionado el botón pulgar",
+        self._shift_group = Adw.PreferencesGroup(
+            title=_("Sensibilidad del Botón Sniper (DPI Shift)"),
+            description=_("Sensibilidad temporal activada al mantener presionado el botón pulgar"),
         )
+        shift_group = self._shift_group
         pref_page.add(shift_group)
 
-        shift_row = Adw.ActionRow(title="DPI de Francotirador")
+        self._shift_row = Adw.ActionRow(title=_("DPI de Francotirador"))
+        shift_row = self._shift_row
         self._shift_dpi_adjustment = Gtk.Adjustment(value=400, lower=100, upper=25600, step_increment=50)
         self._shift_dpi_spin = Gtk.SpinButton(adjustment=self._shift_dpi_adjustment)
         self._shift_dpi_spin.set_valign(Gtk.Align.CENTER)
@@ -529,30 +575,30 @@ class MainWindow(Adw.ApplicationWindow):
         scrolled.set_child(pref_page)
 
         led_group = Adw.PreferencesGroup(
-            title="Iluminación LIGHTSYNC RGB",
-            description="Personaliza el modo, color y efectos del logotipo G e indicador DPI",
+            title=_("Iluminación LIGHTSYNC RGB"),
+            description=_("Personaliza el modo, color y efectos del logotipo G e indicador DPI"),
         )
         self._led_group = led_group
         pref_page.add(led_group)
 
         # 1. Selector de Modo de Iluminación
-        self._led_mode_row = Adw.ComboRow(title="Efecto de Iluminación")
-        mode_strings = [name for _, name in LED_MODE_OPTIONS]
+        self._led_mode_row = Adw.ComboRow(title=_("Efecto de Iluminación"))
+        mode_strings = [_(name) for _mid, name in LED_MODE_OPTIONS]
         self._led_mode_row.set_model(Gtk.StringList.new(mode_strings))
         self._led_mode_row.connect("notify::selected", self._on_led_mode_row_changed)
         led_group.add(self._led_mode_row)
 
         # 2. Fila de color actual y selector interactivo
         self._color_row = Adw.ActionRow(
-            title="Color de Iluminación",
-            subtitle="Haz clic en la muestra para abrir la paleta o introduce el código hexadecimal",
+            title=_("Color de Iluminación"),
+            subtitle=_("Haz clic en la muestra para abrir la paleta o introduce el código hexadecimal"),
         )
 
         self._color_dialog = Gtk.ColorDialog()
         self._color_dialog.set_with_alpha(False)
         self._color_dialog_btn = Gtk.ColorDialogButton(dialog=self._color_dialog)
         self._color_dialog_btn.set_valign(Gtk.Align.CENTER)
-        self._color_dialog_btn.set_tooltip_text("Selector de color interactivo")
+        self._color_dialog_btn.set_tooltip_text(_("Selector de color interactivo"))
         self._color_dialog_btn.connect("notify::rgba", self._on_color_dialog_rgba_changed)
         self._color_row.add_suffix(self._color_dialog_btn)
         self._color_preview = self._color_dialog_btn
@@ -571,9 +617,9 @@ class MainWindow(Adw.ApplicationWindow):
         palette_box.set_margin_top(12)
         palette_box.set_margin_bottom(12)
 
-        quick_label = Gtk.Label(label="Colores Calibrados G502:", xalign=0)
-        quick_label.add_css_class("dim-label")
-        palette_box.append(quick_label)
+        self._palette_label = Gtk.Label(label=_("Colores Calibrados G502:"), xalign=0)
+        self._palette_label.add_css_class("dim-label")
+        palette_box.append(self._palette_label)
 
         btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         btn_box.set_halign(Gtk.Align.START)
@@ -596,8 +642,8 @@ class MainWindow(Adw.ApplicationWindow):
 
         # 4. Velocidad / Duración del Efecto (para Respiración y Ciclo de Espectro)
         self._duration_row = Adw.ActionRow(
-            title="Velocidad del Efecto",
-            subtitle="Duración de cada pulsación o ciclo de color",
+            title=_("Velocidad del Efecto"),
+            subtitle=_("Duración de cada pulsación o ciclo de color"),
         )
         self._duration_display_label = Gtk.Label(label="2.0 s (2000 ms)")
         self._duration_display_label.set_valign(Gtk.Align.CENTER)
@@ -631,10 +677,19 @@ class MainWindow(Adw.ApplicationWindow):
         # Botones de presets de velocidad
         duration_presets_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         duration_presets_box.set_halign(Gtk.Align.CENTER)
-        for ms, label_text in [(1000, "1s (Rápido)"), (2000, "2s (Normal)"), (3000, "3s (Suave)"), (5000, "5s (Lento)"), (10000, "10s (Relax)")]:
-            d_btn = Gtk.Button(label=label_text)
+        self._duration_preset_buttons = []
+        speed_presets = [
+            (1000, "1s (Rápido)"),
+            (2000, "2s (Normal)"),
+            (3000, "3s (Suave)"),
+            (5000, "5s (Lento)"),
+            (10000, "10s (Relax)"),
+        ]
+        for ms, label_text in speed_presets:
+            d_btn = Gtk.Button(label=_(label_text))
             d_btn.connect("clicked", self._make_quick_duration_handler(ms))
             duration_presets_box.append(d_btn)
+            self._duration_preset_buttons.append((d_btn, label_text))
         duration_box.append(duration_presets_box)
 
         self._duration_slider_row.set_child(duration_box)
@@ -664,7 +719,8 @@ class MainWindow(Adw.ApplicationWindow):
         hbox.append(icon)
 
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-        name_label = Gtk.Label(label=app.name, xalign=0)
+        display_name = _(app.name) if app.application_id == "desktop:general" else app.name
+        name_label = Gtk.Label(label=display_name, xalign=0)
         name_label.set_ellipsize(3)  # PANGO_ELLIPSIZE_END
         name_label.add_css_class("heading")
         vbox.append(name_label)
@@ -676,7 +732,7 @@ class MainWindow(Adw.ApplicationWindow):
         hbox.append(vbox)
 
         if is_configured:
-            badge = Gtk.Label(label="Configurado")
+            badge = Gtk.Label(label=_("Configurado"))
             badge.add_css_class("app-badge-preset")
             badge.set_valign(Gtk.Align.CENTER)
             badge.set_hexpand(True)
@@ -737,7 +793,7 @@ class MainWindow(Adw.ApplicationWindow):
         elif first_unconfigured_row:
             self._unconfigured_list_box.select_row(first_unconfigured_row)
 
-        self._show_toast("Biblioteca de aplicaciones sincronizada")
+        self._show_toast(_("Biblioteca de aplicaciones sincronizada"))
 
     def _on_configured_row_selected(self, _box, row: Gtk.ListBoxRow | None):
         if not row:
@@ -769,7 +825,8 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _select_application(self, app: Application, select_profile_id: str | None = None):
         self._selected_app = app
-        self._window_title.set_title(app.name)
+        display_name = _(app.name) if app.application_id == "desktop:general" else app.name
+        self._window_title.set_title(display_name)
         self._window_title.set_subtitle(f"ID: {app.application_id}")
         self._populate_profiles_dropdown(app.application_id, select_profile_id=select_profile_id)
 
@@ -818,7 +875,8 @@ class MainWindow(Adw.ApplicationWindow):
         try:
             profiles = list(self._profile_manager.get_profiles_for_application(application_id))
             if not profiles:
-                default_name = f"{self._selected_app.name if self._selected_app else 'Juego'} Perfil"
+                app_label = _(self._selected_app.name) if self._selected_app and self._selected_app.application_id == "desktop:general" else (self._selected_app.name if self._selected_app else _("Juego"))
+                default_name = f"{app_label} {_('Perfil')}"
                 new_p = self._profile_manager.create_profile(
                     name=default_name,
                     application_id=application_id,
@@ -867,7 +925,7 @@ class MainWindow(Adw.ApplicationWindow):
         try:
             mode = getattr(profile, "led_mode", "on")
             mode_idx = 0
-            for idx, (m, _) in enumerate(LED_MODE_OPTIONS):
+            for idx, (m, _mname) in enumerate(LED_MODE_OPTIONS):
                 if m == mode:
                     mode_idx = idx
                     break
@@ -903,8 +961,8 @@ class MainWindow(Adw.ApplicationWindow):
                 chip.remove_css_class("action-chip-empty")
                 chip.add_css_class("action-chip")
             else:
-                chip.set_text("Sin asignar")
-                chip.set_tooltip_text("Sin acción asignada")
+                chip.set_text(_("Sin asignar"))
+                chip.set_tooltip_text(_("Sin acción asignada"))
                 chip.remove_css_class("action-chip")
                 chip.add_css_class("action-chip-empty")
 
@@ -922,16 +980,16 @@ class MainWindow(Adw.ApplicationWindow):
         def on_action_selected(action: Action | None):
             if action:
                 self._current_profile.assign(Button(button_id=btn_id, name=btn_name), action)
-                self._show_toast(f"Asignado '{action.name}' al {btn_name}")
+                self._show_toast(_("Asignado '{action}' al {button}").format(action=action.name, button=_(btn_name)))
             else:
                 self._current_profile.unassign_button(btn_id)
-                self._show_toast(f"Quitada asignación de {btn_name}")
+                self._show_toast(_("Quitada asignación de {button}").format(button=_(btn_name)))
             self._refresh_button_assignments()
 
         dialog = ActionPickerDialog(
             parent_window=self,
             button_id=btn_id,
-            button_name=btn_name,
+            button_name=_(btn_name),
             app_id=self._selected_app.application_id,
             app_name=self._selected_app.name,
             categories=categories,
@@ -967,15 +1025,21 @@ class MainWindow(Adw.ApplicationWindow):
         if hasattr(self, "_led_group"):
             if not variant.capabilities.has_lighting:
                 self._led_group.set_description(
-                    f"Iluminación no disponible en {variant.short_name} (modelo sin iluminación RGB)"
+                    _("Iluminación no disponible en {short_name} (modelo sin iluminación RGB)").format(
+                        short_name=variant.short_name
+                    )
                 )
             elif not variant.capabilities.has_rgb:
                 self._led_group.set_description(
-                    f"Iluminación monocromo azul (1 zona) en {variant.short_name}"
+                    _("Iluminación monocromo azul (1 zona) en {short_name}").format(
+                        short_name=variant.short_name
+                    )
                 )
             else:
                 self._led_group.set_description(
-                    f"Personaliza el modo, color y efectos del logotipo G e indicadores DPI ({variant.capabilities.led_zones} zonas)"
+                    _("Personaliza el modo, color y efectos del logotipo G e indicadores DPI ({zones} zonas)").format(
+                        zones=variant.capabilities.led_zones
+                    )
                 )
 
         if hasattr(self, "_led_mode_row"):
@@ -987,7 +1051,9 @@ class MainWindow(Adw.ApplicationWindow):
         if hasattr(self, "_community_banner"):
             if variant.key != "g502_hero":
                 self._community_banner.set_title(
-                    f"Soporte experimental para {variant.short_name}: Ayúdanos a calibrarlo reportando cualquier anomalía."
+                    _("Soporte experimental para {short_name}: Ayúdanos a calibrarlo reportando cualquier anomalía.").format(
+                        short_name=variant.short_name
+                    )
                 )
                 self._community_banner.set_revealed(True)
             else:
@@ -1136,7 +1202,7 @@ class MainWindow(Adw.ApplicationWindow):
         if 0 <= idx < len(self._current_app_profiles):
             selected_profile = self._current_app_profiles[idx]
             self._load_profile_into_ui(selected_profile)
-            self._show_toast(f"Perfil activo: {selected_profile.name}")
+            self._show_toast(_("Perfil activo: {name}").format(name=selected_profile.name))
 
     def _on_new_profile_clicked(self, _btn):
         if not self._selected_app:
@@ -1152,7 +1218,7 @@ class MainWindow(Adw.ApplicationWindow):
                 led_duration=self._current_profile.led_duration if self._current_profile else None,
             )
             self._populate_profiles_dropdown(self._selected_app.application_id, select_profile_id=new_p.id)
-            self._show_toast(f"Perfil '{name}' creado.")
+            self._show_toast(_("Perfil '{name}' creado.").format(name=name))
 
         dialog = NewProfileDialog(
             parent_window=self,
@@ -1168,7 +1234,7 @@ class MainWindow(Adw.ApplicationWindow):
         self._profile_popover.popdown()
         self._profile_manager.set_default_profile(self._selected_app.application_id, self._current_profile.id)
         self._populate_profiles_dropdown(self._selected_app.application_id, select_profile_id=self._current_profile.id)
-        self._show_toast(f"'{self._current_profile.name}' marcado como predeterminado ⭐")
+        self._show_toast(_("'{name}' marcado como predeterminado ⭐").format(name=self._current_profile.name))
 
     def _on_duplicate_profile_clicked(self, _btn):
         if not self._selected_app or not self._current_profile:
@@ -1180,7 +1246,7 @@ class MainWindow(Adw.ApplicationWindow):
             f"{self._current_profile.name} (Copia)",
         )
         self._populate_profiles_dropdown(self._selected_app.application_id, select_profile_id=cloned.id)
-        self._show_toast(f"Perfil duplicado: '{cloned.name}'")
+        self._show_toast(_("Perfil duplicado: '{name}'").format(name=cloned.name))
 
     def _on_delete_profile_clicked(self, _btn):
         if not self._selected_app or not self._current_profile:
@@ -1188,14 +1254,14 @@ class MainWindow(Adw.ApplicationWindow):
 
         self._profile_popover.popdown()
         if len(self._current_app_profiles) <= 1:
-            self._show_toast("No puedes eliminar el único perfil de este juego.")
+            self._show_toast(_("No puedes eliminar el único perfil de este juego."))
             return
 
         deleted_name = self._current_profile.name
         self._profile_manager.delete_profile(self._current_profile.id)
         self._current_profile = None
         self._populate_profiles_dropdown(self._selected_app.application_id)
-        self._show_toast(f"Perfil '{deleted_name}' eliminado.")
+        self._show_toast(_("Perfil '{name}' eliminado.").format(name=deleted_name))
         self._load_applications(select_app_id=self._selected_app.application_id)
 
     def _on_save_profile_clicked(self, _btn):
@@ -1205,25 +1271,25 @@ class MainWindow(Adw.ApplicationWindow):
         # Guardar en repositorio
         saved_profile = self._profile_manager.save_profile(self._current_profile)
         self._populate_profiles_dropdown(self._selected_app.application_id, select_profile_id=saved_profile.id)
-        self._show_toast(f"Perfil '{saved_profile.name}' guardado.")
+        self._show_toast(_("Perfil '{name}' guardado.").format(name=saved_profile.name))
         self._load_applications(select_app_id=self._selected_app.application_id)
 
     def _on_report_community_issue(self, _banner):
         variant_name = getattr(self._current_variant, "short_name", "G502")
         dialog = Adw.MessageDialog(
             transient_for=self,
-            heading="Ayúdanos a Mejorar y Calibrar tu Ratón",
-            body=(
-                f"Has conectado un {variant_name}. El soporte para este modelo se basa en especificaciones de libratbag "
+            heading=_("Ayúdanos a Mejorar y Calibrar tu Ratón"),
+            body=_(
+                "Has conectado un {variant_name}. El soporte para este modelo se basa en especificaciones de libratbag "
                 "y tu experiencia real es clave para seguir perfeccionándolo.\n\n"
                 "¿Dónde te gustaría compartir tu opinión o reportar alguna anomalía?\n\n"
                 "• Reddit: Ideal para comentar rápido en la comunidad sin necesidad de conocimientos de desarrollo.\n"
                 "• GitHub: Recomendado para reportes técnicos detallados y seguimiento de bugs."
-            ),
+            ).format(variant_name=variant_name),
         )
-        dialog.add_response("cancel", "Cancelar")
+        dialog.add_response("cancel", _("Cancelar"))
         dialog.add_response("github", "🐙 GitHub Issues")
-        dialog.add_response("reddit", "💬 Abrir en Reddit")
+        dialog.add_response("reddit", _("💬 Abrir en Reddit"))
         dialog.set_response_appearance("reddit", Adw.ResponseAppearance.SUGGESTED)
         dialog.set_default_response("reddit")
 
@@ -1248,27 +1314,27 @@ class MainWindow(Adw.ApplicationWindow):
 
         target_profile = self._current_profile
         self._apply_mouse_btn.set_sensitive(False)
-        self._apply_mouse_btn.set_label("Aplicando...")
+        self._apply_mouse_btn.set_label(_("Aplicando..."))
 
         def worker():
-            msg = "¡Perfil aplicado con éxito al ratón!"
+            msg = _("¡Perfil aplicado con éxito al ratón!")
             try:
                 device = self._ratbag_adapter.find_device()
                 if not device:
-                    msg = "Error: No se detectó ningún ratón de la familia G502 conectado."
+                    msg = _("Error: No se detectó ningún ratón de la familia G502 conectado.")
                 else:
                     success = self._ratbag_adapter.apply_profile(device, target_profile)
                     variant_name = getattr(self._current_variant, "short_name", "G502")
                     if not success:
-                        msg = f"Advertencia: No se pudo aplicar completamente al ratón {variant_name}."
+                        msg = _("Advertencia: No se pudo aplicar completamente al ratón {variant_name}.").format(variant_name=variant_name)
                     else:
-                        msg = f"¡Perfil aplicado con éxito al ratón {variant_name}!"
+                        msg = _("¡Perfil aplicado con éxito al ratón {variant_name}!").format(variant_name=variant_name)
             except Exception as e:
-                msg = f"Error al comunicar con ratbagctl: {e}"
+                msg = _("Error al comunicar con ratbagctl: {error}").format(error=e)
 
             def on_done():
                 self._apply_mouse_btn.set_sensitive(True)
-                self._apply_mouse_btn.set_label("Aplicar al Ratón")
+                self._apply_mouse_btn.set_label(_("Aplicar al Ratón"))
                 self._show_toast(msg)
                 return False
 
@@ -1296,17 +1362,157 @@ class MainWindow(Adw.ApplicationWindow):
                     if isinstance(bat, int):
                         bat_text = f" (🔋 {bat}%)"
 
-                self._mouse_status_label.set_text(f"● {variant.short_name} Conectado{bat_text}")
+                self._mouse_status_label.set_text(f"● {variant.short_name} {_('Conectado')}{bat_text}")
                 self._mouse_status_label.remove_css_class("mouse-status-disconnected")
                 self._mouse_status_label.add_css_class("mouse-status-connected")
                 self._adapt_ui_to_variant(variant)
             else:
-                self._mouse_status_label.set_text("○ Ratón Desconectado")
+                self._mouse_status_label.set_text(_("○ Ratón Desconectado"))
                 self._mouse_status_label.remove_css_class("mouse-status-connected")
                 self._mouse_status_label.add_css_class("mouse-status-disconnected")
         except Exception:
-            self._mouse_status_label.set_text("○ ratbagd no disponible")
+            self._mouse_status_label.set_text(_("○ ratbagd no disponible"))
             self._mouse_status_label.add_css_class("mouse-status-disconnected")
+
+
+    def _on_change_language(self, lang_code: str) -> None:
+        if hasattr(self, "_lang_popover") and self._lang_popover:
+            self._lang_popover.popdown()
+        if get_language() == lang_code:
+            return
+        set_language(lang_code, persist=True)
+        if hasattr(self, "_selected_app") and self._selected_app:
+            self._load_applications(select_app_id=self._selected_app.application_id)
+        else:
+            self._load_applications(select_app_id="desktop:general")
+        self._update_ui_texts()
+        self._show_toast(_("Idioma cambiado exitosamente."))
+
+    def _update_ui_texts(self) -> None:
+        # Títulos de ventana y cabecera
+        if hasattr(self, "_window_title"):
+            self._window_title.set_title(_("G502 Profile Manager"))
+            if not self._selected_app:
+                self._window_title.set_subtitle(_("Selecciona una aplicación"))
+
+        if hasattr(self, "_auto_box"):
+            self._auto_box.set_tooltip_text(_("Conmutación automática de perfiles según el juego o aplicación activa"))
+        if hasattr(self, "_auto_label"):
+            self._auto_label.set_label(_("Auto-Perfil"))
+
+        if hasattr(self, "_apply_mouse_btn"):
+            self._apply_mouse_btn.set_label(_("Aplicar al Ratón"))
+            self._apply_mouse_btn.set_tooltip_text(_("Escribir perfil directamente al G502 HERO"))
+        if hasattr(self, "_save_btn"):
+            self._save_btn.set_label(_("Guardar"))
+            self._save_btn.set_tooltip_text(_("Guardar cambios del perfil"))
+
+        if hasattr(self, "_profile_dropdown"):
+            self._profile_dropdown.set_tooltip_text(_("Seleccionar perfil para este juego"))
+        if hasattr(self, "_new_profile_btn"):
+            self._new_profile_btn.set_tooltip_text(_("Crear nuevo perfil"))
+        if hasattr(self, "_profile_menu_btn"):
+            self._profile_menu_btn.set_tooltip_text(_("Opciones del perfil"))
+
+        if hasattr(self, "_set_def_btn"):
+            self._set_def_btn.set_label(_("⭐ Marcar como Predeterminado"))
+        if hasattr(self, "_dup_btn"):
+            self._dup_btn.set_label(_("📋 Duplicar Perfil"))
+        if hasattr(self, "_del_btn"):
+            self._del_btn.set_label(_("🗑️ Eliminar Perfil"))
+
+        if hasattr(self, "_lang_menu_btn"):
+            self._lang_menu_btn.set_tooltip_text(_("Cambiar idioma"))
+
+        if hasattr(self, "_community_banner"):
+            self._community_banner.set_title(_("Soporte experimental: Ayúdanos a calibrar este modelo reportando cualquier anomalía."))
+            self._community_banner.set_button_label(_("Dar Feedback / Reportar"))
+
+        # Pestañas del ViewStack
+        if hasattr(self, "_buttons_stack_page"):
+            self._buttons_stack_page.set_title(_("Botones"))
+        if hasattr(self, "_perf_stack_page"):
+            self._perf_stack_page.set_title(_("Rendimiento (DPI)"))
+        if hasattr(self, "_lighting_stack_page"):
+            self._lighting_stack_page.set_title(_("Iluminación LED"))
+
+        # Sidebar y búsqueda
+        if hasattr(self, "_sidebar_title"):
+            self._sidebar_title.set_title(_("Mis Juegos y Apps"))
+            self._sidebar_title.set_subtitle(_("Instalados en el sistema"))
+        if hasattr(self, "_sidebar_refresh_btn"):
+            self._sidebar_refresh_btn.set_tooltip_text(_("Refrescar biblioteca"))
+        if hasattr(self, "_app_search_entry"):
+            self._app_search_entry.set_placeholder_text(_("Buscar juego o app..."))
+
+        # Diagrama y textos
+        if hasattr(self, "_diagram_title"):
+            self._diagram_title.set_label(_("Esquema Interactivo G502 HERO"))
+        if hasattr(self, "_diagram_subtitle"):
+            self._diagram_subtitle.set_label(_("Haz clic en cualquier botón del ratón para asignar una acción"))
+
+        # Actualizar grupos y filas de la columna de botones
+        if hasattr(self, "_button_pref_groups"):
+            for grp, gtitle in self._button_pref_groups:
+                grp.set_title(_(gtitle))
+        if hasattr(self, "_button_row_widgets"):
+            for btn_id, (row, chip, assign_btn, btn_name) in self._button_row_widgets.items():
+                row.set_title(_(btn_name))
+                assign_btn.set_label(_("Cambiar"))
+        self._refresh_button_assignments()
+
+        # Actualizar vista de DPI
+        if hasattr(self, "_dpi_group"):
+            self._dpi_group.set_title(_("Sensibilidad del Sensor HERO 25K"))
+            self._dpi_group.set_description(_("Ajusta los puntos por pulgada (DPI) para una puntería precisa"))
+        if hasattr(self, "_dpi_row"):
+            self._dpi_row.set_title(_("Sensibilidad Principal"))
+        if hasattr(self, "_shift_group"):
+            self._shift_group.set_title(_("Sensibilidad del Botón Sniper (DPI Shift)"))
+            self._shift_group.set_description(_("Sensibilidad temporal activada al mantener presionado el botón pulgar"))
+        if hasattr(self, "_shift_row"):
+            self._shift_row.set_title(_("DPI de Francotirador"))
+
+        # Actualizar vista de Iluminación LED
+        if hasattr(self, "_led_group"):
+            self._led_group.set_title(_("Iluminación LIGHTSYNC RGB"))
+            self._led_group.set_description(_("Personaliza el modo, color y efectos del logotipo G e indicador DPI"))
+        if hasattr(self, "_led_mode_row"):
+            self._led_mode_row.set_title(_("Efecto de Iluminación"))
+            curr_sel = self._led_mode_row.get_selected()
+            self._updating_lighting_ui = True
+            try:
+                self._led_mode_row.set_model(Gtk.StringList.new([_(name) for _mid, name in LED_MODE_OPTIONS]))
+                self._led_mode_row.set_selected(curr_sel)
+            finally:
+                self._updating_lighting_ui = False
+        if hasattr(self, "_color_row"):
+            self._color_row.set_title(_("Color de Iluminación"))
+            self._color_row.set_subtitle(_("Haz clic en la muestra para abrir la paleta o introduce el código hexadecimal"))
+        if hasattr(self, "_duration_row"):
+            self._duration_row.set_title(_("Velocidad del Efecto"))
+            self._duration_row.set_subtitle(_("Duración de cada pulsación o ciclo de color"))
+
+        # Actualizar paleta calibrada y botones de velocidad
+        if hasattr(self, "_palette_label"):
+            self._palette_label.set_label(_("Colores Calibrados G502:"))
+        if hasattr(self, "_color_dialog_btn"):
+            self._color_dialog_btn.set_tooltip_text(_("Selector de color interactivo"))
+        if hasattr(self, "_duration_preset_buttons"):
+            for d_btn, label_text in self._duration_preset_buttons:
+                d_btn.set_label(_(label_text))
+        if hasattr(self, "_current_variant") and self._current_variant:
+            self._adapt_ui_to_variant(self._current_variant)
+
+        # Redibujar diagrama vectorial
+        if hasattr(self, "_mouse_diagram"):
+            self._mouse_diagram.queue_draw()
+
+        # Refrescar sidebar (para insignias Configured / Configurado)
+        self._load_applications()
+
+        # Actualizar indicador de hardware en la cabecera
+        self._update_mouse_hardware_status()
 
     def _on_app_search_changed(self, entry: Gtk.SearchEntry):
         query = entry.get_text().strip().casefold()
@@ -1393,7 +1599,7 @@ class MainWindow(Adw.ApplicationWindow):
 
         self._auto_thread = threading.Thread(target=run_worker, daemon=True)
         self._auto_thread.start()
-        self._show_toast("⚡ Auto-detección activada: supervisando procesos...")
+        self._show_toast(_("⚡ Auto-detección activada: supervisando procesos..."))
 
     def _stop_automation(self):
         self._auto_box.remove_css_class("auto-switch-active")
@@ -1401,7 +1607,7 @@ class MainWindow(Adw.ApplicationWindow):
             self._automation_engine.stop()
         self._auto_thread = None
         self._on_auto_desktop_restored()
-        self._show_toast("Auto-detección desactivada: modo escritorio restaurado.")
+        self._show_toast(_("Auto-detección desactivada: modo escritorio restaurado."))
 
     def _on_auto_profile_applied(self, app_name: str, profile: Profile):
         self.select_application_by_id(profile.application_id, profile.id)
@@ -1431,7 +1637,7 @@ class MainWindow(Adw.ApplicationWindow):
         if not hasattr(self, "_tray") or self._tray is None:
             return
         prof_name = self._current_profile.name if self._current_profile else "Escritorio"
-        app_name = self._selected_app.name if self._selected_app else "Sistema"
+        app_name = _(self._selected_app.name) if self._selected_app and self._selected_app.application_id == "desktop:general" else (self._selected_app.name if self._selected_app else _("Sistema"))
         dpi = self._current_profile.dpi.dpi if self._current_profile else 1200
         auto_active = self._auto_switch.get_active() if hasattr(self, "_auto_switch") else False
         battery_level = None

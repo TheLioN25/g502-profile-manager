@@ -339,6 +339,21 @@ La solución aplica rigurosamente la regla de dependencia de Clean Architecture:
 
 ---
 
+### ADR-008: Internacionalización Bilingüe (Español/Inglés) con Persistencia Desacoplada
+
+* **Estado:** Aceptado
+* **Contexto:**  
+  Para maximizar el alcance de la aplicación dentro de la comunidad internacional de Linux y en foros como Reddit (r/G502MasterRace), era indispensable contar con soporte en idioma inglés conservando el español nativo. Se requería un mecanismo que permitiese alternar manualmente de idioma desde la GUI o CLI y que persistiera la preferencia sin modificar el esquema de `~/.config/g502-profiles.json`.
+* **Decisión:**  
+  1. **Módulo Central `src/i18n.py`:** Implementación compatible con la convención estándar `_("texto")` de GNU gettext, respaldada por un catálogo bilingüe y persistencia atómica en `~/.config/g502-preferences.json`.
+  2. **Selector en la GUI:** Se incorporó un botón de menú en la cabecera (`HeaderBar`) con el icono `preferences-desktop-locale-symbolic` para alternar entre Español (🇪🇸) e Inglés (🇺🇸) en caliente sin reiniciar la aplicación.
+  3. **Cobertura Completa:** La internacionalización abarca la ventana principal, diálogos modales, banner de feedback, diagramas vectoriales Cairo, indicador de bandeja D-Bus (StatusNotifierItem) y comandos de terminal CLI (`src/cli.py`), con opción `--lang` para forzar idioma por sesión.
+* **Consecuencias:**  
+  - *Positivas:* Accesibilidad internacional inmediata para la comunidad angloparlante; desacoplamiento total entre datos de hardware/perfiles y preferencias de usuario; cero dependencias binarias externas en tiempo de ejecución.
+  - *Negativas:* Requiere mantener sincronizado el catálogo `TRANSLATIONS_EN` al añadir nuevas cadenas de texto en futuras funcionalidades.
+
+---
+
 ## 6. Estrategia de Calidad, Pruebas y CI/CD
 
 La robustez del proyecto se valida mediante una estrategia de pruebas exhaustiva que permite verificar el 100% de los casos de uso sin requerir hardware físico conectado:
@@ -351,7 +366,7 @@ La robustez del proyecto se valida mediante una estrategia de pruebas exhaustiva
        +---------------------------------------------+
                              |
        +---------------------------------------------+
-       |             139 Pruebas Unitarias           |
+       |             150 Pruebas Unitarias           |
        |  - Dominio puro (invariantes, validaciones) |
        |  - Repositorio atómico y persistencia       |
        |  - Aislamiento de hardware (Mocks ratbag)   |

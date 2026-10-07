@@ -13,6 +13,7 @@ gi.require_version("Adw", "1")
 from gi.repository import Adw, Gtk
 
 from domain import Action
+from i18n import _
 
 
 class ActionPickerDialog(Adw.Window):
@@ -33,7 +34,7 @@ class ActionPickerDialog(Adw.Window):
         on_action_selected: Callable[[Action | None], None],
     ):
         super().__init__(
-            title=f"Asignar {button_name}",
+            title=f"{_('Asignar')} {_('button_name') if button_name in () else _(button_name)}",
             transient_for=parent_window,
             modal=True,
             default_width=460,
@@ -53,13 +54,13 @@ class ActionPickerDialog(Adw.Window):
         # HeaderBar
         header = Adw.HeaderBar()
         title_widget = Adw.WindowTitle(
-            title=button_name,
-            subtitle=f"Catálogo de {app_name}",
+            title=_(button_name),
+            subtitle=f"{_('Catálogo de')} {app_name}",
         )
         header.set_title_widget(title_widget)
 
         # Botón Desasignar en la cabecera
-        clear_btn = Gtk.Button(label="Quitar Asignación")
+        clear_btn = Gtk.Button(label=_("Quitar Asignación"))
         clear_btn.add_css_class("destructive-action")
         clear_btn.connect("clicked", self._on_clear_clicked)
         header.pack_start(clear_btn)
@@ -73,7 +74,7 @@ class ActionPickerDialog(Adw.Window):
         search_box.set_margin_top(12)
         search_box.set_margin_bottom(8)
 
-        self._search_entry = Gtk.SearchEntry(placeholder_text="Buscar acción o habilidad...")
+        self._search_entry = Gtk.SearchEntry(placeholder_text=_("Buscar acción o habilidad..."))
         self._search_entry.set_hexpand(True)
         self._search_entry.connect("search-changed", self._on_search_changed)
         search_box.append(self._search_entry)
@@ -94,15 +95,15 @@ class ActionPickerDialog(Adw.Window):
 
         # Grupo inferior: Asignación personalizada
         custom_group = Adw.PreferencesGroup(
-            title="Asignación Personalizada",
-            description="Asigna directamente cualquier tecla del teclado",
+            title=_("Asignación Personalizada"),
+            description=_("Asigna directamente cualquier tecla del teclado"),
         )
-        custom_row = Adw.ActionRow(title="Tecla o atajo")
-        self._custom_key_entry = Gtk.Entry(placeholder_text="ej: e, 1, space, leftctrl")
+        custom_row = Adw.ActionRow(title=_("Tecla o atajo"))
+        self._custom_key_entry = Gtk.Entry(placeholder_text=_("ej: e, 1, space, leftctrl"))
         self._custom_key_entry.set_valign(Gtk.Align.CENTER)
         self._custom_key_entry.connect("activate", self._on_custom_key_applied)
 
-        apply_custom_btn = Gtk.Button(label="Asignar")
+        apply_custom_btn = Gtk.Button(label=_("Asignar"))
         apply_custom_btn.set_valign(Gtk.Align.CENTER)
         apply_custom_btn.add_css_class("suggested-action")
         apply_custom_btn.connect("clicked", self._on_custom_key_applied)
@@ -133,13 +134,14 @@ class ActionPickerDialog(Adw.Window):
                 continue
 
             icon = icon_map.get(cat_name, "📁")
-            group = Adw.PreferencesGroup(title=f"{icon} {cat_name}")
+            group = Adw.PreferencesGroup(title=f"{icon} {_(cat_name)}")
             self._pref_page.add(group)
 
             for action in actions:
+                sub_text = _(action.description) if action.description else f"{_('Comando:')} {action.binding_type} [{action.binding_value}]"
                 row = Adw.ActionRow(
-                    title=action.name,
-                    subtitle=action.description or f"Comando: {action.binding_type} [{action.binding_value}]",
+                    title=_(action.name),
+                    subtitle=sub_text,
                 )
                 row.set_activatable(True)
 
@@ -150,7 +152,7 @@ class ActionPickerDialog(Adw.Window):
                 row.add_suffix(badge)
 
                 # Botón de asignación directa
-                select_btn = Gtk.Button(label="Asignar")
+                select_btn = Gtk.Button(label=_("Asignar"))
                 select_btn.set_valign(Gtk.Align.CENTER)
                 select_btn.add_css_class("suggested-action")
                 select_btn.connect("clicked", self._make_select_handler(action))
@@ -180,9 +182,9 @@ class ActionPickerDialog(Adw.Window):
 
         action = Action(
             action_id=f"custom_{text.casefold()}",
-            name=f"Tecla {text.upper()}",
+            name=f"{_('Tecla')} {text.upper()}",
             application_id=self._app_id,
-            description="Tecla asignada manualmente",
+            description=_("Tecla asignada manualmente"),
             binding_type="key",
             binding_value=text,
             category="Personalizado",
@@ -198,8 +200,10 @@ class ActionPickerDialog(Adw.Window):
             else:
                 matches = (
                     query in action.name.casefold()
+                    or query in _(action.name).casefold()
                     or query in action.binding_value.casefold()
                     or query in (action.description or "").casefold()
+                    or query in _(action.description or "").casefold()
                 )
                 row.set_visible(matches)
 
@@ -216,7 +220,7 @@ class NewProfileDialog(Adw.Window):
         on_profile_created: Callable[[str], None],
     ):
         super().__init__(
-            title="Nuevo Perfil",
+            title=_("Nuevo Perfil"),
             transient_for=parent_window,
             modal=True,
             default_width=380,
@@ -228,14 +232,14 @@ class NewProfileDialog(Adw.Window):
         self.set_content(main_box)
 
         header = Adw.HeaderBar()
-        title_widget = Adw.WindowTitle(title="Crear Nuevo Perfil", subtitle=app_name)
+        title_widget = Adw.WindowTitle(title=_("Crear Nuevo Perfil"), subtitle=app_name)
         header.set_title_widget(title_widget)
 
-        cancel_btn = Gtk.Button(label="Cancelar")
+        cancel_btn = Gtk.Button(label=_("Cancelar"))
         cancel_btn.connect("clicked", lambda _: self.close())
         header.pack_start(cancel_btn)
 
-        create_btn = Gtk.Button(label="Crear")
+        create_btn = Gtk.Button(label=_("Crear"))
         create_btn.add_css_class("suggested-action")
         create_btn.connect("clicked", self._on_create_clicked)
         header.pack_end(create_btn)
@@ -245,13 +249,13 @@ class NewProfileDialog(Adw.Window):
         # Formulario
         pref_page = Adw.PreferencesPage()
         pref_group = Adw.PreferencesGroup(
-            title="Detalles del Perfil",
-            description="Ingresa un nombre descriptivo para esta configuración.",
+            title=_("Detalles del Perfil"),
+            description=_("Ingresa un nombre descriptivo para esta configuración."),
         )
         pref_page.add(pref_group)
 
-        self._entry_row = Adw.EntryRow(title="Nombre del Perfil")
-        self._entry_row.set_text(f"{app_name} Alternativo")
+        self._entry_row = Adw.EntryRow(title=_("Nombre del Perfil"))
+        self._entry_row.set_text(f"{app_name} {_('Alternativo')}")
         self._entry_row.connect("entry-activated", lambda _: self._on_create_clicked(None))
         pref_group.add(self._entry_row)
 

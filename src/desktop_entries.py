@@ -56,7 +56,7 @@ def extract_exec_name(exec_value):
     return Path(tokens[0]).name
 
 
-def parse_desktop_entry(desktop_file):
+def parse_desktop_entry(desktop_file, lang: str | None = None):
     """
     Lee un archivo .desktop y devuelve un DesktopEntry.
 
@@ -85,15 +85,43 @@ def parse_desktop_entry(desktop_file):
     if entry.getboolean("NoDisplay", fallback=False):
         return None
 
-    name = entry.get("Name", "").strip()
     exec_value = entry.get("Exec", "").strip()
-
-    if not name or not exec_value:
+    if not exec_value:
         return None
 
     executable = extract_exec_name(exec_value)
-
     if not executable:
+        return None
+
+    # Resolución de nombre localizado según idioma (estándar FreeDesktop XDG)
+    target_lang = lang
+    if target_lang is None:
+        try:
+            from i18n import get_language
+            target_lang = get_language()
+        except Exception:
+            import os
+            target_lang = "es" if os.environ.get("LANG", "").lower().startswith("es") else "en"
+
+    name = None
+    if target_lang == "es":
+        # Priorizar variantes en español: Name[es_XX], Name[es]
+        for key in entry.keys():
+            if key.lower().startswith("name[es"):
+                name = entry[key].strip()
+                break
+    elif target_lang == "en":
+        # Priorizar variantes en inglés: Name[en_XX], Name[en]
+        for key in entry.keys():
+            if key.lower().startswith("name[en"):
+                name = entry[key].strip()
+                break
+
+    # Fallback al Name estándar (por especificación XDG es siempre inglés/neutral)
+    if not name:
+        name = entry.get("Name", "").strip()
+
+    if not name:
         return None
 
     return DesktopEntry(

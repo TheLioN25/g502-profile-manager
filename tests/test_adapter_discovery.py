@@ -128,5 +128,28 @@ class TestApplicationDiscoveryAdapter(unittest.TestCase):
         self.assertIsNone(extract_steam_app_id(proc_other))
 
 
+    def test_parse_desktop_entry_localization(self):
+        from desktop_entries import parse_desktop_entry
+
+        desktop_file = Path(self.temp_dir.name) / "test_app.desktop"
+        desktop_file.write_text(
+            "[Desktop Entry]\n"
+            "Type=Application\n"
+            "Name=System Settings\n"
+            "Name[es]=Preferencias del sistema\n"
+            "Exec=systemsettings\n"
+        )
+
+        # En español
+        entry_es = parse_desktop_entry(desktop_file, lang="es")
+        self.assertIsNotNone(entry_es)
+        self.assertEqual(entry_es.name, "Preferencias del sistema")
+
+        # En inglés
+        entry_en = parse_desktop_entry(desktop_file, lang="en")
+        self.assertIsNotNone(entry_en)
+        self.assertEqual(entry_en.name, "System Settings")
+
+
 if __name__ == "__main__":
     unittest.main()
