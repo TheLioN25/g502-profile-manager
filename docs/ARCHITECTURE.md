@@ -366,7 +366,7 @@ La robustez del proyecto se valida mediante una estrategia de pruebas exhaustiva
        +---------------------------------------------+
                              |
        +---------------------------------------------+
-       |             150 Pruebas Unitarias           |
+       |             155 Pruebas Unitarias           |
        |  - Dominio puro (invariantes, validaciones) |
        |  - Repositorio atómico y persistencia       |
        |  - Aislamiento de hardware (Mocks ratbag)   |

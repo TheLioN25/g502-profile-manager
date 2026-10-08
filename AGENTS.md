@@ -12,7 +12,7 @@ Administrador avanzado de perfiles de hardware y motor de automatización reacti
   - `src/adapters/`: Comunicación con hardware (`RatbagDeviceAdapter`) y auto-descubrimiento (Steam VDF, Epic, Desktop XDG).
   - `src/gui/`: Ventana Libadwaita, diagrama Cairo (`mouse_diagram.py`) y bandeja D-Bus (`tray.py`).
   - `src/engine.py`: Motor de monitoreo en hilo secundario para conmutación reactiva de perfiles.
-  - `tests/`: Suite de 150 pruebas unitarias con mocks puros.
+  - `tests/`: Suite de 155 pruebas unitarias con mocks puros.
 
 ## Comandos
 - **Ejecutar pruebas unitarias:** `python3 -m unittest discover -s tests -v`
@@ -49,10 +49,10 @@ Administrador avanzado de perfiles de hardware y motor de automatización reacti
 - **Mantenimiento documental continuo:** Al completar cambios significativos o resolver bugs técnicos no evidentes, actualizar inmediatamente `MEMORY.md` (o `AGENTS.md` si cambiaron las reglas), manteniéndolo siempre conciso (máximo ~50 líneas) y sin redundancias.
 
 ## Límites
-- 🟢 **Siempre:** Ejecutar la suite completa de pruebas (`150/150 OK`) antes de dar por terminada una tarea.
+- 🟢 **Siempre:** Ejecutar la suite completa de pruebas (`155/155 OK`) antes de dar por terminada una tarea.
 - ⚠️ **Pregunta antes:** Modificar el esquema de almacenamiento JSON, tocar las definiciones D-Bus del Tray o alterar el comportamiento del interruptor de auto-detección.
 - 🚫 **Nunca:** Escribir directamente en `~/.config/g502-profiles.json` sin usar la capa de persistencia atómica; agregar dependencias pesadas no estándar sin autorización.
 
 ## Verificación
-- Todos los cambios deben validarse ejecutando la suite de 150 pruebas:
+- Todos los cambios deben validarse ejecutando la suite de 155 pruebas:
   `python3 -m unittest discover -s tests -v` (debe concluir con código de salida 0 y 0 errores).
