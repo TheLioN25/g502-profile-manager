@@ -14,7 +14,7 @@ Administrador avanzado de perfiles y automatización en tiempo real para el rat�
 Permite configurar visualmente los botones, macros, sensibilidades (DPI) y zonas de iluminación LED del ratón, además de conmutar automáticamente los perfiles de hardware según el videojuego o aplicación activa en el sistema mediante [`ratbagctl`](https://github.com/libratbag/libratbag) (`libratbag`).
 
 <p align="center">
-  <img src="docs/images/01_main_window.png" alt="Logitech G502 HERO Profile Manager - Interfaz GTK4" width="850" />
+  <img src="docs/images/01_main_window.png" alt="Logitech G502 Family Profile Manager - Interfaz GTK4" width="850" />
 </p>
 
 ---
