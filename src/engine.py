@@ -143,6 +143,15 @@ class AutomationEngine:
         for app_id in new_catalogs:
             self._log(f"[CATÁLOGO] ¡Nuevo juego detectado e instalado! Catálogo generado al vuelo para '{app_id}'.")
 
+    def _apply_profile_to_device(self, profile: Profile, diff_only: bool = True) -> bool:
+        """Aplica el perfil al hardware soportando compatibilidad hacia atrás con adaptadores y mocks."""
+        if not self._device_id:
+            return False
+        try:
+            return self._device_adapter.apply_profile(self._device_id, profile, diff_only=diff_only)
+        except TypeError:
+            return self._device_adapter.apply_profile(self._device_id, profile)
+
     def step(self) -> bool:
         """
         Ciclo de inspección y reacción:
@@ -215,7 +224,7 @@ class AutomationEngine:
                 self._log(f"\n[ACTIVO] Detectado: {detected_app_name} ({target_profile.application_id})")
                 self._log(f"         Aplicando perfil: '{target_profile.name}' | DPI: {target_profile.dpi.dpi} | LED: {target_profile.led_color or 'N/A'}")
 
-                success = self._device_adapter.apply_profile(self._device_id, target_profile)
+                success = self._apply_profile_to_device(target_profile, diff_only=True)
                 if success:
                     self._log("         Perfil aplicado al ratón con éxito.")
                     self._current_profile_id = target_profile.id
@@ -232,10 +241,11 @@ class AutomationEngine:
 
         return True
 
-    def stop(self) -> None:
-        """Detiene el bucle de monitoreo y restaura el perfil de escritorio."""
+    def stop(self, restore_desktop_profile: bool = True) -> None:
+        """Detiene el bucle de monitoreo y opcionalmente restaura el perfil de escritorio."""
         self._stop_event.set()
-        self.restore_desktop()
+        if restore_desktop_profile:
+            self.restore_desktop()
         self._log("Motor detenido limpiamente.")
 
     def run(self) -> None:
@@ -256,6 +266,7 @@ class AutomationEngine:
         except (ValueError, AttributeError):
             pass
 
+        stopped_by_sigterm = False
         try:
             while not self._stop_event.is_set():
                 try:
@@ -263,19 +274,22 @@ class AutomationEngine:
                 except Exception as ex:
                     self._log(f"Advertencia en ciclo de supervisión: {ex}")
                 if self._stop_event.wait(timeout=self._check_interval):
+                    stopped_by_sigterm = True
                     break
 
         except KeyboardInterrupt:
-            self._log("\nDeteniendo motor...")
+            self._log("\nDeteniendo motor por teclado...")
+            self.stop(restore_desktop_profile=True)
+            return
         finally:
-            self.stop()
+            self.stop(restore_desktop_profile=not stopped_by_sigterm)
 
     def restore_desktop(self) -> None:
         """Restaura el perfil de escritorio en el hardware del ratón."""
         if self._device_id:
             desktop_prof = self._profile_manager.get_active_profile_for_application("desktop:general")
             if desktop_prof is not None:
-                self._device_adapter.apply_profile(self._device_id, desktop_prof)
+                self._apply_profile_to_device(desktop_prof, diff_only=True)
                 self._log("       Perfil de escritorio ('desktop:general') restaurado.")
             else:
                 self._device_adapter.switch_profile_slot(self._device_id, self._desktop_profile_slot)

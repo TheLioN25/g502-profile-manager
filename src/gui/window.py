@@ -111,6 +111,7 @@ class MainWindow(Adw.ApplicationWindow):
         self._selected_app: Application | None = None
         self._current_profile: Profile | None = None
         self._current_app_profiles: list[Profile] = []
+        self._is_closing: bool = False
         self._updating_profile_dropdown: bool = False
         self._updating_lighting_ui: bool = False
         self._app_rows: list[tuple[Gtk.ListBoxRow, Application]] = []
@@ -171,7 +172,7 @@ class MainWindow(Adw.ApplicationWindow):
 
         self._sidebar_refresh_btn = Gtk.Button(icon_name="view-refresh-symbolic", tooltip_text=_("Refrescar biblioteca"))
         refresh_btn = self._sidebar_refresh_btn
-        refresh_btn.connect("clicked", lambda _: self._load_applications())
+        refresh_btn.connect("clicked", lambda _: self._load_applications(force_refresh=True))
         sidebar_header.pack_start(refresh_btn)
         box.append(sidebar_header)
 
@@ -752,7 +753,7 @@ class MainWindow(Adw.ApplicationWindow):
         row.set_child(hbox)
         return row
 
-    def _load_applications(self, select_app_id: str | None = None):
+    def _load_applications(self, select_app_id: str | None = None, force_refresh: bool = False):
         """Descubre juegos instalados y organiza las secciones de configuradas (arriba) y no configuradas (abajo)."""
         while child := self._configured_list_box.get_first_child():
             self._configured_list_box.remove(child)
@@ -763,7 +764,7 @@ class MainWindow(Adw.ApplicationWindow):
         self._configured_rows.clear()
         self._unconfigured_rows.clear()
 
-        apps = self._discovery_adapter.discover_all_applications()
+        apps = self._discovery_adapter.discover_all_applications(force_refresh=force_refresh)
         self._catalog_service.sync_with_installed_applications(apps)
 
         selected_row_to_activate = None
@@ -1571,10 +1572,10 @@ class MainWindow(Adw.ApplicationWindow):
         if self._is_systemd_service_active():
             self._systemd_was_active = True
             import subprocess
-            try:
-                subprocess.run(["systemctl", "--user", "stop", "g502-profile-manager.service"], check=False)
-            except Exception:
-                pass
+            threading.Thread(
+                target=lambda: subprocess.run(["systemctl", "--user", "stop", "g502-profile-manager.service"], check=False),
+                daemon=True,
+            ).start()
             self._auto_box.set_tooltip_text("Auto-detección activa con sincronización en tiempo real")
             self._auto_box.add_css_class("auto-switch-active")
             self._auto_switch.set_active(True)
@@ -1588,19 +1589,19 @@ class MainWindow(Adw.ApplicationWindow):
 
         if switch.get_active():
             if is_svc_installed and self._is_systemd_service_active():
-                try:
-                    subprocess.run(["systemctl", "--user", "stop", "g502-profile-manager.service"], check=False)
-                except Exception:
-                    pass
+                threading.Thread(
+                    target=lambda: subprocess.run(["systemctl", "--user", "stop", "g502-profile-manager.service"], check=False),
+                    daemon=True,
+                ).start()
             self._start_automation()
         else:
             self._systemd_was_active = False
             self._stop_automation()
             if is_svc_installed and self._is_systemd_service_active():
-                try:
-                    subprocess.run(["systemctl", "--user", "stop", "g502-profile-manager.service"], check=False)
-                except Exception:
-                    pass
+                threading.Thread(
+                    target=lambda: subprocess.run(["systemctl", "--user", "stop", "g502-profile-manager.service"], check=False),
+                    daemon=True,
+                ).start()
 
     def _start_automation(self):
         self._auto_box.add_css_class("auto-switch-active")
@@ -1630,10 +1631,12 @@ class MainWindow(Adw.ApplicationWindow):
     def _stop_automation(self):
         self._auto_box.remove_css_class("auto-switch-active")
         if self._automation_engine:
-            self._automation_engine.stop()
+            restore = not self._is_closing
+            self._automation_engine.stop(restore_desktop_profile=restore)
         self._auto_thread = None
-        self._on_auto_desktop_restored()
-        self._show_toast(_("Auto-detección desactivada: modo escritorio restaurado."))
+        if not self._is_closing:
+            self._on_auto_desktop_restored()
+            self._show_toast(_("Auto-detección desactivada: modo escritorio restaurado."))
 
     def _on_auto_profile_applied(self, app_name: str, profile: Profile):
         self.select_application_by_id(profile.application_id, profile.id)
@@ -1683,20 +1686,29 @@ class MainWindow(Adw.ApplicationWindow):
         )
 
     def _on_close_request(self, _window) -> bool:
+        self._is_closing = True
+        if hasattr(self, "_tray") and self._tray:
+            try:
+                self._tray.destroy()
+                self._tray = None
+            except Exception:
+                pass
+
         auto_was_active = hasattr(self, "_auto_switch") and self._auto_switch.get_active()
         if self._auto_thread is not None and hasattr(self, "_auto_switch"):
             self._auto_switch.set_active(False)
 
         if auto_was_active or getattr(self, "_systemd_was_active", False):
-            from pathlib import Path
-            import subprocess
-            svc_file = Path.home() / ".config/systemd/user/g502-profile-manager.service"
-            if svc_file.exists():
-                try:
-                    subprocess.run(["systemctl", "--user", "start", "g502-profile-manager.service"], check=False)
-                except Exception:
-                    pass
+            def restart_systemd():
+                from pathlib import Path
+                import subprocess
+                svc_file = Path.home() / ".config/systemd/user/g502-profile-manager.service"
+                if svc_file.exists():
+                    try:
+                        subprocess.run(["systemctl", "--user", "start", "g502-profile-manager.service"], check=False)
+                    except Exception:
+                        pass
 
-        if hasattr(self, "_tray") and self._tray:
-            self._tray.destroy()
+            threading.Thread(target=restart_systemd, daemon=True).start()
+
         return False

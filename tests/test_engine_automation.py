@@ -32,7 +32,7 @@ class DummyDeviceAdapter:
         self.switched_slots.append(slot)
         return True
 
-    def apply_profile(self, device: str, profile: Profile, slot: int | None = None) -> bool:
+    def apply_profile(self, device: str, profile: Profile, slot: int | None = None, **kwargs) -> bool:
         self.applied_profiles.append(profile)
         return True
 

@@ -42,6 +42,11 @@ class ApplicationDiscoveryAdapter:
     ):
         self._steam_file = Path(steam_libraryfolders_file).expanduser().resolve()
         self._desktop_dirs = [Path(d).expanduser().resolve() for d in desktop_directories]
+        self._cached_all: tuple[Application, ...] | None = None
+
+    def invalidate_cache(self) -> None:
+        """Invalida la caché en memoria de aplicaciones descubiertas."""
+        self._cached_all = None
 
     def discover_steam_applications(
         self,
@@ -114,11 +119,14 @@ class ApplicationDiscoveryAdapter:
 
         return sorted(apps_by_id.values(), key=lambda a: a.name.casefold())
 
-    def discover_all_applications(self) -> tuple[Application, ...]:
+    def discover_all_applications(self, force_refresh: bool = False) -> tuple[Application, ...]:
         """
         Devuelve el conjunto completo de aplicaciones descubiertas (Steam + Epic Games + Desktop),
         desduplicadas por application_id.
         """
+        if not force_refresh and self._cached_all is not None:
+            return self._cached_all
+
         steam_apps = self.discover_steam_applications()
         epic_apps = self.discover_epic_applications()
         desktop_apps = self.discover_desktop_applications()
@@ -146,7 +154,9 @@ class ApplicationDiscoveryAdapter:
             application_id="desktop:general",
             name="Escritorio / Sistema",
         )
-        return (desktop_general, *sorted_apps)
+        result = (desktop_general, *sorted_apps)
+        self._cached_all = result
+        return result
 
     def get_application_by_id(self, application_id: str) -> Application | None:
         """

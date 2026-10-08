@@ -450,5 +450,78 @@ number of leds: 2
         self.assertEqual(len(led_cmds), 0)
 
 
+
+    def test_apply_profile_diff_only(self):
+        executed_commands = []
+
+        def mock_runner(cmd: list[str]) -> subprocess.CompletedProcess:
+            executed_commands.append(cmd)
+            return subprocess.CompletedProcess(cmd, returncode=0, stdout="", stderr="")
+
+        adapter = RatbagDeviceAdapter(command_runner=mock_runner)
+
+        profile = Profile(
+            name="Differential Test",
+            application_id="steam:100",
+            dpi=DpiConfiguration(1200),
+            led_color="#FF0000",
+            led_mode="on",
+        )
+        btn_g5 = Button("G5", "G5")
+        action = Action(
+            action_id="act_1",
+            name="Accion 1",
+            application_id="steam:100",
+            binding_type="key",
+            binding_value="1",
+        )
+        profile.assign(btn_g5, action)
+
+        # 1. Primera ejecución con diff_only=True: como la caché está vacía, debe aplicar todo
+        success_first = adapter.apply_profile("dev_diff", profile, slot=0, diff_only=True)
+        self.assertTrue(success_first)
+        self.assertGreater(len(executed_commands), 5)
+
+        # 2. Segunda ejecución idéntica con diff_only=True: 0 comandos ejecutados (0ms)
+        executed_commands.clear()
+        success_second = adapter.apply_profile("dev_diff", profile, slot=0, diff_only=True)
+        self.assertTrue(success_second)
+        self.assertEqual(len(executed_commands), 0)
+
+        # 3. Tercera ejecución con un solo cambio (botón G4 asignado a "2")
+        btn_g4 = Button("G4", "G4")
+        action_g4 = Action(
+            action_id="act_2",
+            name="Accion 2",
+            application_id="steam:100",
+            binding_type="key",
+            binding_value="2",
+        )
+        profile.assign(btn_g4, action_g4)
+
+        executed_commands.clear()
+        success_third = adapter.apply_profile("dev_diff", profile, slot=0, diff_only=True)
+        self.assertTrue(success_third)
+
+        # Debe haber ejecutado ÚNICAMENTE el comando del botón G4 (índice 3),
+        # evitando el comando redundante de ranura activa porque la ranura 0 ya está activa en hardware
+        flattened = [" ".join(cmd) for cmd in executed_commands]
+        self.assertEqual(len(flattened), 1)
+        self.assertIn("ratbagctl dev_diff profile 0 button 3 action set macro KEY_2", flattened)
+
+        # 3b. Cambio de ranura física: si la ranura solicitada difiere, sí debe conmutarla
+        executed_commands.clear()
+        success_slot_change = adapter.apply_profile("dev_diff", profile, slot=1, diff_only=True)
+        self.assertTrue(success_slot_change)
+        flattened_slot = [" ".join(cmd) for cmd in executed_commands]
+        self.assertIn("ratbagctl dev_diff profile active set 1", flattened_slot)
+
+        # 4. Invalidación de caché: la siguiente llamada vuelve a ejecutar todos los comandos
+        adapter.invalidate_cache("dev_diff")
+        executed_commands.clear()
+        success_after_inv = adapter.apply_profile("dev_diff", profile, slot=0, diff_only=True)
+        self.assertTrue(success_after_after := success_after_inv)
+        self.assertGreater(len(executed_commands), 5)
+
 if __name__ == "__main__":
     unittest.main()

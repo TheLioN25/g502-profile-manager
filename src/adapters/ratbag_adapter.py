@@ -7,10 +7,14 @@ reales de ratbagctl sobre el ratón Logitech G502 HERO.
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 import re
 import subprocess
 import time
 from typing import Callable
+
+DEFAULT_HARDWARE_STATE_FILE = Path.home() / ".config/g502-hardware-state.json" 
 
 from domain import (
     Action,
@@ -215,9 +219,88 @@ class RatbagDeviceAdapter:
     def __init__(
         self,
         command_runner: Callable[[list[str]], subprocess.CompletedProcess] = default_command_runner,
+        state_cache_file: Path | str | None = DEFAULT_HARDWARE_STATE_FILE,
     ):
         self._runner = command_runner
         self._battery_cache: dict[str, tuple[float, int | None]] = {}
+        self._device_state_cache: dict[str, dict] = {}
+        self._variant_cache: dict[str, DeviceVariant] = {}
+        # En tests o runners personalizados, desactivar persistencia automática en disco a menos que se indique
+        if command_runner is not default_command_runner and state_cache_file == DEFAULT_HARDWARE_STATE_FILE:
+            self._state_cache_file = None
+        else:
+            self._state_cache_file = Path(state_cache_file) if state_cache_file else None
+
+        if self._state_cache_file:
+            self._load_state_cache()
+
+    def _load_state_cache(self) -> None:
+        if not self._state_cache_file or not self._state_cache_file.exists():
+            return
+        try:
+            with open(self._state_cache_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            loaded: dict[str, dict] = {}
+            for dev, dev_data in data.get("devices", {}).items():
+                loaded[dev] = {}
+                if "active_slot" in dev_data:
+                    loaded[dev]["active_slot"] = dev_data["active_slot"]
+                for s_key, s_val in dev_data.items():
+                    if s_key == "active_slot":
+                        continue
+                    try:
+                        slot_idx = int(s_key)
+                    except ValueError:
+                        continue
+                    btn_dict = {
+                        int(b_k): tuple(b_v)
+                        for b_k, b_v in s_val.get("buttons", {}).items()
+                        if str(b_k).isdigit()
+                    }
+                    loaded[dev][slot_idx] = {
+                        "dpi": s_val.get("dpi"),
+                        "led_cmds": tuple(tuple(c) for c in s_val.get("led_cmds", [])),
+                        "buttons": btn_dict,
+                    }
+            self._device_state_cache = loaded
+        except Exception:
+            pass
+
+    def _save_state_cache(self) -> None:
+        if not self._state_cache_file:
+            return
+        try:
+            data = {"devices": {}}
+            for dev, dev_data in self._device_state_cache.items():
+                data["devices"][dev] = {}
+                if "active_slot" in dev_data:
+                    data["devices"][dev]["active_slot"] = dev_data["active_slot"]
+                for k, v in dev_data.items():
+                    if isinstance(k, int) and isinstance(v, dict):
+                        data["devices"][dev][str(k)] = {
+                            "dpi": v.get("dpi"),
+                            "led_cmds": [list(c) for c in v.get("led_cmds", ())],
+                            "buttons": {str(b_k): list(b_v) for b_k, b_v in v.get("buttons", {}).items()},
+                        }
+            self._state_cache_file.parent.mkdir(parents=True, exist_ok=True)
+            tmp = self._state_cache_file.with_suffix(".tmp")
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+            tmp.replace(self._state_cache_file)
+        except Exception:
+            pass
+
+    def invalidate_cache(self, device: str | None = None) -> None:
+        """Invalida la caché del estado físico y batería del ratón."""
+        if device:
+            self._device_state_cache.pop(device, None)
+            self._battery_cache.pop(device, None)
+            self._variant_cache.pop(device, None)
+        else:
+            self._device_state_cache.clear()
+            self._battery_cache.clear()
+            self._variant_cache.clear()
+        self._save_state_cache()
 
     def find_device(
         self, target_name: str | None = None
@@ -251,12 +334,15 @@ class RatbagDeviceAdapter:
     def detect_device_variant(self, device: str) -> DeviceVariant:
         """
         Determina la variante exacta de la familia Logitech G502 conectada.
-        Aplica una heurística en dos pasos:
+        Aplica una heurística en dos pasos y almacena el resultado en caché:
         1. Comprueba la denominación del modelo en 'ratbagctl list'.
         2. Si el nombre es genérico o ambiguo, consulta 'ratbagctl <device> info'
            (número de LEDs, sensor máximo) para desambiguar entre Proteus Core y Spectrum.
         """
         device_clean = device.strip()
+        if device_clean in self._variant_cache:
+            return self._variant_cache[device_clean]
+
         matched_name = ""
 
         # 1. Obtener el nombre descriptivo mediante 'ratbagctl list'
@@ -271,45 +357,48 @@ class RatbagDeviceAdapter:
 
         matched_name_lower = matched_name.casefold()
 
+        variant = DEFAULT_VARIANT
         # Detección directa por nombres inequívocos
         if "lightspeed" in matched_name_lower:
-            return G502_VARIANTS["g502_lightspeed"]
-        if "g502 x" in matched_name_lower or "g502x" in matched_name_lower:
+            variant = G502_VARIANTS["g502_lightspeed"]
+        elif "g502 x" in matched_name_lower or "g502x" in matched_name_lower:
             if "wireless" in matched_name_lower or "plus" in matched_name_lower:
-                return G502_VARIANTS["g502_x_wireless"]
-            # Verificar si info reporta 8 LEDs para el modelo X Plus
+                variant = G502_VARIANTS["g502_x_wireless"]
+            else:
+                # Verificar si info reporta 8 LEDs para el modelo X Plus
+                info_res = self._runner(["ratbagctl", device_clean, "info"])
+                if info_res.returncode == 0 and info_res.stdout and "number of leds: 8" in info_res.stdout.casefold():
+                    variant = G502_VARIANTS["g502_x_wireless"]
+                else:
+                    variant = G502_VARIANTS["g502_x"]
+        elif "hero" in matched_name_lower:
+            variant = G502_VARIANTS["g502_hero"]
+        elif "proteus spectrum" in matched_name_lower or "spectrum" in matched_name_lower:
+            variant = G502_VARIANTS["g502_proteus_spectrum"]
+        elif "proteus core" in matched_name_lower or "core" in matched_name_lower:
+            variant = G502_VARIANTS["g502_proteus_core"]
+        else:
+            # 2. Paso de desambiguación si el nombre es genérico (ej. 'Logitech Gaming Mouse G502')
             info_res = self._runner(["ratbagctl", device_clean, "info"])
-            if info_res.returncode == 0 and info_res.stdout and "number of leds: 8" in info_res.stdout.casefold():
-                return G502_VARIANTS["g502_x_wireless"]
-            return G502_VARIANTS["g502_x"]
-        if "hero" in matched_name_lower:
-            return G502_VARIANTS["g502_hero"]
-        if "proteus spectrum" in matched_name_lower or "spectrum" in matched_name_lower:
-            return G502_VARIANTS["g502_proteus_spectrum"]
-        if "proteus core" in matched_name_lower or "core" in matched_name_lower:
-            return G502_VARIANTS["g502_proteus_core"]
+            if info_res.returncode == 0 and info_res.stdout:
+                stdout_lower = info_res.stdout.casefold()
+                # Si tiene 1 LED -> Proteus Core
+                if "number of leds: 1" in stdout_lower:
+                    variant = G502_VARIANTS["g502_proteus_core"]
+                # Si tiene 2 LEDs y sensor max 12000 -> Proteus Spectrum
+                elif "number of leds: 2" in stdout_lower and "12000" in stdout_lower:
+                    variant = G502_VARIANTS["g502_proteus_spectrum"]
+                elif "number of leds: 8" in stdout_lower:
+                    variant = G502_VARIANTS["g502_x_wireless"]
+                elif "number of leds: 0" in stdout_lower:
+                    variant = G502_VARIANTS["g502_x"]
+                elif "g502" in matched_name_lower:
+                    variant = DEFAULT_VARIANT
+            elif "g502" in matched_name_lower:
+                variant = DEFAULT_VARIANT
 
-        # 2. Paso de desambiguación si el nombre es genérico (ej. 'Logitech Gaming Mouse G502')
-        info_res = self._runner(["ratbagctl", device_clean, "info"])
-        if info_res.returncode == 0 and info_res.stdout:
-            stdout_lower = info_res.stdout.casefold()
-            # Si tiene 1 LED -> Proteus Core
-            if "number of leds: 1" in stdout_lower:
-                return G502_VARIANTS["g502_proteus_core"]
-            # Si tiene 2 LEDs y sensor max 12000 -> Proteus Spectrum
-            if "number of leds: 2" in stdout_lower:
-                if "12000" in stdout_lower:
-                    return G502_VARIANTS["g502_proteus_spectrum"]
-            if "number of leds: 8" in stdout_lower:
-                return G502_VARIANTS["g502_x_wireless"]
-            if "number of leds: 0" in stdout_lower:
-                return G502_VARIANTS["g502_x"]
-
-        # Si coincide con Proteus Spectrum o genérico G502
-        if "g502" in matched_name_lower:
-            return DEFAULT_VARIANT
-
-        return DEFAULT_VARIANT
+        self._variant_cache[device_clean] = variant
+        return variant
 
     def get_battery_level(self, device: str) -> int | None:
         """
@@ -573,6 +662,7 @@ class RatbagDeviceAdapter:
         profile: Profile,
         slot: int | None = None,
         variant: DeviceVariant | None = None,
+        diff_only: bool = False,
     ) -> bool:
         """
         Aplica integralmente un Profile de dominio al hardware:
@@ -580,7 +670,10 @@ class RatbagDeviceAdapter:
         - Ajusta la iluminación adaptada a las zonas y capacidades de la variante.
         - Asigna los botones físicos correspondientes y restaura los no asignados.
 
-        Ejecución Atómica:
+        Ejecución Atómica y Diferencial:
+        Si diff_only=True y existe estado previo en caché, únicamente transmite
+        al ratón los parámetros que difieren del perfil actual (delta), evitando
+        escrituras redundantes en la EEPROM y bloqueos del sensor óptico.
         Aplica los comandos preparatorios con '--nocommit' para evitar múltiples
         escrituras en la memoria Flash/EEPROM del ratón, ejecuta el último comando
         sin '--nocommit' para consolidar los cambios en una sola escritura instantánea,
@@ -588,13 +681,13 @@ class RatbagDeviceAdapter:
         """
         target_slot = slot if slot is not None else 0
         actual_variant = variant or self.detect_device_variant(device)
-        commands: list[list[str]] = []
 
         # 1. Comando DPI (clampeado al sensor máximo de la variante)
         effective_dpi = min(profile.dpi.dpi, actual_variant.capabilities.max_dpi)
-        commands.append(self.build_dpi_command(device, effective_dpi, slot=target_slot))
+        dpi_cmd = self.build_dpi_command(device, effective_dpi, slot=target_slot)
 
         # 2. Comandos LED adaptados a capacidades de la variante
+        led_commands: list[list[str]] = []
         if actual_variant.capabilities.has_lighting:
             led_mode = getattr(profile, "led_mode", "on")
             led_duration = getattr(profile, "led_duration", None)
@@ -603,7 +696,7 @@ class RatbagDeviceAdapter:
             # Proteus Core: monocromo azul fijo (sin RGB configurable)
             if not actual_variant.capabilities.has_rgb:
                 if led_mode in ("on", "off", "breathing"):
-                    commands.extend(
+                    led_commands.extend(
                         self.build_led_commands(
                             device,
                             hex_color=None,
@@ -614,7 +707,7 @@ class RatbagDeviceAdapter:
                         )
                     )
             elif led_mode == "off" or profile.led_color or led_mode == "cycle":
-                commands.extend(
+                led_commands.extend(
                     self.build_led_commands(
                         device,
                         hex_color=profile.led_color,
@@ -631,6 +724,8 @@ class RatbagDeviceAdapter:
             for assignment in profile.list_assignments()
         }
 
+        button_cmds_ordered: list[tuple[int, list[str]]] = []
+
         # Programar los botones configurados por el usuario
         for btn_id, action in assigned_button_ids.items():
             cmd = self.build_button_command(
@@ -640,10 +735,11 @@ class RatbagDeviceAdapter:
                 slot=target_slot,
             )
             if cmd:
-                commands.append(cmd)
+                btn_key = btn_id.strip().upper()
+                btn_idx = G502_BUTTON_INDEX_MAP.get(btn_key, -1)
+                button_cmds_ordered.append((btn_idx, cmd))
 
         # Restaurar a sus valores de fábrica los botones no asignados en este perfil
-        # para evitar contaminación de teclas residuales de perfiles de otros juegos
         for fallback_btn_id, (action_type, action_val) in G502_DEFAULT_BUTTON_FALLBACKS.items():
             is_assigned = fallback_btn_id in assigned_button_ids
             if fallback_btn_id == "SNIPER" and "G6" in assigned_button_ids:
@@ -657,9 +753,39 @@ class RatbagDeviceAdapter:
                 if target_slot is not None:
                     cmd.extend(["profile", str(target_slot)])
                 cmd.extend(["button", str(btn_index), "action", "set", action_type, action_val])
+                button_cmds_ordered.append((btn_index, cmd))
+
+        cached_slot_state = self._device_state_cache.get(device, {}).get(target_slot)
+        new_cached_state = {
+            "dpi": effective_dpi,
+            "led_cmds": tuple(tuple(c) for c in led_commands),
+            "buttons": {idx: tuple(cmd) for idx, cmd in button_cmds_ordered if idx >= 0},
+        }
+
+        commands: list[list[str]] = []
+        if diff_only and cached_slot_state is not None:
+            # Filtrado diferencial: solo lo que cambió respecto al hardware
+            if cached_slot_state.get("dpi") != effective_dpi:
+                commands.append(dpi_cmd)
+
+            if cached_slot_state.get("led_cmds") != new_cached_state["led_cmds"]:
+                commands.extend(led_commands)
+
+            cached_buttons = cached_slot_state.get("buttons", {})
+            for idx, cmd in button_cmds_ordered:
+                if cached_buttons.get(idx) != tuple(cmd):
+                    commands.append(cmd)
+        else:
+            commands.append(dpi_cmd)
+            commands.extend(led_commands)
+            for _, cmd in button_cmds_ordered:
                 commands.append(cmd)
 
         if not commands:
+            # Sin diferencias físicas: no interrumpir el polling del ratón ni escribir en USB
+            self._device_state_cache.setdefault(device, {})[target_slot] = new_cached_state
+            self._device_state_cache.setdefault(device, {})["active_slot"] = target_slot
+            self._save_state_cache()
             return True
 
         all_success = True
@@ -678,7 +804,25 @@ class RatbagDeviceAdapter:
                 all_success = False
 
         # 4. Asegurar que la ranura de hardware quede activa físicamente
-        if not self.switch_profile_slot(device, target_slot):
-            all_success = False
+        # Si diff_only=True y la ranura ya está activa en hardware según la caché,
+        # evitamos ejecutar 'profile active set' para ahorrar ~1.5s y evitar recargas en flash
+        cached_active_slot = self._device_state_cache.get(device, {}).get("active_slot")
+        needs_slot_switch = (not diff_only) or (cached_active_slot != target_slot)
+        if needs_slot_switch:
+            if not self.switch_profile_slot(device, target_slot):
+                all_success = False
+            else:
+                self._device_state_cache.setdefault(device, {})["active_slot"] = target_slot
+        else:
+            self._device_state_cache.setdefault(device, {})["active_slot"] = target_slot
+
+        if all_success:
+            self._device_state_cache.setdefault(device, {})[target_slot] = new_cached_state
+            self._save_state_cache()
+        else:
+            # Si falló la comunicación, invalidar para forzar escritura completa futura
+            if device in self._device_state_cache:
+                self._device_state_cache[device].pop(target_slot, None)
+            self._save_state_cache()
 
         return all_success

@@ -4,8 +4,12 @@ Memoria técnica del proyecto entre sesiones (~45 líneas). Estado y decisiones 
 
 ## Estado actual
 - **Versión 0.4.0: Soporte Multi-Variante Familia Logitech G502 e Internacionalización Bilingüe 100% completados.**
-- **Higiene arquitectónica 100% depurada:** Capa de adaptadores consolidada en 'adapters/' (Steam, Epic, .desktop, /proc), código muerto eliminado y raíz de 'src/' normalizada a Clean Architecture.
-- **154 pruebas unitarias automatizadas** pasando al 100% (`154/154 OK`) en local y GitHub Actions CI.
+- **Optimización de ciclo de vida y eliminación de congelamientos de hardware:**
+  - Escrituras diferenciales (`diff_only=True`) con persistencia compartida en disco (`~/.config/g502-hardware-state.json`): evita re-escrituras redundantes en EEPROM entre la GUI y el demonio systemd (< 1ms).
+  - Supresión de recargas innecesarias de Flash (ahorro de 1.55s por conmutación omitida si el slot activo no varía).
+  - Cierre instantáneo (< 5ms) en `MainWindow._on_close_request` suprimiendo reseteos espurios al ceder el control a systemd.
+  - Caché en memoria de aplicaciones descubiertas y variantes eliminando micro-bloqueos en el bucle principal de GTK.
+- **155 pruebas unitarias automatizadas** pasando al 100% (`155/155 OK`) en local.
 - **Variantes soportadas:** *G502 Proteus Core*, *G502 Proteus Spectrum*, *G502 HERO*, *G502 LIGHTSPEED*, *G502 X* y *G502 X PLUS / Wireless*.
 - **Características operativas:**
   - Reconocimiento de variantes en 2 pasos (`ratbagctl list` + desambiguación con `info` para LEDs/DPI).
@@ -26,5 +30,6 @@ Memoria técnica del proyecto entre sesiones (~45 líneas). Estado y decisiones 
 - **Persistencia atómica y DDD:** Perfiles universales agnósticos al modelo físico sin tocar esquema JSON existente.
 
 ## Próximos pasos y Hoja de Ruta Prioritaria
-- Optimización de ciclo de vida (prioridad inmediata): perfilar y reducir latencia en arranque (escaneo asíncrono/diferido de apps y ratbag) y agilizar finalización (teardown limpio de hilos/D-Bus sin bloqueos).
+- Recopilar feedback de usuarios sobre la fluidez del ciclo de vida y rendimiento en la versión actual.
+- Rediseño y pulido estético del esquema vectorial Cairo (`mouse_diagram.py`): darle mayor detalle, elegancia y acabado visual preservando la seguridad legal frente a derechos de autor.
 - Paquete AUR publicado en cuanto se reactiven registros en aur.archlinux.org (PKGBUILD ya probado).
