@@ -18,27 +18,21 @@ from typing import Callable
 logger_engine = logging.getLogger("g502.engine")
 
 from adapters import (
+    DESKTOP_DIRECTORIES,
     ApplicationDiscoveryAdapter,
     RatbagDeviceAdapter,
-    discover_active_epic_apps,
-    resolve_epic_applications,
-)
-from application_resolver import (
     combine_active_applications,
+    discover_active_epic_apps,
+    discover_active_steam_apps,
+    discover_desktop_entries,
+    discover_processes,
+    parse_desktop_entry,
     resolve_active_applications,
+    resolve_epic_applications,
     resolve_steam_applications,
 )
-from desktop_entries import (
-    DESKTOP_DIRECTORIES,
-    discover_desktop_entries,
-    parse_desktop_entry,
-)
-from domain import DeviceVariant, DEFAULT_VARIANT, Profile
-from process_discovery import discover_processes
+from domain import DEFAULT_VARIANT, DeviceVariant, Profile
 from services import ActionCatalogService, ProfileManager
-from steam_discovery import (
-    discover_active_steam_apps,
-)
 from storage import JsonProfileRepository
 
 

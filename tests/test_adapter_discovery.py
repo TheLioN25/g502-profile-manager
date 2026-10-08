@@ -10,12 +10,14 @@ src_path = Path(__file__).resolve().parent.parent / "src"
 if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
 
-from adapters import ApplicationDiscoveryAdapter
-from desktop_entries import DesktopEntry
+from adapters import (
+    ApplicationDiscoveryAdapter,
+    DesktopEntry,
+    ProcessInfo,
+    SteamAppManifest,
+    extract_steam_app_id,
+)
 import tempfile
-
-from process_discovery import ProcessInfo
-from steam_discovery import SteamAppManifest, extract_steam_app_id
 
 
 class TestApplicationDiscoveryAdapter(unittest.TestCase):
@@ -129,7 +131,7 @@ class TestApplicationDiscoveryAdapter(unittest.TestCase):
 
 
     def test_parse_desktop_entry_localization(self):
-        from desktop_entries import parse_desktop_entry
+        from adapters import parse_desktop_entry
 
         desktop_file = Path(self.temp_dir.name) / "test_app.desktop"
         desktop_file.write_text(

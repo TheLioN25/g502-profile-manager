@@ -17,8 +17,8 @@ from pathlib import Path
 import sqlite3
 from typing import Iterable, Sequence
 
-from application_resolver import ActiveApplication
-from process_discovery import ProcessInfo
+from .application_resolver import ActiveApplication
+from .process_discovery import ProcessInfo
 
 
 DEFAULT_HEROIC_INSTALLED_FILES = (

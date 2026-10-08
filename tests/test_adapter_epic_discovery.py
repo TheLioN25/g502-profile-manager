@@ -12,13 +12,13 @@ src_path = Path(__file__).resolve().parent.parent / "src"
 if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
 
-from epic_discovery import (
+from adapters import (
     EpicAppManifest,
+    ProcessInfo,
     discover_active_epic_apps,
     discover_heroic_installed_apps,
     resolve_epic_applications,
 )
-from process_discovery import ProcessInfo
 
 
 class TestEpicDiscovery(unittest.TestCase):

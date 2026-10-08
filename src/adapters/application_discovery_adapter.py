@@ -7,18 +7,19 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Callable, Iterable
 
-from desktop_entries import (
+from domain import Application
+
+from .desktop_entries import (
     DESKTOP_DIRECTORIES,
     DesktopEntry,
     discover_desktop_entries,
     parse_desktop_entry,
 )
-from domain import Application
-from epic_discovery import (
+from .epic_discovery import (
     EpicAppManifest,
     discover_all_installed_epic_apps,
 )
-from steam_discovery import (
+from .steam_discovery import (
     SteamAppManifest,
     discover_installed_steam_apps,
 )

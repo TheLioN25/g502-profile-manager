@@ -7,8 +7,8 @@ descubiertas mediante archivos .desktop.
 
 from dataclasses import dataclass
 
-from desktop_entries import DesktopEntry
-from process_discovery import ProcessInfo, extract_executable_name
+from .desktop_entries import DesktopEntry
+from .process_discovery import ProcessInfo, extract_executable_name
 
 
 @dataclass(frozen=True)
@@ -128,7 +128,7 @@ def resolve_steam_applications(steam_applications):
     Convierte aplicaciones Steam activas al modelo ActiveApplication.
     """
 
-    from steam_discovery import ActiveSteamApplication
+    from .steam_discovery import ActiveSteamApplication
 
     active_applications = []
 
