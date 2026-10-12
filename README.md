@@ -46,10 +46,10 @@ Visually configure buttons, macros, DPI sensitivity stages, and LIGHTSYNC RGB li
     * Native integration with KDE Plasma and GNOME taskbars over pure session D-Bus (zero legacy GTK 3 `AppIndicator3` conflicts).
     * Dynamic real-time tooltip showing active profile, detected application, DPI, battery level, and auto-profile status.
     * Interactive click to instantly raise and present the main window.
-  * **Interactive Vector Mouse Diagram** rendered in real time with Cairo Canvas: displays button bindings, tooltips, and visual synchronization with the configured LED color.
+  * **Remastered 3D Vector Diagram:** Real-time Cairo Canvas rendering featuring a modern ergonomic chassis, reactive lighting matching the active profile LED color, authentic button layout, and clean HUD callouts without crossing lines.
+  * **Optimized Hardware Performance:** Differential EEPROM writes for near-instant profile switching and ultra-fast application exit with zero desktop freezes.
   * Multi-profile management per application: create, duplicate, rename, delete, and set default profiles.
   * Action Picker with thematic categories (*Combat, Weapons, Skills, Movement, Productivity*) and quick custom key binding.
-  * Instant hardware application running in background thread with debouncing to prevent interface locks.
 
 * 🌐 **Bilingual Support & Internationalization (EN / ES):**
   * Full native interface, CLI, and system tray support for both **English** and **Spanish**.

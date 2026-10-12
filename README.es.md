@@ -47,10 +47,10 @@ Permite configurar visualmente los botones, macros, sensibilidades (DPI) y zonas
     * Tooltip dinámico en tiempo real que informa el perfil activo, aplicación detectada, sensibilidad en DPI, nivel de batería y estado de auto-detección.
     * Clic interactivo para restaurar y presentar la ventana principal al instante.
   * **Integración nativa con el sistema:** Acceso directo `.desktop` con icono SVG vectorial dedicado de alta resolución, integrado automáticamente con el menú de inicio de KDE Plasma (Kickoff), KRunner y la barra de tareas.
-  * **Plano interactivo vectorial del ratón** renderizado en tiempo real con Cairo Canvas: muestra asignaciones de botones, tooltips informativos y sincronización visual con el color LED configurado.
+  * **Esquema Vectorial 3D Remasterizado:** Renderizado en tiempo real con Cairo Canvas que recrea la silueta ergonómica del ratón, iluminación reactiva sincronizada con el color LED del perfil, disposición anatómica exacta de botones y líneas guía técnicas tipo HUD sin cruce de trazos.
+  * **Rendimiento de Hardware Optimizado:** Escrituras diferenciales en memoria interna para cambios de perfil ultrarrápidos y cierre instantáneo de la aplicación sin micro-bloqueos en el sistema.
   * Gestión multi-perfil por aplicación: crear, duplicar, renombrar, eliminar y marcar perfiles predeterminados.
   * Selector de acciones con categorías temáticas (*Combate, Armas, Profesión, Movimiento, Productividad*) y asignación rápida de teclas personalizadas.
-  * Aplicación instantánea al hardware con ejecución en segundo plano y debouncing para evitar bloqueos de la interfaz.
 
 * 🌐 **Soporte Bilingüe e Internacionalización (ES / EN):**
   * Interfaz gráfica, CLI y bandeja del sistema con soporte nativo para **Español** e **Inglés**.
