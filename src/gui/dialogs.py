@@ -34,7 +34,7 @@ class ActionPickerDialog(Adw.Window):
         on_action_selected: Callable[[Action | None], None],
     ):
         super().__init__(
-            title=f"{_('Asignar')} {_('button_name') if button_name in () else _(button_name)}",
+            title=f"{_('Asignar')} {_(button_name)}",
             transient_for=parent_window,
             modal=True,
             default_width=460,

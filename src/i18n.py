@@ -235,7 +235,21 @@ TRANSLATIONS_EN: dict[str, str] = {
     "Buscar acciones...": "Search actions...",
     "Sin categoría": "Uncategorized",
 
-    # Diagrama del Ratón (Nombres de Botones y Tooltips)
+    # Diagrama del Ratón (Nombres Canónicos de Botones)
+    "Clic Izquierdo": "Left Click",
+    "Clic Derecho": "Right Click",
+    "Clic Central": "Middle Click",
+    "Clic Rueda": "Middle Click (Wheel)",
+    "Rueda Izq.": "Wheel Left",
+    "Rueda Der.": "Wheel Right",
+    "Botón G5 (Delantero)": "Button G5 (Forward)",
+    "Botón G4 (Trasero)": "Button G4 (Back)",
+    "Botón SNIPER": "SNIPER Button",
+    "Botón G9 (Perfil)": "Button G9 (Profile)",
+    "Botón G7 (DPI Down)": "Button G7 (DPI Down)",
+    "Botón G8 (DPI Up)": "Button G8 (DPI Up)",
+
+    # Variantes históricas y alternativas de nombres de botones
     "Click Izquierdo": "Left Click",
     "Click Derecho": "Right Click",
     "Click Central": "Middle Click",
@@ -248,6 +262,15 @@ TRANSLATIONS_EN: dict[str, str] = {
     "Rueda Izquierda": "Wheel Left",
     "Rueda Derecha": "Wheel Right",
     "Sin asignar (predeterminado)": "Unassigned (default)",
+
+    # Presets de Acciones Comunes y Juegos
+    "Agacharse / Deslizarse": "Crouch / Slide",
+    "Ataque Cuerpo a Cuerpo": "Melee Attack",
+    "Contextual / Interactuar": "Contextual / Interact",
+    "Curación": "Healing",
+    "Esquivar (Dodge)": "Dodge",
+    "Habilidad 1 (Auto-attack)": "Ability 1 (Auto-attack)",
+    "Habilidad de Élite": "Elite Ability",
 
     # Notificaciones Toast
     "Perfil guardado exitosamente.": "Profile saved successfully.",
