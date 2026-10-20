@@ -24,6 +24,7 @@ Memoria técnica del proyecto entre sesiones (~45 líneas). Estado y decisiones 
   - Internacionalización bilingüe completa (ES/EN): `src/i18n.py`, selector en HeaderBar, tray D-Bus, catálogo, diagrama Cairo, iluminación LED (paleta, velocidades, descripciones), diálogos modales (feedback comunitario, nuevo perfil, asignación) y persistencia atómica en `~/.config/g502-preferences.json`.
   - Script de detección regional de idioma (`scripts/detect-locale.sh`) integrado en primera ejecución e instalador (`scripts/install-bin.sh`).
   - Documentación bilingüe oficial en GitHub (Fase 3.1): `README.md` (inglés primario), `README.es.md` (español) y selector de navegación lingüística recíproco.
+  - **Icono oficial remasterizado (`data/icons/`):** Set completo de iconos multi-resolución - 16x16 hasta 512x512 y SVG escalable - con diseño *squircle* moderno, halo de luz cian y la silueta del esquema 3D del G502.
 
 ## Decisiones arquitectónicas (y por qué)
 - **Detección regional automática (Fase 3.2):** Si no existe configuración previa, `I18nManager` analiza `$LC_ALL`, `$LC_MESSAGES`, `$LANG` para auto-seleccionar `es` o `en` (resto del mundo).
@@ -36,4 +37,4 @@ Memoria técnica del proyecto entre sesiones (~45 líneas). Estado y decisiones 
 
 ## Próximos pasos y Hoja de Ruta Prioritaria
 - Consolidación y publicación formal de la nueva versión con el esquema vectorial v2 y optimizaciones de ciclo de vida.
-- Paquete AUR oficial en cuanto se reactiven registros en aur.archlinux.org (PKGBUILD ya probado).
+- Paquete AUR oficial en cuanto se reactiven registros en aur.archlinux.org - PKGBUILD ya probado -.
