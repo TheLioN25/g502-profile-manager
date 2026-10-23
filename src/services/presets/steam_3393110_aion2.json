@@ -1,0 +1,662 @@
+{
+  "application_id": "steam:3393110",
+  "aliases": [
+    "steam:3393110",
+    "steam:aion",
+    "steam:aion2",
+    "steam:aion_2",
+    "steam:aionclassic",
+    "steam:aion_classic",
+    "steam:261430",
+    "desktop:aion",
+    "desktop:aion2",
+    "desktop:aion_2",
+    "desktop:aionclassic",
+    "desktop:aion_classic",
+    "epic:aion",
+    "epic:aion2",
+    "epic:aion_2",
+    "wine:aion",
+    "wine:aion2",
+    "lutris:aion",
+    "lutris:aion2",
+    "aion",
+    "aion2",
+    "aion 2",
+    "aion classic",
+    "steam:aion-2",
+    "desktop:aion-2",
+    "epic:aion-2",
+    "wine:aion-2",
+    "lutris:aion-2",
+    "aion-2",
+    "aion.bin",
+    "aion2.exe",
+    "aion.exe",
+    "aion_2.exe",
+    "aion-classic",
+    "ncsoft:aion",
+    "ncsoft:aion2"
+  ],
+  "name": "AION 2",
+  "executable": "Aion2.exe",
+  "description": "MMORPG de acción, combate aéreo, planeo con alas y habilidades encadenadas.",
+  "actions": [
+    {
+      "action_id": "aion_attack",
+      "name": "Ataque Básico / Auto-ataque",
+      "category": "Combate y Fijación de Objetivos",
+      "description": "Auto-ataque básico o ataque primario",
+      "binding_type": "special",
+      "binding_value": "button 1"
+    },
+    {
+      "action_id": "aion_target_next",
+      "name": "Fijar Siguiente Enemigo",
+      "category": "Combate y Fijación de Objetivos",
+      "description": "Seleccionar enemigo más cercano o ciclar objetivos (Targeting)",
+      "binding_type": "key",
+      "binding_value": "tab"
+    },
+    {
+      "action_id": "aion_target_prev",
+      "name": "Fijar Enemigo Anterior",
+      "category": "Combate y Fijación de Objetivos",
+      "description": "Seleccionar el objetivo enemigo previo",
+      "binding_type": "macro",
+      "binding_value": "shift+tab"
+    },
+    {
+      "action_id": "aion_target_nearest",
+      "name": "Fijar Enemigo Más Cercano",
+      "category": "Combate y Fijación de Objetivos",
+      "description": "Fijar instantáneamente el objetivo hostil más próximo",
+      "binding_type": "key",
+      "binding_value": "t"
+    },
+    {
+      "action_id": "aion_target_self",
+      "name": "Seleccionarse a Sí Mismo",
+      "category": "Combate y Fijación de Objetivos",
+      "description": "Seleccionar a tu propio personaje para auto-curas y buffeos",
+      "binding_type": "key",
+      "binding_value": "f1"
+    },
+    {
+      "action_id": "aion_target_party_2",
+      "name": "Seleccionar Miembro 2 del Grupo",
+      "category": "Combate y Fijación de Objetivos",
+      "description": "Fijar como objetivo al 2º integrante del grupo",
+      "binding_type": "key",
+      "binding_value": "f2"
+    },
+    {
+      "action_id": "aion_target_party_3",
+      "name": "Seleccionar Miembro 3 del Grupo",
+      "category": "Combate y Fijación de Objetivos",
+      "description": "Fijar como objetivo al 3º integrante del grupo",
+      "binding_type": "key",
+      "binding_value": "f3"
+    },
+    {
+      "action_id": "aion_target_party_4",
+      "name": "Seleccionar Miembro 4 del Grupo",
+      "category": "Combate y Fijación de Objetivos",
+      "description": "Fijar como objetivo al 4º integrante del grupo",
+      "binding_type": "key",
+      "binding_value": "f4"
+    },
+    {
+      "action_id": "aion_target_party_5",
+      "name": "Seleccionar Miembro 5 del Grupo",
+      "category": "Combate y Fijación de Objetivos",
+      "description": "Fijar como objetivo al 5º integrante del grupo",
+      "binding_type": "key",
+      "binding_value": "f5"
+    },
+    {
+      "action_id": "aion_target_party_6",
+      "name": "Seleccionar Miembro 6 del Grupo",
+      "category": "Combate y Fijación de Objetivos",
+      "description": "Fijar como objetivo al 6º integrante del grupo",
+      "binding_type": "key",
+      "binding_value": "f6"
+    },
+    {
+      "action_id": "aion_assist",
+      "name": "Asistir / Objetivo de Objetivo",
+      "category": "Combate y Fijación de Objetivos",
+      "description": "Fijar el objetivo que está atacando tu aliado o tanque",
+      "binding_type": "key",
+      "binding_value": "f"
+    },
+    {
+      "action_id": "aion_target_pvp",
+      "name": "Fijar Jugador Enemigo (PvP)",
+      "category": "Combate y Fijación de Objetivos",
+      "description": "Ciclar y fijar exclusivamente jugadores enemigos en combate PvP",
+      "binding_type": "macro",
+      "binding_value": "ctrl+tab"
+    },
+    {
+      "action_id": "aion_cancel_target",
+      "name": "Cancelar Objetivo / Casteo",
+      "category": "Combate y Fijación de Objetivos",
+      "description": "Deseleccionar objetivo o cancelar lanzamiento de habilidad en curso",
+      "binding_type": "key",
+      "binding_value": "esc"
+    },
+    {
+      "action_id": "aion_sheathe_weapon",
+      "name": "Envainar / Desenvainar Arma",
+      "category": "Combate y Fijación de Objetivos",
+      "description": "Alternar postura de combate o guardar armas",
+      "binding_type": "key",
+      "binding_value": "z"
+    },
+    {
+      "action_id": "aion_weapon_switch",
+      "name": "Cambiar Set de Armas",
+      "category": "Combate y Fijación de Objetivos",
+      "description": "Alternar entre set de armas primario y secundario",
+      "binding_type": "macro",
+      "binding_value": "shift+z"
+    },
+    {
+      "action_id": "aion_auto_attack_toggle",
+      "name": "Alternar Auto-Ataque Continuo",
+      "category": "Combate y Fijación de Objetivos",
+      "description": "Iniciar o pausar la secuencia de auto-ataques físicos",
+      "binding_type": "macro",
+      "binding_value": "shift+a"
+    },
+    {
+      "action_id": "aion_skill_1",
+      "name": "Habilidad 1",
+      "category": "Habilidades Principales",
+      "description": "Ranura de habilidad 1 en la barra rápida principal",
+      "binding_type": "key",
+      "binding_value": "1"
+    },
+    {
+      "action_id": "aion_skill_2",
+      "name": "Habilidad 2",
+      "category": "Habilidades Principales",
+      "description": "Ranura de habilidad 2 en la barra rápida principal",
+      "binding_type": "key",
+      "binding_value": "2"
+    },
+    {
+      "action_id": "aion_skill_3",
+      "name": "Habilidad 3",
+      "category": "Habilidades Principales",
+      "description": "Ranura de habilidad 3 en la barra rápida principal",
+      "binding_type": "key",
+      "binding_value": "3"
+    },
+    {
+      "action_id": "aion_skill_4",
+      "name": "Habilidad 4",
+      "category": "Habilidades Principales",
+      "description": "Ranura de habilidad 4 en la barra rápida principal",
+      "binding_type": "key",
+      "binding_value": "4"
+    },
+    {
+      "action_id": "aion_skill_5",
+      "name": "Habilidad 5",
+      "category": "Habilidades Principales",
+      "description": "Ranura de habilidad 5 en la barra rápida principal",
+      "binding_type": "key",
+      "binding_value": "5"
+    },
+    {
+      "action_id": "aion_skill_6",
+      "name": "Habilidad 6",
+      "category": "Habilidades Principales",
+      "description": "Ranura de habilidad 6 en la barra rápida principal",
+      "binding_type": "key",
+      "binding_value": "6"
+    },
+    {
+      "action_id": "aion_skill_7",
+      "name": "Habilidad 7",
+      "category": "Habilidades Principales",
+      "description": "Ranura de habilidad 7 en la barra rápida principal",
+      "binding_type": "key",
+      "binding_value": "7"
+    },
+    {
+      "action_id": "aion_skill_8",
+      "name": "Habilidad 8",
+      "category": "Habilidades Principales",
+      "description": "Ranura de habilidad 8 en la barra rápida principal",
+      "binding_type": "key",
+      "binding_value": "8"
+    },
+    {
+      "action_id": "aion_skill_9",
+      "name": "Habilidad 9",
+      "category": "Habilidades Principales",
+      "description": "Ranura de habilidad 9 en la barra rápida principal",
+      "binding_type": "key",
+      "binding_value": "9"
+    },
+    {
+      "action_id": "aion_skill_10",
+      "name": "Habilidad 10",
+      "category": "Habilidades Principales",
+      "description": "Ranura de habilidad 10 en la barra rápida principal",
+      "binding_type": "key",
+      "binding_value": "0"
+    },
+    {
+      "action_id": "aion_skill_11",
+      "name": "Habilidad 11",
+      "category": "Habilidades Principales",
+      "description": "Ranura de habilidad 11 en la barra rápida principal",
+      "binding_type": "key",
+      "binding_value": "minus"
+    },
+    {
+      "action_id": "aion_skill_12",
+      "name": "Habilidad 12",
+      "category": "Habilidades Principales",
+      "description": "Ranura de habilidad 12 en la barra rápida principal",
+      "binding_type": "key",
+      "binding_value": "equal"
+    },
+    {
+      "action_id": "aion_chain_skill",
+      "name": "Cadena de Combo / Reacción 1",
+      "category": "Habilidades Secundarias y Combos",
+      "description": "Ejecutar la habilidad encadenada que se ilumina al acertar un combo",
+      "binding_type": "key",
+      "binding_value": "r"
+    },
+    {
+      "action_id": "aion_chain_skill_2",
+      "name": "Cadena de Combo / Reacción 2",
+      "category": "Habilidades Secundarias y Combos",
+      "description": "Ejecutar la segunda opción reactiva en combos ramificados",
+      "binding_type": "macro",
+      "binding_value": "shift+r"
+    },
+    {
+      "action_id": "aion_sec_skill_1",
+      "name": "Habilidad Secundaria 1",
+      "category": "Habilidades Secundarias y Combos",
+      "description": "Habilidad en la barra rápida secundaria slot 1",
+      "binding_type": "macro",
+      "binding_value": "alt+1"
+    },
+    {
+      "action_id": "aion_sec_skill_2",
+      "name": "Habilidad Secundaria 2",
+      "category": "Habilidades Secundarias y Combos",
+      "description": "Habilidad en la barra rápida secundaria slot 2",
+      "binding_type": "macro",
+      "binding_value": "alt+2"
+    },
+    {
+      "action_id": "aion_sec_skill_3",
+      "name": "Habilidad Secundaria 3",
+      "category": "Habilidades Secundarias y Combos",
+      "description": "Habilidad en la barra rápida secundaria slot 3",
+      "binding_type": "macro",
+      "binding_value": "alt+3"
+    },
+    {
+      "action_id": "aion_sec_skill_4",
+      "name": "Habilidad Secundaria 4",
+      "category": "Habilidades Secundarias y Combos",
+      "description": "Habilidad en la barra rápida secundaria slot 4",
+      "binding_type": "macro",
+      "binding_value": "alt+4"
+    },
+    {
+      "action_id": "aion_sec_skill_5",
+      "name": "Habilidad Secundaria 5",
+      "category": "Habilidades Secundarias y Combos",
+      "description": "Habilidad en la barra rápida secundaria slot 5",
+      "binding_type": "macro",
+      "binding_value": "alt+5"
+    },
+    {
+      "action_id": "aion_sec_skill_6",
+      "name": "Habilidad Secundaria 6",
+      "category": "Habilidades Secundarias y Combos",
+      "description": "Habilidad en la barra rápida secundaria slot 6",
+      "binding_type": "macro",
+      "binding_value": "alt+6"
+    },
+    {
+      "action_id": "aion_quick_skill_1",
+      "name": "Habilidad Rápida Shift 1",
+      "category": "Habilidades Secundarias y Combos",
+      "description": "Ranura de acceso rápido extendido 1",
+      "binding_type": "macro",
+      "binding_value": "shift+1"
+    },
+    {
+      "action_id": "aion_quick_skill_2",
+      "name": "Habilidad Rápida Shift 2",
+      "category": "Habilidades Secundarias y Combos",
+      "description": "Ranura de acceso rápido extendido 2",
+      "binding_type": "macro",
+      "binding_value": "shift+2"
+    },
+    {
+      "action_id": "aion_quick_skill_3",
+      "name": "Habilidad Rápida Shift 3",
+      "category": "Habilidades Secundarias y Combos",
+      "description": "Ranura de acceso rápido extendido 3",
+      "binding_type": "macro",
+      "binding_value": "shift+3"
+    },
+    {
+      "action_id": "aion_quick_skill_4",
+      "name": "Habilidad Rápida Shift 4",
+      "category": "Habilidades Secundarias y Combos",
+      "description": "Ranura de acceso rápido extendido 4",
+      "binding_type": "macro",
+      "binding_value": "shift+4"
+    },
+    {
+      "action_id": "aion_dp_skill_1",
+      "name": "Poder Divino / DP 1",
+      "category": "Habilidades Secundarias y Combos",
+      "description": "Habilidad de Poder Divino (DP) nivel 1",
+      "binding_type": "macro",
+      "binding_value": "ctrl+1"
+    },
+    {
+      "action_id": "aion_dp_skill_2",
+      "name": "Poder Divino / DP 2",
+      "category": "Habilidades Secundarias y Combos",
+      "description": "Habilidad de Poder Divino (DP) nivel 2",
+      "binding_type": "macro",
+      "binding_value": "ctrl+2"
+    },
+    {
+      "action_id": "aion_dp_trans",
+      "name": "Transformación Divina / Avatar",
+      "category": "Habilidades Secundarias y Combos",
+      "description": "Activar transformación en Avatar Divino o Daeva definitivo",
+      "binding_type": "macro",
+      "binding_value": "ctrl+3"
+    },
+    {
+      "action_id": "aion_jump_glide",
+      "name": "Saltar / Desplegar Alas de Planeo",
+      "category": "Movimiento y Vuelo",
+      "description": "Salto simple o despliegue de alas para planear en corrientes",
+      "binding_type": "key",
+      "binding_value": "space"
+    },
+    {
+      "action_id": "aion_flight_toggle",
+      "name": "Iniciar / Detener Vuelo Libre",
+      "category": "Movimiento y Vuelo",
+      "description": "Activar o aterrizar el vuelo libre tridimensional",
+      "binding_type": "key",
+      "binding_value": "v"
+    },
+    {
+      "action_id": "aion_flight_ascend",
+      "name": "Ascender en Vuelo",
+      "category": "Movimiento y Vuelo",
+      "description": "Ganar altitud durante el vuelo libre",
+      "binding_type": "key",
+      "binding_value": "e"
+    },
+    {
+      "action_id": "aion_flight_descend",
+      "name": "Descender en Vuelo",
+      "category": "Movimiento y Vuelo",
+      "description": "Descender o perder altitud durante el vuelo",
+      "binding_type": "key",
+      "binding_value": "q"
+    },
+    {
+      "action_id": "aion_sprint_flyfast",
+      "name": "Acelerar / Correr / Vuelo Rápido",
+      "category": "Movimiento y Vuelo",
+      "description": "Acelerar la velocidad de vuelo o esprintar a pie",
+      "binding_type": "key",
+      "binding_value": "leftshift"
+    },
+    {
+      "action_id": "aion_dodge",
+      "name": "Esquivar / Evasión Táctica",
+      "category": "Movimiento y Vuelo",
+      "description": "Rodar, saltar hacia atrás o esquivar daño entrante",
+      "binding_type": "key",
+      "binding_value": "c"
+    },
+    {
+      "action_id": "aion_break_stumble",
+      "name": "Romper Derribo / Levantarse",
+      "category": "Movimiento y Vuelo",
+      "description": "Habilidad reactiva inmediata para recuperarse de derribos o aturdimientos",
+      "binding_type": "key",
+      "binding_value": "f"
+    },
+    {
+      "action_id": "aion_mount",
+      "name": "Montura / Desmontar",
+      "category": "Movimiento y Vuelo",
+      "description": "Subir o bajar de la montura terrestre para viajar velozmente",
+      "binding_type": "macro",
+      "binding_value": "alt+c"
+    },
+    {
+      "action_id": "aion_strafe_left",
+      "name": "Desplazamiento Lateral Izquierda",
+      "category": "Movimiento y Vuelo",
+      "description": "Moverse hacia el costado izquierdo (Strafe)",
+      "binding_type": "key",
+      "binding_value": "q"
+    },
+    {
+      "action_id": "aion_strafe_right",
+      "name": "Desplazamiento Lateral Derecha",
+      "category": "Movimiento y Vuelo",
+      "description": "Moverse hacia el costado derecho (Strafe)",
+      "binding_type": "key",
+      "binding_value": "e"
+    },
+    {
+      "action_id": "aion_autorun",
+      "name": "Carrera Automática",
+      "category": "Movimiento y Vuelo",
+      "description": "Activar o desactivar correr automáticamente",
+      "binding_type": "key",
+      "binding_value": "numlock"
+    },
+    {
+      "action_id": "aion_interact",
+      "name": "Interactuar / Hablar",
+      "category": "Interacción y Consumibles",
+      "description": "Conversar con PNJs, activar objetos del mundo o portales",
+      "binding_type": "key",
+      "binding_value": "f"
+    },
+    {
+      "action_id": "aion_loot_all",
+      "name": "Recoger Botín / Saquear Todos",
+      "category": "Interacción y Consumibles",
+      "description": "Recoger todo el botín y despojar enemigos caídos",
+      "binding_type": "macro",
+      "binding_value": "shift+f"
+    },
+    {
+      "action_id": "aion_rest",
+      "name": "Descansar / Sentarse",
+      "category": "Interacción y Consumibles",
+      "description": "Sentarse para regenerar puntos de salud (HP) y maná (MP) rápidamente",
+      "binding_type": "key",
+      "binding_value": "x"
+    },
+    {
+      "action_id": "aion_potion_hp",
+      "name": "Poción de Vida (HP)",
+      "category": "Interacción y Consumibles",
+      "description": "Consumir poción curativa de salud inmediata",
+      "binding_type": "key",
+      "binding_value": "7"
+    },
+    {
+      "action_id": "aion_potion_mp",
+      "name": "Poción de Maná (MP)",
+      "category": "Interacción y Consumibles",
+      "description": "Consumir poción de recuperación de maná",
+      "binding_type": "key",
+      "binding_value": "8"
+    },
+    {
+      "action_id": "aion_potion_flight",
+      "name": "Poción de Vuelo / Suero de Éter",
+      "category": "Interacción y Consumibles",
+      "description": "Consumir suero de vuelo para recuperar tiempo y energía aérea",
+      "binding_type": "key",
+      "binding_value": "9"
+    },
+    {
+      "action_id": "aion_potion_cure",
+      "name": "Poción de Purificación / Antídoto",
+      "category": "Interacción y Consumibles",
+      "description": "Disipar efectos negativos, venenos y desventajas (Debuffs)",
+      "binding_type": "macro",
+      "binding_value": "ctrl+e"
+    },
+    {
+      "action_id": "aion_buff_scroll",
+      "name": "Pergamino de Velocidad / Buff",
+      "category": "Interacción y Consumibles",
+      "description": "Usar pergamino de velocidad de ataque, casteo o movimiento",
+      "binding_type": "macro",
+      "binding_value": "ctrl+c"
+    },
+    {
+      "action_id": "aion_return_teleport",
+      "name": "Hechizo de Retorno",
+      "category": "Interacción y Consumibles",
+      "description": "Teletransportarse al punto de retorno u obelisco guardado",
+      "binding_type": "key",
+      "binding_value": "h"
+    },
+    {
+      "action_id": "aion_toggle_cursor",
+      "name": "Mostrar / Ocultar Cursor",
+      "category": "Interacción y Consumibles",
+      "description": "Liberar el puntero del ratón de la cámara para clicar en menús",
+      "binding_type": "key",
+      "binding_value": "leftalt"
+    },
+    {
+      "action_id": "aion_inventory",
+      "name": "Inventario (Cubo)",
+      "category": "Interfaz y Menús",
+      "description": "Abrir la mochila e inventario del personaje",
+      "binding_type": "key",
+      "binding_value": "i"
+    },
+    {
+      "action_id": "aion_skills_menu",
+      "name": "Libro de Habilidades",
+      "category": "Interfaz y Menús",
+      "description": "Abrir ventana de habilidades, pasivas y estigmas",
+      "binding_type": "key",
+      "binding_value": "k"
+    },
+    {
+      "action_id": "aion_character_profile",
+      "name": "Perfil de Personaje",
+      "category": "Interfaz y Menús",
+      "description": "Ver estadísticas, equipo, nivel y títulos",
+      "binding_type": "key",
+      "binding_value": "p"
+    },
+    {
+      "action_id": "aion_map",
+      "name": "Mapa del Mundo",
+      "category": "Interfaz y Menús",
+      "description": "Abrir mapa general de la región y zonas",
+      "binding_type": "key",
+      "binding_value": "m"
+    },
+    {
+      "action_id": "aion_overlay_map",
+      "name": "Mapa Transparente Superpuesto",
+      "category": "Interfaz y Menús",
+      "description": "Mostrar u ocultar mapa transparente de navegación en tiempo real",
+      "binding_type": "key",
+      "binding_value": "n"
+    },
+    {
+      "action_id": "aion_quest_log",
+      "name": "Registro de Misiones",
+      "category": "Interfaz y Menús",
+      "description": "Abrir panel de misiones activas y secundarias",
+      "binding_type": "key",
+      "binding_value": "j"
+    },
+    {
+      "action_id": "aion_legion",
+      "name": "Ventana de Legión / Clan",
+      "category": "Interfaz y Menús",
+      "description": "Abrir panel social de clan o hermandad",
+      "binding_type": "key",
+      "binding_value": "l"
+    },
+    {
+      "action_id": "aion_party",
+      "name": "Ventana de Grupo / Alianza",
+      "category": "Interfaz y Menús",
+      "description": "Administrar miembros de grupo, expedición o raid",
+      "binding_type": "key",
+      "binding_value": "u"
+    },
+    {
+      "action_id": "aion_friends",
+      "name": "Lista de Amigos",
+      "category": "Interfaz y Menús",
+      "description": "Abrir lista de contactos y amigos conectados",
+      "binding_type": "key",
+      "binding_value": "y"
+    },
+    {
+      "action_id": "aion_crafting",
+      "name": "Profesiones y Crafteo",
+      "category": "Interfaz y Menús",
+      "description": "Abrir ventana de oficios, recolección y fabricación de objetos",
+      "binding_type": "macro",
+      "binding_value": "alt+k"
+    },
+    {
+      "action_id": "aion_mail",
+      "name": "Buzón de Correo",
+      "category": "Interfaz y Menús",
+      "description": "Consultar correo y paquetes recibidos",
+      "binding_type": "macro",
+      "binding_value": "shift+m"
+    },
+    {
+      "action_id": "aion_macro",
+      "name": "Ventana de Macros",
+      "category": "Interfaz y Menús",
+      "description": "Abrir editor de secuencias y macros del juego",
+      "binding_type": "macro",
+      "binding_value": "alt+m"
+    },
+    {
+      "action_id": "aion_options",
+      "name": "Opciones del Sistema",
+      "category": "Interfaz y Menús",
+      "description": "Abrir menú de configuración y ajustes del juego",
+      "binding_type": "key",
+      "binding_value": "o"
+    }
+  ]
+}

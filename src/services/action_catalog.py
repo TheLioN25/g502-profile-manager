@@ -16,7 +16,25 @@ from typing import Sequence
 from domain import Action, Application
 
 
-DEFAULT_BUILTIN_DIR = Path(__file__).resolve().parent.parent.parent / "presets"
+def _resolve_builtin_presets_dir() -> Path:
+    """Resuelve la ruta a los presets integrados tanto en desarrollo como en paquete instalado."""
+    try:
+        import importlib.resources as pkg_resources
+        pkg_presets = Path(str(pkg_resources.files("services").joinpath("presets")))
+        if pkg_presets.exists() and any(pkg_presets.glob("*.json")):
+            return pkg_presets
+    except Exception:
+        pass
+    dev_dir = Path(__file__).resolve().parent.parent.parent / "presets"
+    if dev_dir.exists():
+        return dev_dir
+    sys_dir = Path("/usr/share/g502-profile-manager/presets")
+    if sys_dir.exists():
+        return sys_dir
+    return dev_dir
+
+
+DEFAULT_BUILTIN_DIR = _resolve_builtin_presets_dir()
 DEFAULT_USER_DIR = Path.home() / ".config" / "g502-profile-manager" / "presets"
 
 IGNORED_GAME_PATTERNS = (

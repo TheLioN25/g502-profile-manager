@@ -36,3 +36,10 @@ jobs:
       - name: Verify PEP 517 / 621 Package Build
         run: |
           python3 -m build --sdist --wheel
+
+      - name: Smoke Test Installed Wheel and Entry Points
+        run: |
+          python3 -m venv --system-site-packages /tmp/smoke_venv
+          /tmp/smoke_venv/bin/pip install --no-deps dist/g502_profile_manager-*.whl
+          /tmp/smoke_venv/bin/python3 -c "import cli, engine, i18n, gui.app; print('Imports in installed wheel: OK')"
+          /tmp/smoke_venv/bin/g502 --help

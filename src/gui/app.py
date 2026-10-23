@@ -64,16 +64,33 @@ class G502Application(Adw.Application):
                     Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
                 )
 
-        # Registrar directorios de iconos local y de usuario
-        icons_dir = Path(__file__).resolve().parent.parent.parent / "data" / "icons"
+        # Registrar directorios de iconos: paquete (wheel), desarrollo y usuario
+        icons_dirs: list[Path] = []
+        try:
+            import importlib.resources as pkg_resources
+            pkg_icons = Path(str(pkg_resources.files("gui").joinpath("icons")))
+            if pkg_icons.exists():
+                icons_dirs.append(pkg_icons)
+        except Exception:
+            pass
+
+        dev_icons = Path(__file__).resolve().parent.parent.parent / "data" / "icons"
+        if dev_icons.exists():
+            icons_dirs.append(dev_icons)
+
+        sys_icons = Path("/usr/share/g502-profile-manager/data/icons")
+        if sys_icons.exists():
+            icons_dirs.append(sys_icons)
+
         user_icons_dir = Path.home() / ".local/share/icons/hicolor"
+        if user_icons_dir.exists():
+            icons_dirs.append(user_icons_dir)
+
         display = Gdk.Display.get_default()
         if display:
             icon_theme = Gtk.IconTheme.get_for_display(display)
-            if icons_dir.exists():
-                icon_theme.add_search_path(str(icons_dir))
-            if user_icons_dir.exists():
-                icon_theme.add_search_path(str(user_icons_dir))
+            for idir in icons_dirs:
+                icon_theme.add_search_path(str(idir))
 
     def do_activate(self):
         if not self._window:

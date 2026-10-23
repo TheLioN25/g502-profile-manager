@@ -7,7 +7,7 @@ name = "g502-profile-manager"
 version = "0.5.0"
 description = "Gestor nativo de perfiles, macros, DPI e iluminación para ratón Logitech G502 HERO en Linux"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = "MIT"
 authors = [
     { name = "TheLioN25" }
@@ -19,7 +19,6 @@ classifiers = [
     "Intended Audience :: End Users/Desktop",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -41,9 +40,11 @@ g502-gui = "gui.app:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
+py-modules = ["cli", "engine", "i18n"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
-"*" = ["*.css", "*.svg", "*.json", "*.png"]
+"gui" = ["style.css", "icons/*"]
+"services" = ["presets/*.json"]
