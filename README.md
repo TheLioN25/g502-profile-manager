@@ -5,8 +5,8 @@
 </p>
 
 [![CI Pipeline](https://github.com/TheLioN25/g502-profile-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/TheLioN25/g502-profile-manager/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-155%20passed-brightgreen.svg)](#-unit-tests-execution)
-[![Python](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://www.python.org/)
+[![Tests](https://img.shields.io/badge/tests-157%20passed-brightgreen.svg)](#-unit-tests-execution)
+[![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](pyproject.toml)
 
 Advanced profile manager and real-time reactive automation engine for **Logitech G502** mice on Linux.
@@ -76,7 +76,7 @@ Visually configure buttons, macros, DPI sensitivity stages, and LIGHTSYNC RGB li
 * 🛡️ **Total Hardware Isolation (G-HUB Model) & Anti-Cheat Compliance:**
   * Eliminates unwanted lingering state in the mouse EEPROM.
   * Unassigned buttons in any profile automatically revert to factory defaults (*Back, Forward, DPI Shift, Profile Cycle*), preventing game keys from leaking into the desktop.
-  * Strict 1:1 hardware mapping policy with zero automated or timed click loops, keeping accounts safe from anti-cheat bans (EasyAntiCheat, BattlEye, Ricochet, etc.).
+  * Strict 1:1 hardware mapping policy with zero automated or timed click loops, no synthetic continuous inputs are generated. Compliance with specific game anti-cheat policies is not guaranteed.
 
 * 🧩 **Modular Catalogs & Presets (`presets/`):**
   * Extensible JSON presets for titles like **Warframe**, **Guild Wars 2**, and **AION 2** (including profession F1–F5 keys and custom actions), plus desktop productivity shortcuts.
@@ -116,8 +116,7 @@ g502-profile-manager/
 ├── src/
 │   ├── domain/                  # Pure domain entities (zero external dependencies)
 │   │   ├── application.py       # Application entity & Action Value Object
-│   │   ├── button.py            # G502 button definitions & invariants
-│   │   ├── dpi.py               # DPI configuration and range validation
+│   │   ├── device.py            # Device variant definitions & hardware capabilities
 │   │   └── profile.py           # Profile aggregate root and binding rules
 │   ├── services/                # Application services and use cases
 │   │   ├── action_catalog.py    # Catalog and preset orchestration
@@ -126,7 +125,11 @@ g502-profile-manager/
 │   │   └── profile_repository.py# Atomic JSON repository with dynamic reload
 │   ├── adapters/                # External hardware and discovery adapters
 │   │   ├── ratbag_adapter.py    # libratbag/ratbagctl communication & EEPROM isolation
-│   │   └── application_discovery_adapter.py # Unified app discovery (Steam + Epic + Desktop)
+│   │   ├── application_discovery_adapter.py # Unified app discovery
+│   │   ├── steam_discovery.py   # Steam VDF / ACF library parser
+│   │   ├── epic_discovery.py    # Epic Games launcher discovery (Heroic/Legendary)
+│   │   ├── desktop_entries.py   # Linux .desktop parser with XDG localization
+│   │   └── process_discovery.py # System process inspection
 │   ├── gui/                     # GTK4 / Libadwaita presentation layer
 │   │   ├── app.py               # Application entry point
 │   │   ├── window.py            # Main window & reactive event controller
@@ -136,12 +139,8 @@ g502-profile-manager/
 │   │   └── style.css            # Custom Adwaita stylesheet
 │   ├── i18n.py                  # Singleton i18n manager and translation catalog
 │   ├── engine.py                # Real-time background automation daemon
-│   ├── cli.py                   # Command-line interface tool
-│   ├── steam_discovery.py       # Steam VDF / ACF library parser
-│   ├── epic_discovery.py        # Epic Games launcher discovery (Heroic/Legendary)
-│   ├── desktop_entries.py       # Linux .desktop parser with XDG localization
-│   └── process_discovery.py     # System process inspection
-└── tests/                       # Suite of 155 automated unit tests
+│   └── cli.py                   # Command-line interface tool
+└── tests/                       # Suite of 157 automated unit tests
 ```
 
 ---
@@ -153,7 +152,7 @@ For reviewers evaluating code quality, design patterns, and architecture:
 | Technical Area | Component / Path | Key Aspects to Evaluate |
 | :--- | :--- | :--- |
 | **Global Architecture & C4** | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Mermaid C4 diagrams (Context, Containers, Components) and Clean Architecture boundaries. |
-| **Design Decisions (ADRs)** | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#5-registros-de-decisiones-de-arquitectura-adr) | 6 formal ADRs (Anti-Cheat 1:1, pure D-Bus SNI, atomic storage, systemd, etc.). |
+| **Design Decisions (ADRs)** | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#5-registros-de-decisiones-de-arquitectura-adr) | 8 formal ADRs (ADR-001..ADR-008: Anti-Cheat 1:1, pure D-Bus SNI, atomic storage, multi-model G502, systemd, etc.). |
 | **Pure Domain Layer (DDD)** | [`src/domain/`](src/domain/) | Uncoupled entities and value objects (`Profile`, `Button`, `Action`, `DpiConfiguration`). |
 | **Internationalization (i18n)** | [`src/i18n.py`](src/i18n.py) | Decoupled `I18nManager` singleton, atomic storage in `~/.config/g502-preferences.json`, regional detection. |
 | **Atomic Persistence** | [`src/storage/profile_repository.py`](src/storage/profile_repository.py) | Two-phase atomic write (`NamedTemporaryFile` + `replace`) and `mtime` concurrent sync. |

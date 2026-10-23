@@ -70,7 +70,7 @@ C4Container
     Container(engine_daemon, "Motor de Automatización (engine.py)", "Python 3, Threading", "Hilo de supervisión o servicio demonio que sondea procesos del sistema.")
     Container(systemd_svc, "Servicio de Usuario (systemd --user)", "systemd unit", "Supervisión de ciclo de vida del motor en el arranque de la sesión.")
     
-    ContainerDb(json_store, "Almacén de Perfiles", "JSON atómico (~/.config/g502-profile-manager/profiles.json)", "Persistencia de perfiles con escritura atómica de doble fase (tempfile + replace).")
+    ContainerDb(json_store, "Almacén de Perfiles", "JSON atómico (~/.config/g502-profiles.json)", "Persistencia de perfiles con escritura atómica de doble fase (tempfile + replace).")
     
     System_Ext(ratbagctl, "ratbagctl CLI / ratbagd", "Subproceso del sistema", "Controlador directo de bajo nivel de libratbag.")
 
@@ -214,7 +214,7 @@ La solución aplica rigurosamente la regla de dependencia de Clean Architecture:
   El sistema necesita almacenar la lista de perfiles, mapeos de botones, configuraciones de DPI y colores LED. Los perfiles deben persistir entre reinicios del sistema y sesiones del usuario.
 * **Alternativas evaluadas:**
   1. *SQLite:* Potente, transaccional, estándar para datos estructurados.
-  2. *Archivo JSON atómico:* Formato plano en `~/.config/g502-profile-manager/profiles.json`.
+  2. *Archivo JSON atómico:* Formato plano en `~/.config/g502-profiles.json`.
 * **Decisión:**  
   Se seleccionó **JSON atómico** con reemplazo seguro de archivos (`tempfile.NamedTemporaryFile` + `os.replace`).
 * **Justificación:**  
@@ -356,17 +356,17 @@ La solución aplica rigurosamente la regla de dependencia de Clean Architecture:
 
 ## 6. Estrategia de Calidad, Pruebas y CI/CD
 
-La robustez del proyecto se valida mediante una estrategia de pruebas exhaustiva que permite verificar el 100% de los casos de uso sin requerir hardware físico conectado:
+La robustez del proyecto se valida mediante una suite completa de pruebas unitarias que verifica las funcionalidades críticas y casos de borde sin requerir hardware físico conectado:
 
 ```text
        +---------------------------------------------+
        |   Integración Continua (GitHub Actions)     |
-       |  Matriz: Ubuntu 24.04 (Python 3.10, 11, 12) |
+       |  Entorno CI: Ubuntu 24.04 (Python >=3.10)   |
        |  Display Headless: Xvfb (Virtual Framebuf)  |
        +---------------------------------------------+
                              |
        +---------------------------------------------+
-       |             155 Pruebas Unitarias           |
+       |             157 Pruebas Unitarias           |
        |  - Dominio puro (invariantes, validaciones) |
        |  - Repositorio atómico y persistencia       |
        |  - Aislamiento de hardware (Mocks ratbag)   |
@@ -381,4 +381,4 @@ La robustez del proyecto se valida mediante una estrategia de pruebas exhaustiva
 2. **Entornos de Ejecución Virtuales (Headless Testing):**
    - Las pruebas de GTK4 y Libadwaita se ejecutan en CI sin servidor gráfico físico utilizando `xvfb-run` (*X Virtual Framebuffer*), garantizando que los widgets, diálogos y el renderizado Cairo Canvas funcionen sin errores de renderizado.
 3. **Pipeline de Integración Continua (CI):**
-   - Configurado en `.github/workflows/ci.yml`, ejecuta la suite completa en cada *push* y *pull request*, verificando la sintaxis, tipos y pruebas en las versiones activas de Python (3.10 a 3.12).
+   - Configurado en `.github/workflows/ci.yml`, ejecuta la suite completa en cada *push* y *pull request*, verificando la sintaxis, tipos y pruebas en el entorno de ejecución probado (Python >=3.10).

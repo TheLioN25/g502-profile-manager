@@ -5,8 +5,8 @@
 </p>
 
 [![CI Pipeline](https://github.com/TheLioN25/g502-profile-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/TheLioN25/g502-profile-manager/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-155%20passed-brightgreen.svg)](#-ejecución-de-pruebas-unitarias)
-[![Python](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://www.python.org/)
+[![Tests](https://img.shields.io/badge/tests-157%20passed-brightgreen.svg)](#-ejecución-de-pruebas-unitarias)
+[![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](pyproject.toml)
 
 Administrador avanzado de perfiles y automatización en tiempo real para el ratón **Logitech G502 HERO** (y familia G502) en entornos Linux.
@@ -77,7 +77,7 @@ Permite configurar visualmente los botones, macros, sensibilidades (DPI) y zonas
 * 🛡️ **Aislamiento Total de Perfiles (Modelo G-HUB) y Cumplimiento Anti-Cheat:**
   * Resuelve la persistencia indeseada en la memoria física EEPROM del ratón.
   * Cualquier botón no asignado en un perfil se restablece automáticamente a su función de fábrica (*Back, Forward, DPI Shift, Profile Cycle*), evitando que configuraciones de un juego afecten al escritorio u otros títulos.
-  * Política estricta de mapeo de hardware 1:1 sin macros automatizadas o temporizadas, protegiendo las cuentas de juego frente a sanciones por software anti-trampas (EasyAntiCheat, BattlEye, Ricochet, etc.).
+  * Política estricta de mapeo de hardware 1:1 sin macros automatizadas o temporizadas, sin pulsaciones continuas automatizadas. El cumplimiento de las políticas específicas de software anti-trampas de cada juego no se garantiza.
 
 * 🧩 **Catálogos y Presets Modulares (`presets/`):**
   * Presets integrados en formato JSON ampliables para juegos como **Warframe**, **Guild Wars 2** y **AION 2** (incluyendo mecánicas de profesión F1–F5 y habilidades personalizables), además de atajos de productividad para el escritorio.
@@ -117,8 +117,7 @@ g502-profile-manager/
 ├── src/
 │   ├── domain/                  # Entidades de dominio puro (sin dependencias externas)
 │   │   ├── application.py       # Entidad Application y Value Object Action
-│   │   ├── button.py            # Definición e invariantes de botones del G502
-│   │   ├── dpi.py               # Configuración y validación de rangos de DPI
+│   │   ├── device.py            # Definición de variantes y capacidades de hardware
 │   │   └── profile.py           # Agregado Profile y reglas de asignación
 │   ├── services/                # Servicios de aplicación y orquestación
 │   │   ├── action_catalog.py    # Gestión de catálogos y presets modulares
@@ -127,7 +126,11 @@ g502-profile-manager/
 │   │   └── profile_repository.py# Repositorio JSON con recarga dinámica y escritura atómica
 │   ├── adapters/                # Adaptadores para sistemas externos y hardware
 │   │   ├── ratbag_adapter.py    # Comunicación con libratbag/ratbagctl y aislamiento EEPROM
-│   │   └── application_discovery_adapter.py # Descubrimiento unificado (Steam + Epic + Desktop)
+│   │   ├── application_discovery_adapter.py # Descubrimiento unificado (Steam + Epic + Desktop)
+│   │   ├── steam_discovery.py   # Parser de VDF / ACF de Steam
+│   │   ├── epic_discovery.py    # Descubrimiento de juegos de Epic Games
+│   │   ├── desktop_entries.py   # Parser de archivos .desktop con soporte XDG multilingüe
+│   │   └── process_discovery.py # Inspección de procesos del sistema
 │   ├── gui/                     # Capa de presentación GTK4 / Libadwaita
 │   │   ├── app.py               # Punto de entrada de la aplicación gráfica
 │   │   ├── window.py            # Ventana principal y control de eventos
@@ -137,12 +140,8 @@ g502-profile-manager/
 │   │   └── style.css            # Estilos Adwaita personalizados
 │   ├── i18n.py                  # Motor singleton de internacionalización y traducciones
 │   ├── engine.py                # Demonio de automatización en tiempo real
-│   ├── cli.py                   # Herramienta de línea de comandos
-│   ├── steam_discovery.py       # Parser de VDF / ACF de Steam
-│   ├── epic_discovery.py        # Descubrimiento de juegos de Epic Games
-│   ├── desktop_entries.py       # Parser de archivos .desktop con soporte XDG multilingüe
-│   └── process_discovery.py     # Inspección de procesos del sistema
-└── tests/                       # Suite de 155 pruebas unitarias
+│   └── cli.py                   # Herramienta de línea de comandos
+└── tests/                       # Suite de 157 pruebas unitarias
 ```
 
 ---
