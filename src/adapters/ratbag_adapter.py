@@ -192,7 +192,9 @@ def normalize_key_to_input_code(key: str) -> str:
     if clean_key.isalnum():
         return f"KEY_{clean_key.upper()}"
 
-    return f"KEY_{clean_key.upper()}"
+    raise ValueError(
+        f"Tecla no soportada: {key!r}. Usa un código KEY_* válido o un símbolo mapeado."
+    )
 
 
 def default_command_runner(command: list[str]) -> subprocess.CompletedProcess:
@@ -225,11 +227,7 @@ class RatbagDeviceAdapter:
         self._battery_cache: dict[str, tuple[float, int | None]] = {}
         self._device_state_cache: dict[str, dict] = {}
         self._variant_cache: dict[str, DeviceVariant] = {}
-        # En tests o runners personalizados, desactivar persistencia automática en disco a menos que se indique
-        if command_runner is not default_command_runner and state_cache_file == DEFAULT_HARDWARE_STATE_FILE:
-            self._state_cache_file = None
-        else:
-            self._state_cache_file = Path(state_cache_file) if state_cache_file else None
+        self._state_cache_file = Path(state_cache_file) if state_cache_file else None
 
         if self._state_cache_file:
             self._load_state_cache()

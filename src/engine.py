@@ -144,13 +144,10 @@ class AutomationEngine:
             self._log(f"[CATÁLOGO] ¡Nuevo juego detectado e instalado! Catálogo generado al vuelo para '{app_id}'.")
 
     def _apply_profile_to_device(self, profile: Profile, diff_only: bool = True) -> bool:
-        """Aplica el perfil al hardware soportando compatibilidad hacia atrás con adaptadores y mocks."""
+        """Aplica el perfil al hardware a través del adaptador de dispositivo."""
         if not self._device_id:
             return False
-        try:
-            return self._device_adapter.apply_profile(self._device_id, profile, diff_only=diff_only)
-        except TypeError:
-            return self._device_adapter.apply_profile(self._device_id, profile)
+        return self._device_adapter.apply_profile(self._device_id, profile, diff_only=diff_only)
 
     def step(self) -> bool:
         """

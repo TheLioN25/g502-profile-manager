@@ -18,6 +18,7 @@ from adapters import (
     ApplicationDiscoveryAdapter,
     RatbagDeviceAdapter,
     get_preset_actions_for_application,
+    normalize_key_to_input_code,
     populate_application_actions,
 )
 from domain import Action, Button, DpiConfiguration
@@ -145,6 +146,13 @@ def cmd_presets(args):
 def cmd_add_action(args):
     _repo, _mgr, _disc, _ad, catalog = get_services()
 
+    if getattr(args, 'type', None) == 'key':
+        try:
+            normalize_key_to_input_code(args.key)
+        except ValueError as e:
+            print(f'Error: {e}')
+            return 1
+
     action = Action(
         action_id=args.action_id,
         name=args.name,
@@ -198,6 +206,13 @@ def cmd_assign(args):
             binding_type="key",
             binding_value=args.key or args.action_id,
         )
+
+    if action.binding_type == 'key':
+        try:
+            normalize_key_to_input_code(action.binding_value)
+        except ValueError as e:
+            print(f'Error: {e}')
+            return 1
 
     manager.assign_button(profile.id, button, action)
     print(f"Asignación guardada: {button.button_id} -> {action.name} ['{action.binding_value}'] en perfil '{profile.name}'.")
@@ -561,9 +576,15 @@ def cmd_uninstall_desktop(args):
 
 
 def cmd_install_service(args):
+    import shutil
     import subprocess
 
-    repo_root = Path(__file__).resolve().parent.parent
+    launcher_path = shutil.which("g502")
+    launcher = Path(launcher_path) if launcher_path else (Path.home() / ".local/bin/g502")
+    if not launcher.exists():
+        print("No se encontró 'g502'. Ejecuta scripts/install-bin.sh primero.")
+        return 1
+
     systemd_user_dir = Path.home() / ".config/systemd/user"
     systemd_user_dir.mkdir(parents=True, exist_ok=True)
 
@@ -574,7 +595,7 @@ After=default.target
 
 [Service]
 Type=simple
-ExecStart={sys.executable} {repo_root / 'src/cli.py'} run
+ExecStart={launcher} run
 Restart=on-failure
 RestartSec=5s
 TimeoutStopSec=15s

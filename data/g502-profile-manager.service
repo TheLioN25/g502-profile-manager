@@ -5,7 +5,7 @@ After=default.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python3 /home/thelion/g502-profile-manager/src/cli.py run
+ExecStart=/usr/bin/g502 run
 Restart=on-failure
 RestartSec=5s
 Environment=PYTHONUNBUFFERED=1

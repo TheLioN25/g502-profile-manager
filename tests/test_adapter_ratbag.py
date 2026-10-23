@@ -25,6 +25,17 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
         self.assertEqual(normalize_key_to_input_code("leftctrl"), "KEY_LEFTCTRL")
         self.assertEqual(normalize_key_to_input_code("ctrl"), "KEY_LEFTCTRL")
         self.assertEqual(normalize_key_to_input_code("KEY_SPACE"), "KEY_SPACE")
+        # Símbolos mapeados explícitamente
+        self.assertEqual(normalize_key_to_input_code("."), "KEY_DOT")
+        self.assertEqual(normalize_key_to_input_code(","), "KEY_COMMA")
+        self.assertEqual(normalize_key_to_input_code("-"), "KEY_MINUS")
+        # Símbolos no soportados deben lanzar ValueError
+        with self.assertRaises(ValueError):
+            normalize_key_to_input_code("!")
+        with self.assertRaises(ValueError):
+            normalize_key_to_input_code("?")
+        with self.assertRaises(ValueError):
+            normalize_key_to_input_code("unknown_symbol#")
 
     def test_find_device(self):
         executed_commands = []
@@ -34,7 +45,7 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
             output = "warbling-mara:       Logitech G502 HERO Gaming Mouse\n"
             return subprocess.CompletedProcess(cmd, returncode=0, stdout=output, stderr="")
 
-        adapter = RatbagDeviceAdapter(command_runner=mock_runner)
+        adapter = RatbagDeviceAdapter(state_cache_file=None, command_runner=mock_runner)
         device_id = adapter.find_device("Logitech G502 HERO Gaming Mouse")
 
         self.assertEqual(device_id, "warbling-mara")
@@ -44,7 +55,7 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
         def mock_runner(cmd: list[str]) -> subprocess.CompletedProcess:
             return subprocess.CompletedProcess(cmd, returncode=0, stdout="2\n", stderr="")
 
-        adapter = RatbagDeviceAdapter(command_runner=mock_runner)
+        adapter = RatbagDeviceAdapter(state_cache_file=None, command_runner=mock_runner)
         slot = adapter.get_active_profile_slot("warbling-mara")
         self.assertEqual(slot, 2)
 
@@ -55,7 +66,7 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
             executed_commands.append(cmd)
             return subprocess.CompletedProcess(cmd, returncode=0, stdout="", stderr="")
 
-        adapter = RatbagDeviceAdapter(command_runner=mock_runner)
+        adapter = RatbagDeviceAdapter(state_cache_file=None, command_runner=mock_runner)
         success = adapter.switch_profile_slot("warbling-mara", 3)
 
         self.assertTrue(success)
@@ -71,7 +82,7 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
             executed_commands.append(cmd)
             return subprocess.CompletedProcess(cmd, returncode=0, stdout="", stderr="")
 
-        adapter = RatbagDeviceAdapter(command_runner=mock_runner)
+        adapter = RatbagDeviceAdapter(state_cache_file=None, command_runner=mock_runner)
         success = adapter.set_dpi("warbling-mara", 1600, slot=1)
 
         self.assertTrue(success)
@@ -89,7 +100,7 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
                 stderr="",
             )
 
-        adapter = RatbagDeviceAdapter(command_runner=mock_runner)
+        adapter = RatbagDeviceAdapter(state_cache_file=None, command_runner=mock_runner)
         self.assertEqual(adapter.get_led_count("warbling-mara"), 2)
 
     def test_set_led_color(self):
@@ -99,7 +110,7 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
             executed_commands.append(cmd)
             return subprocess.CompletedProcess(cmd, returncode=0, stdout="", stderr="")
 
-        adapter = RatbagDeviceAdapter(command_runner=mock_runner)
+        adapter = RatbagDeviceAdapter(state_cache_file=None, command_runner=mock_runner)
         success = adapter.set_led_color("warbling-mara", "#00E5FF", slot=2, led_index=0)
 
         self.assertTrue(success)
@@ -122,7 +133,7 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
                 )
             return subprocess.CompletedProcess(cmd, returncode=0, stdout="", stderr="")
 
-        adapter = RatbagDeviceAdapter(command_runner=mock_runner)
+        adapter = RatbagDeviceAdapter(state_cache_file=None, command_runner=mock_runner)
         success = adapter.set_led_color("warbling-mara", "#00E5FF", slot=1, led_index=None)
 
         self.assertTrue(success)
@@ -131,7 +142,7 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
         self.assertIn("ratbagctl warbling-mara profile 1 led 1 set color 00e5ff", flattened)
 
     def test_build_led_commands_all_modes(self):
-        adapter = RatbagDeviceAdapter()
+        adapter = RatbagDeviceAdapter(state_cache_file=None)
 
         # 1. Modo 'on' (Estático)
         cmds_on = adapter.build_led_commands("warbling-mara", hex_color="#5500DD", mode="on", led_index=0)
@@ -180,7 +191,7 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
             executed_commands.append(cmd)
             return subprocess.CompletedProcess(cmd, returncode=0, stdout="", stderr="")
 
-        adapter = RatbagDeviceAdapter(command_runner=mock_runner)
+        adapter = RatbagDeviceAdapter(state_cache_file=None, command_runner=mock_runner)
         success = adapter.set_led_lighting(
             "warbling-mara",
             hex_color="#5500DD",
@@ -200,7 +211,7 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
         )
 
     def test_build_button_command_modifiers_vs_macros(self):
-        adapter = RatbagDeviceAdapter()
+        adapter = RatbagDeviceAdapter(state_cache_file=None)
         
         # 1. Modificador LeftShift (debe usar 'key' para hold y evitar error -22 en hidpp20)
         action_shift = Action(
@@ -253,7 +264,7 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
             executed_commands.append(cmd)
             return subprocess.CompletedProcess(cmd, returncode=0, stdout="", stderr="")
 
-        adapter = RatbagDeviceAdapter(command_runner=mock_runner)
+        adapter = RatbagDeviceAdapter(state_cache_file=None, command_runner=mock_runner)
 
         profile = Profile(
             name="Warframe Test",
@@ -308,7 +319,7 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
                 return subprocess.CompletedProcess(cmd, returncode=0, stdout=stdout, stderr="")
             return subprocess.CompletedProcess(cmd, returncode=0, stdout="", stderr="")
 
-        adapter = RatbagDeviceAdapter(command_runner=mock_runner)
+        adapter = RatbagDeviceAdapter(state_cache_file=None, command_runner=mock_runner)
         device_id = adapter.find_device()
         self.assertEqual(device_id, "warbling-mara")
 
@@ -319,7 +330,7 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
                 return subprocess.CompletedProcess(cmd, 0, "dev1: Logitech G502 HERO Gaming Mouse\n", "")
             return subprocess.CompletedProcess(cmd, 0, "", "")
 
-        adapter = RatbagDeviceAdapter(command_runner=mock_hero)
+        adapter = RatbagDeviceAdapter(state_cache_file=None, command_runner=mock_hero)
         var_hero = adapter.detect_device_variant("dev1")
         self.assertEqual(var_hero, G502_VARIANTS["g502_hero"])
 
@@ -329,7 +340,7 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
                 return subprocess.CompletedProcess(cmd, 0, "dev2: Logitech G502 LIGHTSPEED Wireless Gaming Mouse\n", "")
             return subprocess.CompletedProcess(cmd, 0, "", "")
 
-        adapter = RatbagDeviceAdapter(command_runner=mock_lightspeed)
+        adapter = RatbagDeviceAdapter(state_cache_file=None, command_runner=mock_lightspeed)
         var_ls = adapter.detect_device_variant("dev2")
         self.assertEqual(var_ls, G502_VARIANTS["g502_lightspeed"])
         self.assertTrue(var_ls.capabilities.has_battery)
@@ -342,7 +353,7 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
                 return subprocess.CompletedProcess(cmd, 0, "number of leds: 0\n", "")
             return subprocess.CompletedProcess(cmd, 0, "", "")
 
-        adapter = RatbagDeviceAdapter(command_runner=mock_x)
+        adapter = RatbagDeviceAdapter(state_cache_file=None, command_runner=mock_x)
         var_x = adapter.detect_device_variant("dev3")
         self.assertEqual(var_x, G502_VARIANTS["g502_x"])
         self.assertFalse(var_x.capabilities.has_lighting)
@@ -353,7 +364,7 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
                 return subprocess.CompletedProcess(cmd, 0, "dev4: Logitech G502 X PLUS Wireless Gaming Mouse\n", "")
             return subprocess.CompletedProcess(cmd, 0, "", "")
 
-        adapter = RatbagDeviceAdapter(command_runner=mock_x_plus)
+        adapter = RatbagDeviceAdapter(state_cache_file=None, command_runner=mock_x_plus)
         var_x_plus = adapter.detect_device_variant("dev4")
         self.assertEqual(var_x_plus, G502_VARIANTS["g502_x_wireless"])
         self.assertEqual(var_x_plus.capabilities.led_zones, 8)
@@ -366,7 +377,7 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
                 return subprocess.CompletedProcess(cmd, 0, "Profile 0:\n  number of leds: 1\n  max dpi: 12000\n", "")
             return subprocess.CompletedProcess(cmd, 0, "", "")
 
-        adapter = RatbagDeviceAdapter(command_runner=mock_core)
+        adapter = RatbagDeviceAdapter(state_cache_file=None, command_runner=mock_core)
         var_core = adapter.detect_device_variant("dev5")
         self.assertEqual(var_core, G502_VARIANTS["g502_proteus_core"])
         self.assertEqual(var_core.capabilities.max_dpi, 12000)
@@ -379,7 +390,7 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
                 return subprocess.CompletedProcess(cmd, 0, "Profile 0:\n  number of leds: 2\n  max dpi: 12000\n", "")
             return subprocess.CompletedProcess(cmd, 0, "", "")
 
-        adapter = RatbagDeviceAdapter(command_runner=mock_spectrum)
+        adapter = RatbagDeviceAdapter(state_cache_file=None, command_runner=mock_spectrum)
         var_spec = adapter.detect_device_variant("dev6")
         self.assertEqual(var_spec, G502_VARIANTS["g502_proteus_spectrum"])
 
@@ -394,7 +405,7 @@ number of leds: 2
                 return subprocess.CompletedProcess(cmd, 0, info_output, "")
             return subprocess.CompletedProcess(cmd, 1, "", "error")
 
-        adapter = RatbagDeviceAdapter(command_runner=mock_runner)
+        adapter = RatbagDeviceAdapter(state_cache_file=None, command_runner=mock_runner)
         level = adapter.get_battery_level("singing-porcupine")
         self.assertEqual(level, 78)
 
@@ -412,7 +423,7 @@ number of leds: 2
             executed_commands.append(cmd)
             return subprocess.CompletedProcess(cmd, 0, "", "")
 
-        adapter = RatbagDeviceAdapter(command_runner=mock_runner)
+        adapter = RatbagDeviceAdapter(state_cache_file=None, command_runner=mock_runner)
 
         # Perfil con 16.000 DPI (superior al sensor de Proteus Core que es 12.000)
         profile_high_dpi = Profile(
@@ -458,7 +469,7 @@ number of leds: 2
             executed_commands.append(cmd)
             return subprocess.CompletedProcess(cmd, returncode=0, stdout="", stderr="")
 
-        adapter = RatbagDeviceAdapter(command_runner=mock_runner)
+        adapter = RatbagDeviceAdapter(state_cache_file=None, command_runner=mock_runner)
 
         profile = Profile(
             name="Differential Test",

@@ -93,7 +93,13 @@ class TestCliDesktopIntegration(unittest.TestCase):
             self.assertIn("Service", config.sections())
             self.assertIn("Install", config.sections())
             self.assertIn("run", config["Service"]["ExecStart"])
+            self.assertNotIn("src/cli.py", config["Service"]["ExecStart"])
             self.assertEqual(config["Install"]["WantedBy"], "default.target")
+
+            # Si el launcher no existe, debe advertir y retornar 1
+            with patch("shutil.which", return_value=None):
+                res = cmd_install_service(None)
+                self.assertEqual(res, 1)
 
             # 2. Desinstalar servicio systemd
             cmd_uninstall_service(None)
