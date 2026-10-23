@@ -4,11 +4,25 @@ Módulo de almacenamiento y persistencia para perfiles.
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 from datetime import datetime, timezone
+import fcntl
 import json
+import logging
 import os
 from pathlib import Path
+import shutil
+import tempfile
+import threading
+import time
 from typing import Protocol
+
+logger = logging.getLogger("g502.storage")
+
+
+class CorruptedProfileRepositoryError(RuntimeError):
+    """Excepción lanzada cuando el archivo de perfiles está corrupto y no puede sobrescribirse."""
+    pass
 
 from domain import Action, Button, DpiConfiguration, Profile
 
@@ -55,6 +69,8 @@ class ProfileRepository(Protocol):
         ...
 
 
+# Fuente canónica de persistencia de perfiles en disco.
+# Cualquier modificación en esta ruta debe sincronizarse en docs/ARCHITECTURE.md y READMEs.
 DEFAULT_PROFILES_FILE = Path.home() / ".config/g502-profiles.json"
 
 
@@ -73,12 +89,64 @@ class JsonProfileRepository:
         self._profiles: dict[str, Profile] = {}
         self._default_profiles: dict[str, str] = {}  # application_id -> profile_id
         self._last_mtime: float = 0.0
+        self._lock = threading.RLock()
+        self._is_corrupted: bool = False
+        self._corrupt_backup_path: Path | None = None
         self._load()
+
+    @property
+    def is_corrupted(self) -> bool:
+        """Indica si el archivo de perfiles en disco está corrupto."""
+        with self._lock:
+            return self._is_corrupted
+
+    @property
+    def corrupt_backup_path(self) -> Path | None:
+        """Ruta al archivo de respaldo del JSON corrupto si existió."""
+        with self._lock:
+            return self._corrupt_backup_path
+
+    @contextmanager
+    def _file_lock(self):
+        """Bloqueo exclusivo a nivel de archivo para coordinar CLI y GUI (inter-proceso)."""
+        lock_path = self._file_path.with_name(f"{self._file_path.name}.lock")
+        try:
+            lock_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(lock_path, "a") as fd:
+                try:
+                    fcntl.flock(fd.fileno(), fcntl.LOCK_EX)
+                except OSError:
+                    pass
+                try:
+                    yield
+                finally:
+                    try:
+                        fcntl.flock(fd.fileno(), fcntl.LOCK_UN)
+                    except OSError:
+                        pass
+        except OSError:
+            yield
 
     @property
     def file_path(self) -> Path:
         """Ruta al archivo JSON de persistencia."""
         return self._file_path
+
+    def _handle_corrupted_file(self, err: Exception) -> None:
+        ts = int(time.time())
+        backup_path = self._file_path.with_name(f"{self._file_path.name}.corrupt-{ts}")
+        try:
+            shutil.copy2(self._file_path, backup_path)
+        except OSError as copy_err:
+            logger.warning(f"No se pudo respaldar el archivo corrupto: {copy_err}")
+
+        self._is_corrupted = True
+        self._corrupt_backup_path = backup_path
+        logger.error(
+            f"El archivo de perfiles '{self._file_path}' está corrupto ({err}). "
+            f"Se creó una copia de seguridad en '{backup_path}'. "
+            "Las operaciones de guardado quedan bloqueadas para evitar pérdida de datos."
+        )
 
     def _reload_if_needed(self) -> None:
         """Recarga perfiles desde disco si otro proceso modificó el archivo."""
@@ -98,9 +166,11 @@ class JsonProfileRepository:
         if not isinstance(profile, Profile):
             raise TypeError("profile debe ser una instancia de Profile.")
 
-        self._reload_if_needed()
-        self._profiles[profile.id] = profile
-        self._flush()
+        with self._lock:
+            with self._file_lock():
+                self._reload_if_needed()
+                self._profiles[profile.id] = profile
+                self._flush()
 
     def get_by_id(self, profile_id: str) -> Profile | None:
         """
@@ -108,8 +178,9 @@ class JsonProfileRepository:
         """
         if not isinstance(profile_id, str):
             return None
-        self._reload_if_needed()
-        return self._profiles.get(profile_id.strip())
+        with self._lock:
+            self._reload_if_needed()
+            return self._profiles.get(profile_id.strip())
 
     def get_by_application(self, application_id: str) -> tuple[Profile, ...]:
         """
@@ -118,20 +189,22 @@ class JsonProfileRepository:
         if not isinstance(application_id, str):
             return ()
 
-        self._reload_if_needed()
-        app_id = application_id.strip().casefold()
-        return tuple(
-            p
-            for p in self._profiles.values()
-            if p.application_id.casefold() == app_id
-        )
+        with self._lock:
+            self._reload_if_needed()
+            app_id = application_id.strip().casefold()
+            return tuple(
+                p
+                for p in self._profiles.values()
+                if p.application_id.casefold() == app_id
+            )
 
     def list_all(self) -> tuple[Profile, ...]:
         """
         Devuelve todos los perfiles almacenados.
         """
-        self._reload_if_needed()
-        return tuple(self._profiles.values())
+        with self._lock:
+            self._reload_if_needed()
+            return tuple(self._profiles.values())
 
     def get_default_profile_id(self, application_id: str) -> str | None:
         """
@@ -139,8 +212,9 @@ class JsonProfileRepository:
         """
         if not isinstance(application_id, str):
             return None
-        self._reload_if_needed()
-        return self._default_profiles.get(application_id.strip().casefold())
+        with self._lock:
+            self._reload_if_needed()
+            return self._default_profiles.get(application_id.strip().casefold())
 
     def set_default_profile_id(self, application_id: str, profile_id: str) -> None:
         """
@@ -151,22 +225,24 @@ class JsonProfileRepository:
         if not isinstance(profile_id, str) or not profile_id.strip():
             raise ValueError("profile_id no puede estar vacío.")
 
-        self._reload_if_needed()
-        app_id = application_id.strip().casefold()
-        p_id = profile_id.strip()
+        with self._lock:
+            with self._file_lock():
+                self._reload_if_needed()
+                app_id = application_id.strip().casefold()
+                p_id = profile_id.strip()
 
-        # Validar que el perfil exista y corresponda a la aplicación
-        profile = self.get_by_id(p_id)
-        if profile is None:
-            raise ValueError(f"El perfil con ID '{p_id}' no existe en el repositorio.")
-        if profile.application_id.casefold() != app_id:
-            raise ValueError(
-                f"El perfil '{p_id}' pertenece a '{profile.application_id}', "
-                f"no a '{application_id}'."
-            )
+                # Validar que el perfil exista y corresponda a la aplicación
+                profile = self.get_by_id(p_id)
+                if profile is None:
+                    raise ValueError(f"El perfil con ID '{p_id}' no existe en el repositorio.")
+                if profile.application_id.casefold() != app_id:
+                    raise ValueError(
+                        f"El perfil '{p_id}' pertenece a '{profile.application_id}', "
+                        f"no a '{application_id}'."
+                    )
 
-        self._default_profiles[app_id] = p_id
-        self._flush()
+                self._default_profiles[app_id] = p_id
+                self._flush()
 
     def delete(self, profile_id: str) -> bool:
         """
@@ -175,57 +251,56 @@ class JsonProfileRepository:
         if not isinstance(profile_id, str):
             return False
 
-        self._reload_if_needed()
-        clean_id = profile_id.strip()
-        if clean_id not in self._profiles:
-            return False
+        with self._lock:
+            with self._file_lock():
+                self._reload_if_needed()
+                clean_id = profile_id.strip()
+                if clean_id not in self._profiles:
+                    return False
 
-        del self._profiles[clean_id]
+                del self._profiles[clean_id]
 
-        # Limpiar de default_profiles si correspondía
-        for app_id, def_id in list(self._default_profiles.items()):
-            if def_id == clean_id:
-                del self._default_profiles[app_id]
+                # Limpiar de default_profiles si correspondía
+                for app_id, def_id in list(self._default_profiles.items()):
+                    if def_id == clean_id:
+                        del self._default_profiles[app_id]
 
-        self._flush()
-        return True
+                self._flush()
+                return True
 
     def export_data(self, application_id: str | None = None) -> dict:
         """
         Exporta los perfiles y mapeos predeterminados a un diccionario serializable.
         Si se especifica application_id, filtra únicamente dicha aplicación.
         """
-        self._reload_if_needed()
-        if application_id is not None:
-            clean_app_id = application_id.strip().casefold()
-            profiles = [
-                self._serialize_profile(p)
-                for p in self._profiles.values()
-                if p.application_id.casefold() == clean_app_id
-            ]
-            defaults = {
-                app_id: prof_id
-                for app_id, prof_id in self._default_profiles.items()
-                if app_id.casefold() == clean_app_id
-            }
-        else:
-            profiles = [self._serialize_profile(p) for p in self._profiles.values()]
-            defaults = dict(self._default_profiles)
+        with self._lock:
+            self._reload_if_needed()
+            if application_id is not None:
+                clean_app_id = application_id.strip().casefold()
+                profiles = [
+                    self._serialize_profile(p)
+                    for p in self._profiles.values()
+                    if p.application_id.casefold() == clean_app_id
+                ]
+                defaults = {
+                    app_id: prof_id
+                    for app_id, prof_id in self._default_profiles.items()
+                    if app_id.casefold() == clean_app_id
+                }
+            else:
+                profiles = [self._serialize_profile(p) for p in self._profiles.values()]
+                defaults = dict(self._default_profiles)
 
-        return {
-            "version": 1,
-            "exported_at": datetime.now(timezone.utc).isoformat(),
-            "default_profiles": defaults,
-            "profiles": profiles,
-        }
+            return {
+                "version": 1,
+                "exported_at": datetime.now(timezone.utc).isoformat(),
+                "default_profiles": defaults,
+                "profiles": profiles,
+            }
 
     def import_data(self, data: dict | list, overwrite: bool = False) -> tuple[int, int]:
         """
         Importa perfiles desde una estructura de datos exportada.
-
-        Retorna una tupla (importados_o_actualizados, omitidos).
-        Si overwrite es False, se omiten perfiles cuyos IDs ya existen en el repositorio.
-        Si overwrite es True, se sobrescriben los existentes.
         """
         if isinstance(data, list):
             profiles_raw = data
@@ -239,58 +314,71 @@ class JsonProfileRepository:
         if not isinstance(profiles_raw, list):
             raise ValueError("El formato de importación es inválido: 'profiles' debe ser una lista.")
 
-        self._reload_if_needed()
-        imported = 0
-        skipped = 0
+        with self._lock:
+            with self._file_lock():
+                self._reload_if_needed()
+                imported = 0
+                skipped = 0
 
-        for item in profiles_raw:
-            if not isinstance(item, dict):
-                skipped += 1
-                continue
-            try:
-                profile = self._deserialize_profile(item)
-            except Exception:
-                skipped += 1
-                continue
+                for item in profiles_raw:
+                    if not isinstance(item, dict):
+                        skipped += 1
+                        continue
+                    try:
+                        profile = self._deserialize_profile(item)
+                    except Exception:
+                        skipped += 1
+                        continue
 
-            if profile.id in self._profiles and not overwrite:
-                skipped += 1
-                continue
+                    if profile.id in self._profiles and not overwrite:
+                        skipped += 1
+                        continue
 
-            self._profiles[profile.id] = profile
-            imported += 1
+                    self._profiles[profile.id] = profile
+                    imported += 1
 
-        if isinstance(defaults_map, dict):
-            for app_id, prof_id in defaults_map.items():
-                if isinstance(app_id, str) and isinstance(prof_id, str):
-                    clean_app = app_id.strip().casefold()
-                    clean_prof = prof_id.strip()
-                    if clean_prof in self._profiles:
-                        if overwrite or clean_app not in self._default_profiles:
-                            self._default_profiles[clean_app] = clean_prof
+                if isinstance(defaults_map, dict):
+                    for app_id, prof_id in defaults_map.items():
+                        if isinstance(app_id, str) and isinstance(prof_id, str):
+                            clean_app = app_id.strip().casefold()
+                            clean_prof = prof_id.strip()
+                            if clean_prof in self._profiles:
+                                if overwrite or clean_app not in self._default_profiles:
+                                    self._default_profiles[clean_app] = clean_prof
 
-        if imported > 0:
-            self._flush()
+                if imported > 0:
+                    self._flush()
 
-        return (imported, skipped)
+                return (imported, skipped)
 
     def _load(self) -> None:
         """
         Carga los datos desde el archivo JSON si existe.
+        Preserva y respalda el archivo original ante corrupción o errores de sintaxis.
         """
         if not self._file_path.exists():
+            return
+
+        try:
+            if self._file_path.stat().st_size == 0:
+                return
+        except OSError:
             return
 
         try:
             self._last_mtime = self._file_path.stat().st_mtime
             with open(self._file_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
-        except (json.JSONDecodeError, OSError):
+        except (json.JSONDecodeError, OSError) as err:
+            self._handle_corrupted_file(err)
             return
 
         if not isinstance(data, dict):
+            self._handle_corrupted_file(ValueError("El archivo JSON debe contener un objeto dict raíz."))
             return
 
+        self._is_corrupted = False
+        self._corrupt_backup_path = None
         self._profiles.clear()
         self._default_profiles.clear()
 
@@ -314,7 +402,14 @@ class JsonProfileRepository:
     def _flush(self) -> None:
         """
         Escribe de forma atómica el estado actual al archivo JSON.
+        Lanza CorruptedProfileRepositoryError si el archivo original estaba corrupto.
         """
+        if self._is_corrupted:
+            raise CorruptedProfileRepositoryError(
+                f"Operación abortada: el archivo '{self._file_path}' está corrupto. "
+                f"Se preservó el archivo original en '{self._corrupt_backup_path}'."
+            )
+
         data = {
             "version": 1,
             "default_profiles": self._default_profiles,
@@ -324,12 +419,17 @@ class JsonProfileRepository:
         }
 
         self._file_path.parent.mkdir(parents=True, exist_ok=True)
-        tmp_file = self._file_path.with_suffix(f".tmp.{os.getpid()}")
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=self._file_path.parent,
+            prefix=f"{self._file_path.name}.tmp.",
+            delete=False,
+        ) as tmp:
+            json.dump(data, tmp, indent=4, ensure_ascii=False)
+            tmp_path = Path(tmp.name)
 
-        with open(tmp_file, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=4, ensure_ascii=False)
-
-        tmp_file.replace(self._file_path)
+        tmp_path.replace(self._file_path)
         try:
             self._last_mtime = self._file_path.stat().st_mtime
         except OSError:

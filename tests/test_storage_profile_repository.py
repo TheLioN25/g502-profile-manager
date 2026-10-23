@@ -178,6 +178,61 @@ class TestJsonProfileRepository(unittest.TestCase):
         self.assertFalse(self.repo.delete("id_inexistente"))
 
 
+    def test_corrupt_file_is_preserved_and_reported(self):
+        corrupt_path = Path(self.temp_dir.name) / "corrupted_profiles.json"
+        raw_bytes = b"{\n  this is definitely invalid json content\n"
+        corrupt_path.write_bytes(raw_bytes)
+
+        from storage.profile_repository import CorruptedProfileRepositoryError
+        repo = JsonProfileRepository(corrupt_path)
+
+        self.assertTrue(repo.is_corrupted)
+        self.assertIsNotNone(repo.corrupt_backup_path)
+        self.assertTrue(repo.corrupt_backup_path.exists())
+        self.assertEqual(repo.corrupt_backup_path.read_bytes(), raw_bytes)
+
+        # save() debe lanzar CorruptedProfileRepositoryError y no pisar el archivo corrupto
+        new_prof = Profile(name="New", application_id="test:app", dpi=800, profile_id="p-safe")
+        with self.assertRaises(CorruptedProfileRepositoryError):
+            repo.save(new_prof)
+
+        # El archivo original sigue intacto
+        self.assertEqual(corrupt_path.read_bytes(), raw_bytes)
+
+    def test_concurrent_save_and_list(self):
+        import threading
+
+        num_threads = 5
+        profiles_per_thread = 5
+        errors = []
+
+        def worker(thread_idx: int):
+            try:
+                for i in range(profiles_per_thread):
+                    p = Profile(
+                        name=f"Prof {thread_idx}-{i}",
+                        application_id=self.app_id,
+                        dpi=1000 + thread_idx * 10 + i,
+                        profile_id=f"p-th-{thread_idx}-{i}",
+                    )
+                    self.repo.save(p)
+                    # Lectura concurrente
+                    all_p = self.repo.list_all()
+                    self.assertTrue(len(all_p) > 0)
+            except Exception as e:
+                errors.append(e)
+
+        threads = [threading.Thread(target=worker, args=(t,)) for t in range(num_threads)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        self.assertEqual(len(errors), 0, f"Errores concurrentes: {errors}")
+        all_saved = self.repo.list_all()
+        self.assertEqual(len(all_saved), num_threads * profiles_per_thread)
+
+
 if __name__ == "__main__":
     unittest.main()
 
