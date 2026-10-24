@@ -28,6 +28,7 @@ Memoria técnica del proyecto entre sesiones (~45 líneas). Estado y decisiones 
 - **Persistencia atómica y resiliente:** `DEFAULT_PROFILES_FILE = ~/.config/g502-profiles.json`. Respaldo inmediato ante corrupción previa para evitar pérdida de datos del usuario.
 - **Doble candado de concurrencia:** `RLock` de memoria para motor/hilos y `flock` de archivo para comandos CLI concurrentes.
 - **StatusNotifierItem directo en D-Bus (`Gio.DBusConnection`):** D-Bus nativo sin `AppIndicator3` (GTK3 que crashea en GTK4).
+- **Sincronización remota pre-auditoría:** Push a origin/master con 157 tests en verde para validar GitHub Actions CI; la re-revisión de OpenCode auditará este delta publicado y cualquier ajuste se aplicará en commit incremental.
 - **Sintaxis híbrida `key` vs `macro` en `ratbag_adapter`:**
   - Modificadores (`Shift`, `Ctrl`, `Alt`, `Meta`): `action set key <KEY>` por HID++ 2.0 (-22 EINVAL en macros) y soporte hold.
   - Alfanuméricas y símbolos: `action set macro <KEY>` (`↕KEY`) para Wine/Proton/UE5. Rechazo estricto con `ValueError` para símbolos no soportados.
