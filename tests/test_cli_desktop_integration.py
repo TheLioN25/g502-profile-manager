@@ -80,23 +80,32 @@ class TestCliDesktopIntegration(unittest.TestCase):
         mock_subprocess.return_value = mock_proc
 
         with patch("pathlib.Path.home", return_value=self.fake_home):
-            # 1. Instalar servicio systemd
-            cmd_install_service(None)
+            # Preparar launcher simulado en ~/.local/bin/g502
+            fake_bin = self.fake_home / ".local/bin"
+            fake_bin.mkdir(parents=True, exist_ok=True)
+            fake_launcher = fake_bin / "g502"
+            fake_launcher.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+            fake_launcher.chmod(0o755)
 
-            service_file = self.fake_home / ".config/systemd/user/g502-profile-manager.service"
-            self.assertTrue(service_file.exists(), "El archivo .service debe existir tras la instalación.")
+            with patch("shutil.which", return_value=str(fake_launcher)):
+                # 1. Instalar servicio systemd
+                cmd_install_service(None)
 
-            # Validar estructura INI del servicio systemd
-            config = configparser.ConfigParser(interpolation=None)
-            config.read(service_file, encoding="utf-8")
-            self.assertIn("Unit", config.sections())
-            self.assertIn("Service", config.sections())
-            self.assertIn("Install", config.sections())
-            self.assertIn("run", config["Service"]["ExecStart"])
-            self.assertNotIn("src/cli.py", config["Service"]["ExecStart"])
-            self.assertEqual(config["Install"]["WantedBy"], "default.target")
+                service_file = self.fake_home / ".config/systemd/user/g502-profile-manager.service"
+                self.assertTrue(service_file.exists(), "El archivo .service debe existir tras la instalación.")
 
-            # Si el launcher no existe, debe advertir y retornar 1
+                # Validar estructura INI del servicio systemd
+                config = configparser.ConfigParser(interpolation=None)
+                config.read(service_file, encoding="utf-8")
+                self.assertIn("Unit", config.sections())
+                self.assertIn("Service", config.sections())
+                self.assertIn("Install", config.sections())
+                self.assertIn("run", config["Service"]["ExecStart"])
+                self.assertNotIn("src/cli.py", config["Service"]["ExecStart"])
+                self.assertEqual(config["Install"]["WantedBy"], "default.target")
+
+            # Si el launcher no existe en PATH ni en ~/.local/bin, debe advertir y retornar 1
+            fake_launcher.unlink()
             with patch("shutil.which", return_value=None):
                 res = cmd_install_service(None)
                 self.assertEqual(res, 1)
