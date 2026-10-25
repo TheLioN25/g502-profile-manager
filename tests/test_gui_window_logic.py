@@ -569,5 +569,38 @@ class TestGuiLogic(unittest.TestCase):
         finally:
             set_language("es", persist=False)
 
+    def test_main_window_handles_corrupted_repository_on_startup(self):
+        import tempfile
+        from storage.profile_repository import JsonProfileRepository
+
+        with tempfile.NamedTemporaryFile(suffix=".json") as f:
+            f.write(b"CORRUPTED JSON CONTENT {")
+            f.flush()
+            corrupt_repo = JsonProfileRepository(Path(f.name))
+            corrupt_mgr = ProfileManager(corrupt_repo)
+
+            # Debe inicializar sin lanzar excepciones no controladas
+            window = MainWindow(
+                app=self.app,
+                profile_manager=corrupt_mgr,
+                catalog_service=self.catalog_service,
+                discovery_adapter=self.mock_discovery,
+                ratbag_adapter=self.mock_ratbag,
+            )
+
+            self.assertIsNotNone(window)
+            self.assertTrue(window._corrupt_banner.get_revealed())
+            self.assertFalse(window._save_btn.get_sensitive())
+            self.assertFalse(window._new_profile_btn.get_sensitive())
+            self.assertFalse(window._del_btn.get_sensitive())
+
+            # Clics directos no deben reventar la app
+            window._on_save_profile_clicked(None)
+            window._on_new_profile_clicked(None)
+            window._on_delete_profile_clicked(None)
+            window._on_set_default_profile_clicked(None)
+            window._on_duplicate_profile_clicked(None)
+
+
 if __name__ == "__main__":
     unittest.main()

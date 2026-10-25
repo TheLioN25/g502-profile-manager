@@ -27,6 +27,7 @@ from gui.mouse_diagram import G502MouseDiagram
 from gui.tray import TrayIndicator
 from services.action_catalog import ActionCatalogService
 from services.profile_manager import ProfileManager
+from storage import CorruptedProfileRepositoryError, ProfileLockError
 
 
 BUTTON_DEFINITIONS = [
@@ -350,6 +351,10 @@ class MainWindow(Adw.ApplicationWindow):
         self._main_header.pack_end(profile_controls)
 
         box.append(self._main_header)
+
+        # Banner de repositorio corrupto (alerta persistente)
+        self._corrupt_banner = Adw.Banner(title="", revealed=False)
+        box.append(self._corrupt_banner)
 
         # Barra de cambio de vista (ViewSwitcher)
         self._view_stack = Adw.ViewStack()
@@ -753,7 +758,26 @@ class MainWindow(Adw.ApplicationWindow):
         row.set_child(hbox)
         return row
 
+    def _check_corrupted_repository_status(self) -> bool:
+        """Verifica si el repositorio de perfiles está corrupto y actualiza el estado de la GUI."""
+        is_corrupt = getattr(self._profile_manager, "is_corrupted", False)
+        if is_corrupt:
+            backup_path = getattr(self._profile_manager, "corrupt_backup_path", None)
+            if backup_path:
+                msg = _("Archivo de perfiles corrupto. Modo de solo lectura activado. Respaldo en: {path}").format(path=backup_path)
+            else:
+                msg = _("Archivo de perfiles corrupto. Modo de solo lectura activado.")
+            self._corrupt_banner.set_title(msg)
+            self._corrupt_banner.set_revealed(True)
+            self._save_btn.set_sensitive(False)
+            self._new_profile_btn.set_sensitive(False)
+            self._set_def_btn.set_sensitive(False)
+            self._dup_btn.set_sensitive(False)
+            self._del_btn.set_sensitive(False)
+        return is_corrupt
+
     def _load_applications(self, select_app_id: str | None = None, force_refresh: bool = False):
+        self._check_corrupted_repository_status()
         """Descubre juegos instalados y organiza las secciones de configuradas (arriba) y no configuradas (abajo)."""
         while child := self._configured_list_box.get_first_child():
             self._configured_list_box.remove(child)
@@ -886,6 +910,12 @@ class MainWindow(Adw.ApplicationWindow):
         try:
             profiles = list(self._profile_manager.get_profiles_for_application(application_id))
             if not profiles:
+                if getattr(self._profile_manager, "is_corrupted", False):
+                    self._current_app_profiles = []
+                    string_list = Gtk.StringList.new([_("Repositorio corrupto (Solo lectura)")])
+                    self._profile_dropdown.set_model(string_list)
+                    self._profile_dropdown.set_selected(0)
+                    return
                 app_label = _(self._selected_app.name) if self._selected_app and self._selected_app.application_id == "desktop:general" else (self._selected_app.name if self._selected_app else _("Juego"))
                 default_name = f"{app_label} {_('Perfil')}"
                 new_p = self._profile_manager.create_profile(
@@ -1223,18 +1253,24 @@ class MainWindow(Adw.ApplicationWindow):
     def _on_new_profile_clicked(self, _btn):
         if not self._selected_app:
             return
+        if getattr(self._profile_manager, "is_corrupted", False):
+            self._show_toast(_("Operación bloqueada: el archivo de perfiles está corrupto."))
+            return
 
         def on_created(name: str):
-            new_p = self._profile_manager.create_profile(
-                name=name,
-                application_id=self._selected_app.application_id,
-                dpi=self._current_profile.dpi.dpi if self._current_profile else 8000,
-                led_color=self._current_profile.led_color if self._current_profile else "#00E5FF",
-                led_mode=self._current_profile.led_mode if self._current_profile else "on",
-                led_duration=self._current_profile.led_duration if self._current_profile else None,
-            )
-            self._populate_profiles_dropdown(self._selected_app.application_id, select_profile_id=new_p.id)
-            self._show_toast(_("Perfil '{name}' creado.").format(name=name))
+            try:
+                new_p = self._profile_manager.create_profile(
+                    name=name,
+                    application_id=self._selected_app.application_id,
+                    dpi=self._current_profile.dpi.dpi if self._current_profile else 8000,
+                    led_color=self._current_profile.led_color if self._current_profile else "#00E5FF",
+                    led_mode=self._current_profile.led_mode if self._current_profile else "on",
+                    led_duration=self._current_profile.led_duration if self._current_profile else None,
+                )
+                self._populate_profiles_dropdown(self._selected_app.application_id, select_profile_id=new_p.id)
+                self._show_toast(_("Perfil '{name}' creado.").format(name=name))
+            except (CorruptedProfileRepositoryError, ProfileLockError) as e:
+                self._show_toast(str(e))
 
         dialog = NewProfileDialog(
             parent_window=self,
@@ -1248,21 +1284,27 @@ class MainWindow(Adw.ApplicationWindow):
             return
 
         self._profile_popover.popdown()
-        self._profile_manager.set_default_profile(self._selected_app.application_id, self._current_profile.id)
-        self._populate_profiles_dropdown(self._selected_app.application_id, select_profile_id=self._current_profile.id)
-        self._show_toast(_("'{name}' marcado como predeterminado ⭐").format(name=self._current_profile.name))
+        try:
+            self._profile_manager.set_default_profile(self._selected_app.application_id, self._current_profile.id)
+            self._populate_profiles_dropdown(self._selected_app.application_id, select_profile_id=self._current_profile.id)
+            self._show_toast(_("'{name}' marcado como predeterminado ⭐").format(name=self._current_profile.name))
+        except (CorruptedProfileRepositoryError, ProfileLockError) as e:
+            self._show_toast(str(e))
 
     def _on_duplicate_profile_clicked(self, _btn):
         if not self._selected_app or not self._current_profile:
             return
 
         self._profile_popover.popdown()
-        cloned = self._profile_manager.duplicate_profile(
-            self._current_profile.id,
-            f"{self._current_profile.name} (Copia)",
-        )
-        self._populate_profiles_dropdown(self._selected_app.application_id, select_profile_id=cloned.id)
-        self._show_toast(_("Perfil duplicado: '{name}'").format(name=cloned.name))
+        try:
+            cloned = self._profile_manager.duplicate_profile(
+                self._current_profile.id,
+                f"{self._current_profile.name} (Copia)",
+            )
+            self._populate_profiles_dropdown(self._selected_app.application_id, select_profile_id=cloned.id)
+            self._show_toast(_("Perfil duplicado: '{name}'").format(name=cloned.name))
+        except (CorruptedProfileRepositoryError, ProfileLockError) as e:
+            self._show_toast(str(e))
 
     def _on_delete_profile_clicked(self, _btn):
         if not self._selected_app or not self._current_profile:
@@ -1274,21 +1316,27 @@ class MainWindow(Adw.ApplicationWindow):
             return
 
         deleted_name = self._current_profile.name
-        self._profile_manager.delete_profile(self._current_profile.id)
-        self._current_profile = None
-        self._populate_profiles_dropdown(self._selected_app.application_id)
-        self._show_toast(_("Perfil '{name}' eliminado.").format(name=deleted_name))
-        self._load_applications(select_app_id=self._selected_app.application_id)
+        try:
+            self._profile_manager.delete_profile(self._current_profile.id)
+            self._current_profile = None
+            self._populate_profiles_dropdown(self._selected_app.application_id)
+            self._show_toast(_("Perfil '{name}' eliminado.").format(name=deleted_name))
+            self._load_applications(select_app_id=self._selected_app.application_id)
+        except (CorruptedProfileRepositoryError, ProfileLockError) as e:
+            self._show_toast(str(e))
 
     def _on_save_profile_clicked(self, _btn):
         if not self._selected_app or not self._current_profile:
             return
 
         # Guardar en repositorio
-        saved_profile = self._profile_manager.save_profile(self._current_profile)
-        self._populate_profiles_dropdown(self._selected_app.application_id, select_profile_id=saved_profile.id)
-        self._show_toast(_("Perfil '{name}' guardado.").format(name=saved_profile.name))
-        self._load_applications(select_app_id=self._selected_app.application_id)
+        try:
+            saved_profile = self._profile_manager.save_profile(self._current_profile)
+            self._populate_profiles_dropdown(self._selected_app.application_id, select_profile_id=saved_profile.id)
+            self._show_toast(_("Perfil '{name}' guardado.").format(name=saved_profile.name))
+            self._load_applications(select_app_id=self._selected_app.application_id)
+        except (CorruptedProfileRepositoryError, ProfileLockError) as e:
+            self._show_toast(str(e))
 
     def _on_report_community_issue(self, _banner):
         variant_name = getattr(self._current_variant, "short_name", "G502")
