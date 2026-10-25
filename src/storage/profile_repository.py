@@ -89,7 +89,7 @@ class JsonProfileRepository:
 
     def __init__(self, file_path: str | Path | None = None):
         if file_path is None:
-            file_path = DEFAULT_PROFILES_FILE
+            file_path = Path.home() / ".config/g502-profiles.json"
         self._file_path = Path(file_path).expanduser().resolve()
         self._profiles: dict[str, Profile] = {}
         self._default_profiles: dict[str, str] = {}  # application_id -> profile_id
@@ -201,8 +201,16 @@ class JsonProfileRepository:
                         else "El archivo de perfiles está corrupto y no puede sobrescribirse para preservar el original."
                     )
                     raise CorruptedProfileRepositoryError(msg)
+                previous_profile = self._profiles.get(profile.id)
                 self._profiles[profile.id] = profile
-                self._flush()
+                try:
+                    self._flush()
+                except Exception:
+                    if previous_profile is not None:
+                        self._profiles[profile.id] = previous_profile
+                    else:
+                        self._profiles.pop(profile.id, None)
+                    raise
 
     def get_by_id(self, profile_id: str) -> Profile | None:
         """
@@ -281,8 +289,16 @@ class JsonProfileRepository:
                         f"no a '{application_id}'."
                     )
 
+                old_def = self._default_profiles.get(app_id)
                 self._default_profiles[app_id] = p_id
-                self._flush()
+                try:
+                    self._flush()
+                except Exception:
+                    if old_def is not None:
+                        self._default_profiles[app_id] = old_def
+                    else:
+                        self._default_profiles.pop(app_id, None)
+                    raise
 
     def delete(self, profile_id: str) -> bool:
         """
@@ -306,15 +322,21 @@ class JsonProfileRepository:
                 if clean_id not in self._profiles:
                     return False
 
-                del self._profiles[clean_id]
+                old_profile = self._profiles[clean_id]
+                old_defaults = dict(self._default_profiles)
 
-                # Limpiar de default_profiles si correspondía
+                del self._profiles[clean_id]
                 for app_id, def_id in list(self._default_profiles.items()):
                     if def_id == clean_id:
                         del self._default_profiles[app_id]
 
-                self._flush()
-                return True
+                try:
+                    self._flush()
+                    return True
+                except Exception:
+                    self._profiles[clean_id] = old_profile
+                    self._default_profiles = old_defaults
+                    raise
 
     def export_data(self, application_id: str | None = None) -> dict:
         """

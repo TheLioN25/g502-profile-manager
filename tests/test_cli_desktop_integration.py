@@ -173,6 +173,47 @@ class TestCliDesktopIntegration(unittest.TestCase):
         with patch.object(sys, "argv", test_argv):
             exit_code = main()
             self.assertEqual(exit_code, 1)
+    def test_cli_import_non_existent_file_returns_code_1(self):
+        import sys
+        from cli import main
+        test_argv = ["g502", "import", "/tmp/non_existent_file_123456789.json"]
+        with patch.object(sys, "argv", test_argv):
+            exit_code = main()
+            self.assertEqual(exit_code, 1)
+
+    def test_cli_import_invalid_json_returns_code_1(self):
+        import sys
+        import tempfile
+        from cli import main
+        with tempfile.NamedTemporaryFile(suffix=".json") as f:
+            f.write(b"NOT A VALID JSON {")
+            f.flush()
+            test_argv = ["g502", "import", f.name]
+            with patch.object(sys, "argv", test_argv):
+                exit_code = main()
+                self.assertEqual(exit_code, 1)
+
+    def test_cli_export_invalid_destination_returns_code_1(self):
+        import sys
+        from cli import main
+        test_argv = ["g502", "export", "/proc/invalid_backup_destination.json"]
+        with patch.object(sys, "argv", test_argv):
+            exit_code = main()
+            self.assertEqual(exit_code, 1)
+
+    def test_cli_subprocess_returns_proper_exit_codes(self):
+        import subprocess
+        import sys
+        cli_script = Path(__file__).resolve().parent.parent / "src/cli.py"
+
+        # Import inexistente en proceso real
+        res = subprocess.run([sys.executable, str(cli_script), "import", "/tmp/non_existent_g502.json"], capture_output=True)
+        self.assertEqual(res.returncode, 1)
+
+        # Export a destino inválido en proceso real
+        res = subprocess.run([sys.executable, str(cli_script), "export", "/proc/unwritable.json"], capture_output=True)
+        self.assertEqual(res.returncode, 1)
+
 
 
 

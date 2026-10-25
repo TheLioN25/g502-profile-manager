@@ -22,14 +22,14 @@ from adapters import (
     populate_application_actions,
 )
 from domain import Action, Button, DpiConfiguration
-from engine import AutomationEngine, DEFAULT_PROFILES_FILE
+from engine import AutomationEngine
 from services import ActionCatalogService, ProfileManager
 from storage import CorruptedProfileRepositoryError, JsonProfileRepository, ProfileLockError
 from i18n import _, get_language, set_language
 
 
 def get_services():
-    repo = JsonProfileRepository(Path.home() / '.config/g502-profiles.json')
+    repo = JsonProfileRepository()
     manager = ProfileManager(repo)
     discovery = ApplicationDiscoveryAdapter()
     adapter = RatbagDeviceAdapter()
@@ -271,8 +271,10 @@ def cmd_export(args):
         count = manager.export_to_file(dest_path, application_id=args.app)
         print(f"\n✓ Se exportaron exitosamente {count} perfil(es) a:")
         print(f"  {dest_path.resolve()}\n")
+        return 0
     except Exception as e:
         print(f"\nError al exportar perfiles: {e}\n")
+        return 1
 
 
 def cmd_import(args):
@@ -281,7 +283,7 @@ def cmd_import(args):
 
     if not src_path.exists():
         print(f"\nError: El archivo '{src_path}' no existe.\n")
-        return
+        return 1
 
     try:
         imported, skipped = manager.import_from_file(src_path, overwrite=args.overwrite)
@@ -292,8 +294,10 @@ def cmd_import(args):
             print("  (Consejo: Usa --overwrite si deseas reemplazar los perfiles existentes con el mismo ID)\n")
         else:
             print()
+        return 0
     except Exception as e:
         print(f"\nError al importar perfiles: {e}\n")
+        return 1
 
 
 def create_parser():

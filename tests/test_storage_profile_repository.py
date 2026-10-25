@@ -313,6 +313,18 @@ class TestJsonProfileRepository(unittest.TestCase):
         self.assertEqual(len(repo.list_all()), 0)
         self.assertIsNone(repo.get_by_id("p-nomutate"))
 
+    def test_save_rollback_on_io_error(self):
+        from unittest.mock import patch
+        p = Profile(name="RollbackTest", application_id="test:app", dpi=800, profile_id="p-rollback")
+        
+        with patch.object(self.repo, "_flush", side_effect=OSError("Disk full")):
+            with self.assertRaises(OSError):
+                self.repo.save(p)
+                
+        # Verificar que el perfil no quedó en memoria
+        self.assertIsNone(self.repo.get_by_id("p-rollback"))
+
+
 
 
 if __name__ == "__main__":
