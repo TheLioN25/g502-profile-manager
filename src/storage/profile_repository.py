@@ -24,6 +24,11 @@ class CorruptedProfileRepositoryError(RuntimeError):
     """Excepción lanzada cuando el archivo de perfiles está corrupto y no puede sobrescribirse."""
     pass
 
+
+class ProfileLockError(RuntimeError):
+    """Error al adquirir o liberar el bloqueo de archivo del repositorio de perfiles."""
+    pass
+
 from domain import Action, Button, DpiConfiguration, Profile
 
 
@@ -108,24 +113,34 @@ class JsonProfileRepository:
 
     @contextmanager
     def _file_lock(self):
-        """Bloqueo exclusivo a nivel de archivo para coordinar CLI y GUI (inter-proceso)."""
+        """Bloqueo exclusivo a nivel de archivo para coordinar CLI y GUI (inter-proceso).
+
+        Implementa política Fail-Closed: si no se puede abrir el lockfile o adquirir
+        el bloqueo exclusivo fcntl, lanza ProfileLockError para proteger la integridad.
+        """
         lock_path = self._file_path.with_name(f"{self._file_path.name}.lock")
         try:
             lock_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(lock_path, "a") as fd:
+            fd = open(lock_path, "a")
+        except OSError as e:
+            raise ProfileLockError(f"No se pudo abrir el archivo de bloqueo '{lock_path}': {e}") from e
+
+        try:
+            try:
+                fcntl.flock(fd.fileno(), fcntl.LOCK_EX)
+            except OSError as e:
+                raise ProfileLockError(f"No se pudo adquirir el bloqueo exclusivo en '{lock_path}': {e}") from e
+            yield
+        finally:
+            try:
+                fcntl.flock(fd.fileno(), fcntl.LOCK_UN)
+            except OSError as e:
+                logger.warning(f"Error al liberar bloqueo en '{lock_path}': {e}")
+            finally:
                 try:
-                    fcntl.flock(fd.fileno(), fcntl.LOCK_EX)
+                    fd.close()
                 except OSError:
                     pass
-                try:
-                    yield
-                finally:
-                    try:
-                        fcntl.flock(fd.fileno(), fcntl.LOCK_UN)
-                    except OSError:
-                        pass
-        except OSError:
-            yield
 
     @property
     def file_path(self) -> Path:
@@ -135,18 +150,27 @@ class JsonProfileRepository:
     def _handle_corrupted_file(self, err: Exception) -> None:
         ts = int(time.time())
         backup_path = self._file_path.with_name(f"{self._file_path.name}.corrupt-{ts}")
+        backup_created = False
         try:
             shutil.copy2(self._file_path, backup_path)
+            backup_created = True
         except OSError as copy_err:
             logger.warning(f"No se pudo respaldar el archivo corrupto: {copy_err}")
 
         self._is_corrupted = True
-        self._corrupt_backup_path = backup_path
-        logger.error(
-            f"El archivo de perfiles '{self._file_path}' está corrupto ({err}). "
-            f"Se creó una copia de seguridad en '{backup_path}'. "
-            "Las operaciones de guardado quedan bloqueadas para evitar pérdida de datos."
-        )
+        self._corrupt_backup_path = backup_path if backup_created else None
+        if backup_created:
+            logger.error(
+                f"El archivo de perfiles '{self._file_path}' está corrupto ({err}). "
+                f"Se creó una copia de seguridad en '{backup_path}'. "
+                "Las operaciones de guardado quedan bloqueadas para evitar pérdida de datos."
+            )
+        else:
+            logger.error(
+                f"El archivo de perfiles '{self._file_path}' está corrupto ({err}). "
+                "No se pudo crear la copia de seguridad automática. "
+                "Las operaciones de guardado quedan bloqueadas para preservar el archivo original."
+            )
 
     def _reload_if_needed(self) -> None:
         """Recarga perfiles desde disco si otro proceso modificó el archivo."""
@@ -169,6 +193,14 @@ class JsonProfileRepository:
         with self._lock:
             with self._file_lock():
                 self._reload_if_needed()
+                if self._is_corrupted:
+                    msg = (
+                        f"El archivo de perfiles está corrupto y no puede sobrescribirse. "
+                        f"Se preservó el archivo original en '{self._corrupt_backup_path}'."
+                        if self._corrupt_backup_path
+                        else "El archivo de perfiles está corrupto y no puede sobrescribirse para preservar el original."
+                    )
+                    raise CorruptedProfileRepositoryError(msg)
                 self._profiles[profile.id] = profile
                 self._flush()
 
@@ -228,6 +260,14 @@ class JsonProfileRepository:
         with self._lock:
             with self._file_lock():
                 self._reload_if_needed()
+                if self._is_corrupted:
+                    msg = (
+                        f"El archivo de perfiles está corrupto y no puede sobrescribirse. "
+                        f"Se preservó el archivo original en '{self._corrupt_backup_path}'."
+                        if self._corrupt_backup_path
+                        else "El archivo de perfiles está corrupto y no puede sobrescribirse para preservar el original."
+                    )
+                    raise CorruptedProfileRepositoryError(msg)
                 app_id = application_id.strip().casefold()
                 p_id = profile_id.strip()
 
@@ -254,6 +294,14 @@ class JsonProfileRepository:
         with self._lock:
             with self._file_lock():
                 self._reload_if_needed()
+                if self._is_corrupted:
+                    msg = (
+                        f"El archivo de perfiles está corrupto y no puede sobrescribirse. "
+                        f"Se preservó el archivo original en '{self._corrupt_backup_path}'."
+                        if self._corrupt_backup_path
+                        else "El archivo de perfiles está corrupto y no puede sobrescribirse para preservar el original."
+                    )
+                    raise CorruptedProfileRepositoryError(msg)
                 clean_id = profile_id.strip()
                 if clean_id not in self._profiles:
                     return False
@@ -405,10 +453,13 @@ class JsonProfileRepository:
         Lanza CorruptedProfileRepositoryError si el archivo original estaba corrupto.
         """
         if self._is_corrupted:
-            raise CorruptedProfileRepositoryError(
+            msg = (
                 f"Operación abortada: el archivo '{self._file_path}' está corrupto. "
                 f"Se preservó el archivo original en '{self._corrupt_backup_path}'."
+                if self._corrupt_backup_path
+                else f"Operación abortada: el archivo '{self._file_path}' está corrupto para preservar el original."
             )
+            raise CorruptedProfileRepositoryError(msg)
 
         data = {
             "version": 1,

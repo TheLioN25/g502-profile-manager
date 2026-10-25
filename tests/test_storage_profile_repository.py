@@ -15,6 +15,26 @@ from domain import Action, Button, DpiConfiguration, Profile
 from storage import JsonProfileRepository
 
 
+
+def _multiprocess_worker(file_path_str: str, proc_idx: int, count: int, barrier, err_queue):
+    from pathlib import Path
+    from domain import Profile
+    from storage.profile_repository import JsonProfileRepository
+
+    try:
+        barrier.wait()
+        repo = JsonProfileRepository(Path(file_path_str))
+        for i in range(count):
+            p = Profile(
+                name=f"Proc {proc_idx} Prof {i}",
+                application_id="test:concurrency",
+                dpi=1000 + proc_idx * 100 + i,
+                profile_id=f"p-proc-{proc_idx}-{i}",
+            )
+            repo.save(p)
+    except Exception as e:
+        err_queue.put(f"Proc {proc_idx} error: {e}")
+
 class TestJsonProfileRepository(unittest.TestCase):
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -231,6 +251,68 @@ class TestJsonProfileRepository(unittest.TestCase):
         self.assertEqual(len(errors), 0, f"Errores concurrentes: {errors}")
         all_saved = self.repo.list_all()
         self.assertEqual(len(all_saved), num_threads * profiles_per_thread)
+
+    def test_multiprocess_concurrent_save_with_barrier(self):
+        import multiprocessing
+        file_path = Path(self.temp_dir.name) / "mp_profiles.json"
+        # Inicializar repositorio limpio
+        repo = JsonProfileRepository(file_path)
+
+        num_procs = 3
+        profiles_per_proc = 20
+        barrier = multiprocessing.Barrier(num_procs)
+        err_queue = multiprocessing.Queue()
+
+        processes = []
+        for p_idx in range(num_procs):
+            proc = multiprocessing.Process(
+                target=_multiprocess_worker,
+                args=(str(file_path), p_idx, profiles_per_proc, barrier, err_queue),
+            )
+            processes.append(proc)
+            proc.start()
+
+        for proc in processes:
+            proc.join(timeout=10)
+
+        errors = []
+        while not err_queue.empty():
+            errors.append(err_queue.get())
+        self.assertEqual(len(errors), 0, f"Errores en procesos concurrentes: {errors}")
+
+        final_repo = JsonProfileRepository(file_path)
+        all_saved = final_repo.list_all()
+        self.assertEqual(len(all_saved), num_procs * profiles_per_proc)
+
+    def test_file_lock_failure_raises_profile_lock_error(self):
+        from storage.profile_repository import ProfileLockError
+        lock_path = self.file_path.with_name(f"{self.file_path.name}.lock")
+        # Simular fallo creando un directorio con el nombre del lockfile para impedir open()
+        lock_path.mkdir(parents=True, exist_ok=True)
+        try:
+            p = Profile(name="LockFail", application_id="test:app", dpi=800, profile_id="p-lock")
+            with self.assertRaises(ProfileLockError):
+                self.repo.save(p)
+        finally:
+            if lock_path.is_dir():
+                lock_path.rmdir()
+
+    def test_corrupt_file_does_not_mutate_in_memory_profiles(self):
+        corrupt_path = Path(self.temp_dir.name) / "corrupt_nomutate.json"
+        corrupt_path.write_bytes(b"INVALID JSON CONTENT")
+        from storage.profile_repository import CorruptedProfileRepositoryError
+        repo = JsonProfileRepository(corrupt_path)
+
+        self.assertTrue(repo.is_corrupted)
+        self.assertEqual(len(repo.list_all()), 0)
+
+        p = Profile(name="NoMutate", application_id="test:app", dpi=800, profile_id="p-nomutate")
+        with self.assertRaises(CorruptedProfileRepositoryError):
+            repo.save(p)
+
+        self.assertEqual(len(repo.list_all()), 0)
+        self.assertIsNone(repo.get_by_id("p-nomutate"))
+
 
 
 if __name__ == "__main__":

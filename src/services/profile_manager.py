@@ -22,6 +22,16 @@ class ProfileManager:
     def __init__(self, repository: ProfileRepository):
         self._repository = repository
 
+    @property
+    def is_corrupted(self) -> bool:
+        """Indica si el repositorio subyacente está en estado corrupto."""
+        return getattr(self._repository, "is_corrupted", False)
+
+    @property
+    def corrupt_backup_path(self) -> Path | None:
+        """Ruta al respaldo del archivo corrupto si existió."""
+        return getattr(self._repository, "corrupt_backup_path", None)
+
     def create_profile(
         self,
         name: str,
