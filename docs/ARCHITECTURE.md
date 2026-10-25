@@ -366,7 +366,7 @@ La robustez del proyecto se valida mediante una suite completa de pruebas unitar
        +---------------------------------------------+
                              |
        +---------------------------------------------+
-       |             172 Pruebas Unitarias           |
+       |             173 Pruebas Unitarias           |
        |  - Dominio puro (invariantes, validaciones) |
        |  - Repositorio atómico y persistencia       |
        |  - Aislamiento de hardware (Mocks ratbag)   |

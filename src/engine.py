@@ -39,7 +39,7 @@ from storage import JsonProfileRepository
 DEFAULT_STEAM_LIBRARYFOLDERS_FILE = (
     Path.home() / ".local/share/Steam/steamapps/libraryfolders.vdf"
 )
-DEFAULT_PROFILES_FILE = Path.home() / ".config/g502-profiles.json"
+from storage import get_default_profiles_file, DEFAULT_PROFILES_FILE
 
 
 class AutomationEngine:
@@ -303,7 +303,7 @@ def main():
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
         datefmt="%H:%M:%S",
     )
-    repo = JsonProfileRepository(DEFAULT_PROFILES_FILE)
+    repo = JsonProfileRepository()
     manager = ProfileManager(repo)
     adapter = RatbagDeviceAdapter()
 

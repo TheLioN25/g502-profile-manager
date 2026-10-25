@@ -8,6 +8,7 @@ from .profile_repository import (
     JsonProfileRepository,
     ProfileLockError,
     ProfileRepository,
+    get_default_profiles_file,
 )
 
 __all__ = [
@@ -16,4 +17,5 @@ __all__ = [
     "JsonProfileRepository",
     "ProfileLockError",
     "ProfileRepository",
+    "get_default_profiles_file",
 ]
