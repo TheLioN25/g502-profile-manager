@@ -39,8 +39,6 @@ from storage import JsonProfileRepository
 DEFAULT_STEAM_LIBRARYFOLDERS_FILE = (
     Path.home() / ".local/share/Steam/steamapps/libraryfolders.vdf"
 )
-from storage import get_default_profiles_file, DEFAULT_PROFILES_FILE
-
 
 class AutomationEngine:
     """
