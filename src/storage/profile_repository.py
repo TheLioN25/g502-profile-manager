@@ -78,6 +78,7 @@ def get_default_profiles_file() -> Path:
     """Fuente canónica y dinámica del archivo de perfiles en disco."""
     return Path.home() / ".config/g502-profiles.json"
 
+# Obsoleto / compatibilidad legacy: usar get_default_profiles_file() dinámicamente
 DEFAULT_PROFILES_FILE = get_default_profiles_file()
 
 

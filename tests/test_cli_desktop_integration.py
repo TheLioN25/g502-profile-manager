@@ -214,24 +214,37 @@ class TestCliDesktopIntegration(unittest.TestCase):
         res = subprocess.run([sys.executable, str(cli_script), "export", "/proc/unwritable.json"], capture_output=True)
         self.assertEqual(res.returncode, 1)
     def test_cli_export_and_import_success_returns_code_0(self):
+        import os
         import sys
         import tempfile
         from cli import main
+        from services import ProfileManager
+        from storage import JsonProfileRepository
 
         with tempfile.TemporaryDirectory() as tmp_dir:
+            fake_profiles_path = Path(tmp_dir) / ".config/g502-profiles.json"
+            fake_profiles_path.parent.mkdir(parents=True, exist_ok=True)
+            repo = JsonProfileRepository(file_path=fake_profiles_path)
+            manager = ProfileManager(repository=repo)
+            manager.create_profile("Isolated Test Profile", "steam:12345")
+
             export_file = Path(tmp_dir) / "exported_test.json"
             # Export exitoso
             test_argv_export = ["g502", "export", str(export_file)]
-            with patch.object(sys, "argv", test_argv_export):
-                exit_code_export = main()
-                self.assertEqual(exit_code_export, 0)
+            with patch.dict(os.environ, {"HOME": tmp_dir}):
+                with patch("cli.get_services", return_value=(repo, manager, None, None, None)):
+                    with patch.object(sys, "argv", test_argv_export):
+                        exit_code_export = main()
+                        self.assertEqual(exit_code_export, 0)
             self.assertTrue(export_file.exists())
 
             # Import exitoso
             test_argv_import = ["g502", "import", str(export_file), "--overwrite"]
-            with patch.object(sys, "argv", test_argv_import):
-                exit_code_import = main()
-                self.assertEqual(exit_code_import, 0)
+            with patch.dict(os.environ, {"HOME": tmp_dir}):
+                with patch("cli.get_services", return_value=(repo, manager, None, None, None)):
+                    with patch.object(sys, "argv", test_argv_import):
+                        exit_code_import = main()
+                        self.assertEqual(exit_code_import, 0)
 
 
 
