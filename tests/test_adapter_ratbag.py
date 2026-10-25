@@ -345,6 +345,17 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
         self.assertEqual(var_ls, G502_VARIANTS["g502_lightspeed"])
         self.assertTrue(var_ls.capabilities.has_battery)
 
+        # 2b. G502 Hero Wireless (denominación oficial upstream en /usr/share/libratbag)
+        def mock_hero_wireless(cmd: list[str]) -> subprocess.CompletedProcess:
+            if cmd == ["ratbagctl", "list"]:
+                return subprocess.CompletedProcess(cmd, 0, "dev2b: Logitech G502 Hero Wireless\n", "")
+            return subprocess.CompletedProcess(cmd, 0, "", "")
+
+        adapter = RatbagDeviceAdapter(state_cache_file=None, command_runner=mock_hero_wireless)
+        var_hero_wl = adapter.detect_device_variant("dev2b")
+        self.assertEqual(var_hero_wl, G502_VARIANTS["g502_lightspeed"])
+        self.assertTrue(var_hero_wl.capabilities.has_battery)
+
         # 3. G502 X (sin RGB)
         def mock_x(cmd: list[str]) -> subprocess.CompletedProcess:
             if cmd == ["ratbagctl", "list"]:
@@ -393,6 +404,19 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
         adapter = RatbagDeviceAdapter(state_cache_file=None, command_runner=mock_spectrum)
         var_spec = adapter.detect_device_variant("dev6")
         self.assertEqual(var_spec, G502_VARIANTS["g502_proteus_spectrum"])
+
+        # 7. Dispositivo genérico con batería -> G502 LIGHTSPEED
+        def mock_generic_wireless(cmd: list[str]) -> subprocess.CompletedProcess:
+            if cmd == ["ratbagctl", "list"]:
+                return subprocess.CompletedProcess(cmd, 0, "dev7: Logitech Gaming Mouse G502\n", "")
+            if cmd == ["ratbagctl", "dev7", "info"]:
+                return subprocess.CompletedProcess(cmd, 0, "Capabilities: battery\nBattery: 85%\n", "")
+            return subprocess.CompletedProcess(cmd, 0, "", "")
+
+        adapter = RatbagDeviceAdapter(state_cache_file=None, command_runner=mock_generic_wireless)
+        var_gen_wl = adapter.detect_device_variant("dev7")
+        self.assertEqual(var_gen_wl, G502_VARIANTS["g502_lightspeed"])
+        self.assertTrue(var_gen_wl.capabilities.has_battery)
 
     def test_get_battery_level_and_cached(self):
         info_output = """Device 'singing-porcupine'

@@ -357,9 +357,7 @@ class RatbagDeviceAdapter:
 
         variant = DEFAULT_VARIANT
         # Detección directa por nombres inequívocos
-        if "lightspeed" in matched_name_lower:
-            variant = G502_VARIANTS["g502_lightspeed"]
-        elif "g502 x" in matched_name_lower or "g502x" in matched_name_lower:
+        if "g502 x" in matched_name_lower or "g502x" in matched_name_lower:
             if "wireless" in matched_name_lower or "plus" in matched_name_lower:
                 variant = G502_VARIANTS["g502_x_wireless"]
             else:
@@ -369,6 +367,8 @@ class RatbagDeviceAdapter:
                     variant = G502_VARIANTS["g502_x_wireless"]
                 else:
                     variant = G502_VARIANTS["g502_x"]
+        elif "lightspeed" in matched_name_lower or ("hero" in matched_name_lower and "wireless" in matched_name_lower):
+            variant = G502_VARIANTS["g502_lightspeed"]
         elif "hero" in matched_name_lower:
             variant = G502_VARIANTS["g502_hero"]
         elif "proteus spectrum" in matched_name_lower or "spectrum" in matched_name_lower:
@@ -380,8 +380,14 @@ class RatbagDeviceAdapter:
             info_res = self._runner(["ratbagctl", device_clean, "info"])
             if info_res.returncode == 0 and info_res.stdout:
                 stdout_lower = info_res.stdout.casefold()
+                # Si tiene batería o capacidades inalámbricas reportadas -> G502 Lightspeed
+                if "battery" in stdout_lower:
+                    if "number of leds: 8" in stdout_lower:
+                        variant = G502_VARIANTS["g502_x_wireless"]
+                    else:
+                        variant = G502_VARIANTS["g502_lightspeed"]
                 # Si tiene 1 LED -> Proteus Core
-                if "number of leds: 1" in stdout_lower:
+                elif "number of leds: 1" in stdout_lower:
                     variant = G502_VARIANTS["g502_proteus_core"]
                 # Si tiene 2 LEDs y sensor max 12000 -> Proteus Spectrum
                 elif "number of leds: 2" in stdout_lower and "12000" in stdout_lower:

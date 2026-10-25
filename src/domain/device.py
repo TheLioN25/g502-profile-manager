@@ -118,6 +118,8 @@ G502_VARIANTS: dict[str, DeviceVariant] = {
             "Logitech G502 LIGHTSPEED Wireless Gaming Mouse",
             "Logitech G502 LIGHTSPEED",
             "Logitech Lightspeed",
+            "Logitech G502 Hero Wireless",
+            "Logitech G502 HERO Wireless",
         ),
     ),
     "g502_x": DeviceVariant(
