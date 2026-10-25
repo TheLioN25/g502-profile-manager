@@ -5,7 +5,7 @@
 </p>
 
 [![CI Pipeline](https://github.com/TheLioN25/g502-profile-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/TheLioN25/g502-profile-manager/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-157%20passed-brightgreen.svg)](#-unit-tests-execution)
+[![Tests](https://img.shields.io/badge/tests-165%20passed-brightgreen.svg)](#-unit-tests-execution)
 [![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](pyproject.toml)
 
@@ -82,7 +82,7 @@ Visually configure buttons, macros, DPI sensitivity stages, and LIGHTSYNC RGB li
   * Extensible JSON presets for titles like **Warframe**, **Guild Wars 2**, and **AION 2** (including profession F1–F5 keys and custom actions), plus desktop productivity shortcuts.
 
 * 🧪 **Exhaustive Test Suite:**
-  * **155 automated unit tests** covering domain logic, atomic storage, hardware adapters, GUI presentation, system tray D-Bus, i18n, desktop packaging, and systemd integration.
+  * **165 automated unit tests** covering domain logic, atomic storage, hardware adapters, GUI presentation, system tray D-Bus, i18n, desktop packaging, and systemd integration.
 
 ---
 
@@ -90,17 +90,17 @@ Visually configure buttons, macros, DPI sensitivity stages, and LIGHTSYNC RGB li
 
 Built with **Domain-Driven Design (DDD)** and **Clean Architecture** principles, enforcing strict decoupling between business logic, hardware drivers, and presentation layers:
 
-> 📘 **Full Architecture Documentation:** For comprehensive C4 diagrams (Context, Containers, Components), layer breakdown, and Architecture Decision Records (ADR-001 through ADR-006), see [**`docs/ARCHITECTURE.md`**](docs/ARCHITECTURE.md).
+> 📘 **Full Architecture Documentation:** For comprehensive C4 diagrams (Context, Containers, Components), layer breakdown, and Architecture Decision Records (ADR-001 through ADR-008), see [**`docs/ARCHITECTURE.md`**](docs/ARCHITECTURE.md).
 
 ```text
 g502-profile-manager/
 ├── docs/                        # Architecture and technical documentation
 │   └── ARCHITECTURE.md          # C4 diagrams, Clean Architecture, and ADRs
 ├── data/                        # Desktop assets and system units
-│   ├── icons/                   # High-resolution SVG icon (io.github.thelion.G502ProfileManager.svg)
+│   ├── icons/                   # High-resolution icons (synced with canonical src/gui/icons/)
 │   ├── io.github.thelion.G502ProfileManager.desktop # Standard XDG desktop entry
 │   └── g502-profile-manager.service # systemd --user service unit
-├── presets/                     # Modular JSON presets per game/app
+├── presets/                     # Development presets (synced with canonical src/services/presets/)
 │   ├── desktop_general.json
 │   ├── steam_1284210_guildwars2.json
 │   ├── steam_230410_warframe.json
@@ -119,6 +119,7 @@ g502-profile-manager/
 │   │   ├── device.py            # Device variant definitions & hardware capabilities
 │   │   └── profile.py           # Profile aggregate root and binding rules
 │   ├── services/                # Application services and use cases
+│   │   ├── presets/             # Canonical game presets (bundled in package wheel)
 │   │   ├── action_catalog.py    # Catalog and preset orchestration
 │   │   └── profile_manager.py   # Profile lifecycle and persistence use cases
 │   ├── storage/                 # Infrastructure and persistence layer
@@ -131,6 +132,7 @@ g502-profile-manager/
 │   │   ├── desktop_entries.py   # Linux .desktop parser with XDG localization
 │   │   └── process_discovery.py # System process inspection
 │   ├── gui/                     # GTK4 / Libadwaita presentation layer
+│   │   ├── icons/               # Canonical application icons (bundled in package wheel)
 │   │   ├── app.py               # Application entry point
 │   │   ├── window.py            # Main window & reactive event controller
 │   │   ├── tray.py              # System Tray indicator (D-Bus StatusNotifierItem)
@@ -140,7 +142,7 @@ g502-profile-manager/
 │   ├── i18n.py                  # Singleton i18n manager and translation catalog
 │   ├── engine.py                # Real-time background automation daemon
 │   └── cli.py                   # Command-line interface tool
-└── tests/                       # Suite of 157 automated unit tests
+└── tests/                       # Suite of 165 automated unit tests
 ```
 
 ---
@@ -159,8 +161,8 @@ For reviewers evaluating code quality, design patterns, and architecture:
 | **Hardware Isolation** | [`src/adapters/ratbag_adapter.py`](src/adapters/ratbag_adapter.py) | Mouse EEPROM memory sanitization and factory defaults restoration (G-HUB model). |
 | **D-Bus System Tray** | [`src/gui/tray.py`](src/gui/tray.py) | StatusNotifierItem over pure `Gio.DBusConnection` (eliminating GTK3/GTK4 runtime collisions). |
 | **GUI Concurrency** | [`src/gui/window.py`](src/gui/window.py) | Non-blocking background monitoring (`threading.Thread`) and safe GTK dispatch via `GLib.idle_add`. |
-| **Unit Test Suite**| [`tests/`](tests/) | 155 unit tests with pure test doubles (`python3 -m unittest discover -s tests`). |
-| **CI/CD Pipeline** | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | Multi-version Python automation with headless display server validation (`xvfb-run`). |
+| **Unit Test Suite**| [`tests/`](tests/) | 165 unit tests with pure test doubles (`python3 -m unittest discover -s tests`). |
+| **CI/CD Pipeline** | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | Headless display server validation (`xvfb-run`), automated test suite, wheel asset assertion, and PEP 517 build on `ubuntu-latest`. |
 
 ---
 
@@ -313,7 +315,7 @@ When playing Windows games on Linux through **Steam Play / Proton**:
 
 ## 🧪 Unit Tests Execution
 
-To run the complete suite of 155 automated tests:
+To run the complete suite of 165 automated tests:
 ```bash
 python3 -m unittest discover -s tests -v
 ```

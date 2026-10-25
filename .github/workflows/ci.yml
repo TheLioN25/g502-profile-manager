@@ -43,3 +43,12 @@ jobs:
           /tmp/smoke_venv/bin/pip install --no-deps dist/g502_profile_manager-*.whl
           /tmp/smoke_venv/bin/python3 -c "import cli, engine, i18n, gui.app; print('Imports in installed wheel: OK')"
           /tmp/smoke_venv/bin/g502 --help
+          /tmp/smoke_venv/bin/python3 -c "
+          import importlib.resources
+          import services.presets, gui.icons
+          p_files = [f for f in importlib.resources.files(services.presets).iterdir() if f.name.endswith('.json')]
+          assert len(p_files) == 4, f'Expected 4 presets in wheel, found {len(p_files)}: {p_files}'
+          i_files = [f for f in importlib.resources.files(gui.icons).iterdir() if f.is_file()]
+          assert len(i_files) == 10, f'Expected 10 icons in wheel, found {len(i_files)}: {i_files}'
+          print('Wheel asset assertion: OK (4 presets, 10 icons)')
+          "

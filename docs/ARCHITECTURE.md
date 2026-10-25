@@ -361,7 +361,7 @@ La robustez del proyecto se valida mediante una suite completa de pruebas unitar
 ```text
        +---------------------------------------------+
        |   Integración Continua (GitHub Actions)     |
-       |  Entorno CI: Ubuntu 24.04 (Python >=3.10)   |
+       |  Entorno CI: ubuntu-latest (Python >=3.10)   |
        |  Display Headless: Xvfb (Virtual Framebuf)  |
        +---------------------------------------------+
                              |
@@ -381,4 +381,4 @@ La robustez del proyecto se valida mediante una suite completa de pruebas unitar
 2. **Entornos de Ejecución Virtuales (Headless Testing):**
    - Las pruebas de GTK4 y Libadwaita se ejecutan en CI sin servidor gráfico físico utilizando `xvfb-run` (*X Virtual Framebuffer*), garantizando que los widgets, diálogos y el renderizado Cairo Canvas funcionen sin errores de renderizado.
 3. **Pipeline de Integración Continua (CI):**
-   - Configurado en `.github/workflows/ci.yml`, ejecuta la suite completa en cada *push* y *pull request*, verificando la sintaxis, tipos y pruebas en el entorno de ejecución probado (Python >=3.10).
+   - Configurado en `.github/workflows/ci.yml`, ejecuta la suite completa en cada *push* y *pull request*, verificando las pruebas unitarias, la integridad de recursos en el wheel y la construcción del paquete en el entorno probado (`ubuntu-latest`, Python >=3.10).

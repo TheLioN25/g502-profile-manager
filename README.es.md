@@ -5,7 +5,7 @@
 </p>
 
 [![CI Pipeline](https://github.com/TheLioN25/g502-profile-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/TheLioN25/g502-profile-manager/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-157%20passed-brightgreen.svg)](#-ejecución-de-pruebas-unitarias)
+[![Tests](https://img.shields.io/badge/tests-165%20passed-brightgreen.svg)](#-ejecución-de-pruebas-unitarias)
 [![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](pyproject.toml)
 
@@ -83,7 +83,7 @@ Permite configurar visualmente los botones, macros, sensibilidades (DPI) y zonas
   * Presets integrados en formato JSON ampliables para juegos como **Warframe**, **Guild Wars 2** y **AION 2** (incluyendo mecánicas de profesión F1–F5 y habilidades personalizables), además de atajos de productividad para el escritorio.
 
 * 🧪 **Suite de Pruebas Exhaustiva:**
-  * **155 pruebas unitarias automatizadas** con cobertura en dominio, persistencia atómica, adaptadores de hardware, lógica de interfaz gráfica, bandeja del sistema, internacionalización bilingüe, empaquetado de escritorio y servicio systemd.
+  * **165 pruebas unitarias automatizadas** con cobertura en dominio, persistencia atómica, adaptadores de hardware, lógica de interfaz gráfica, bandeja del sistema, internacionalización bilingüe, empaquetado de escritorio y servicio systemd.
 
 ---
 
@@ -91,17 +91,17 @@ Permite configurar visualmente los botones, macros, sensibilidades (DPI) y zonas
 
 El proyecto está diseñado bajo principios de **Domain-Driven Design (DDD)** y **Clean Architecture**, asegurando un desacoplamiento estricto entre la lógica de negocio, los controladores de hardware y la interfaz de usuario:
 
-> 📘 **Documentación Técnica Completa:** Para ver diagramas C4 en detalle (Contexto, Contenedores, Componentes), análisis de capas y registros formales de decisiones de diseño (ADR-001 a ADR-006), consulta [**`docs/ARCHITECTURE.md`**](docs/ARCHITECTURE.md).
+> 📘 **Documentación Técnica Completa:** Para ver diagramas C4 en detalle (Contexto, Contenedores, Componentes), análisis de capas y registros formales de decisiones de diseño (ADR-001 a ADR-008), consulta [**`docs/ARCHITECTURE.md`**](docs/ARCHITECTURE.md).
 
 ```text
 g502-profile-manager/
 ├── docs/                        # Documentación técnica de arquitectura
 │   └── ARCHITECTURE.md          # Diagramas C4, Clean Architecture y registros ADR
 ├── data/                        # Recursos del sistema y accesos directos
-│   ├── icons/                   # Icono SVG vectorial (io.github.thelion.G502ProfileManager.svg)
+│   ├── icons/                   # Iconos vectoriales (sincronizados con la fuente canónica src/gui/icons/)
 │   ├── io.github.thelion.G502ProfileManager.desktop # Entrada .desktop estándar XDG
 │   └── g502-profile-manager.service # Unidad de servicio systemd --user
-├── presets/                     # Manifiestos JSON de presets por juego/aplicación
+├── presets/                     # Presets de desarrollo (sincronizados con la fuente canónica src/services/presets/)
 │   ├── desktop_general.json
 │   ├── steam_1284210_guildwars2.json
 │   ├── steam_230410_warframe.json
@@ -132,6 +132,7 @@ g502-profile-manager/
 │   │   ├── desktop_entries.py   # Parser de archivos .desktop con soporte XDG multilingüe
 │   │   └── process_discovery.py # Inspección de procesos del sistema
 │   ├── gui/                     # Capa de presentación GTK4 / Libadwaita
+│   │   ├── icons/               # Iconos canónicos de la aplicación (empaquetados en wheel)
 │   │   ├── app.py               # Punto de entrada de la aplicación gráfica
 │   │   ├── window.py            # Ventana principal y control de eventos
 │   │   ├── tray.py              # Indicador en bandeja del sistema (D-Bus StatusNotifierItem)
@@ -153,15 +154,15 @@ Para facilitar la evaluación de la arquitectura, patrones de diseño y calidad 
 | Área Técnica | Archivo / Componente | Aspectos Clave a Evaluar |
 | :--- | :--- | :--- |
 | **Arquitectura Global y C4** | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Diagramas C4 en Mermaid (Contexto, Contenedores, Componentes) y separación Clean Architecture. |
-| **Decisiones de Diseño (ADRs)** | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#5-registros-de-decisiones-de-arquitectura-adr) | 6 registros ADR (Cumplimiento Anti-Cheat 1:1, D-Bus SNI puro, persistencia atómica, systemd, etc.). |
+| **Decisiones de Diseño (ADRs)** | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#5-registros-de-decisiones-de-arquitectura-adr) | 8 registros ADR (Cumplimiento Anti-Cheat 1:1, D-Bus SNI puro, persistencia atómica, multi-modelo G502, i18n, systemd, etc.). |
 | **Capa de Dominio Puro (DDD)** | [`src/domain/`](src/domain/) | Entidades y Value Objects puros sin librerías externas (`Profile`, `Button`, `Action`, `DpiConfiguration`). |
 | **Internacionalización (i18n)** | [`src/i18n.py`](src/i18n.py) | Singleton `I18nManager` con catálogo desacoplado, persistencia atómica en `~/.config/g502-preferences.json` y detección regional. |
 | **Persistencia Atómica** | [`src/storage/profile_repository.py`](src/storage/profile_repository.py) | Patrón Repositorio con escritura atómica en 2 fases (`NamedTemporaryFile` + `replace`) y sincronización concurrente por `mtime`. |
 | **Aislamiento de Hardware** | [`src/adapters/ratbag_adapter.py`](src/adapters/ratbag_adapter.py) | Sanitización de memoria física EEPROM del ratón y reseteo preventivo a valores de fábrica (modelo G-HUB). |
 | **Bandeja del Sistema D-Bus** | [`src/gui/tray.py`](src/gui/tray.py) | StatusNotifierItem directo sobre `Gio.DBusConnection` (elimina el conflicto clásico de `AppIndicator3` con GTK4). |
 | **Concurrencia en GUI** | [`src/gui/window.py`](src/gui/window.py) | Monitoreo en hilo secundario independiente (`threading.Thread`) y despacho seguro al renderizado GTK4 con `GLib.idle_add`. |
-| **Suite de Pruebas Unitarias**| [`tests/`](tests/) | 155 pruebas unitarias automatizadas con mocks puros (ejecutables con `python3 -m unittest discover -s tests`). |
-| **Pipeline de CI/CD** | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | Automatización multi-versión de Python con validación en servidor gráfico headless (`xvfb-run`). |
+| **Suite de Pruebas Unitarias**| [`tests/`](tests/) | 165 pruebas unitarias automatizadas con mocks puros (ejecutables con `python3 -m unittest discover -s tests`). |
+| **Pipeline de CI/CD** | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | Validación en servidor gráfico headless (`xvfb-run`), suite de pruebas, aserción de assets en wheel y construcción PEP 517 en `ubuntu-latest`. |
 
 ---
 
@@ -314,7 +315,7 @@ Si juegas títulos de Windows en Linux mediante **Steam Play / Proton**:
 
 ## 🧪 Ejecución de Pruebas Unitarias
 
-Para ejecutar la suite completa de 155 pruebas automatizadas:
+Para ejecutar la suite completa de 165 pruebas automatizadas:
 ```bash
 python3 -m unittest discover -s tests -v
 ```
