@@ -5,7 +5,7 @@
 </p>
 
 [![CI Pipeline](https://github.com/TheLioN25/g502-profile-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/TheLioN25/g502-profile-manager/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-170%20passed-brightgreen.svg)](#-unit-tests-execution)
+[![Tests](https://img.shields.io/badge/tests-172%20passed-brightgreen.svg)](#-unit-tests-execution)
 [![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](pyproject.toml)
 
@@ -82,7 +82,7 @@ Visually configure buttons, macros, DPI sensitivity stages, and LIGHTSYNC RGB li
   * Extensible JSON presets for titles like **Warframe**, **Guild Wars 2**, and **AION 2** (including profession F1–F5 keys and custom actions), plus desktop productivity shortcuts.
 
 * 🧪 **Exhaustive Test Suite:**
-  * **170 automated unit tests** covering domain logic, atomic storage, hardware adapters, GUI presentation, system tray D-Bus, i18n, desktop packaging, and systemd integration.
+  * **172 automated unit tests** covering domain logic, atomic storage, hardware adapters, GUI presentation, system tray D-Bus, i18n, desktop packaging, and systemd integration.
 
 ---
 
@@ -142,7 +142,7 @@ g502-profile-manager/
 │   ├── i18n.py                  # Singleton i18n manager and translation catalog
 │   ├── engine.py                # Real-time background automation daemon
 │   └── cli.py                   # Command-line interface tool
-└── tests/                       # Suite of 170 automated unit tests
+└── tests/                       # Suite of 172 automated unit tests
 ```
 
 ---
@@ -161,7 +161,7 @@ For reviewers evaluating code quality, design patterns, and architecture:
 | **Hardware Isolation** | [`src/adapters/ratbag_adapter.py`](src/adapters/ratbag_adapter.py) | Mouse EEPROM memory sanitization and factory defaults restoration (G-HUB model). |
 | **D-Bus System Tray** | [`src/gui/tray.py`](src/gui/tray.py) | StatusNotifierItem over pure `Gio.DBusConnection` (eliminating GTK3/GTK4 runtime collisions). |
 | **GUI Concurrency** | [`src/gui/window.py`](src/gui/window.py) | Non-blocking background monitoring (`threading.Thread`) and safe GTK dispatch via `GLib.idle_add`. |
-| **Unit Test Suite**| [`tests/`](tests/) | 170 unit tests with pure test doubles (`python3 -m unittest discover -s tests`). |
+| **Unit Test Suite**| [`tests/`](tests/) | 172 unit tests with pure test doubles (`python3 -m unittest discover -s tests`). |
 | **CI/CD Pipeline** | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | Headless display server validation (`xvfb-run`), automated test suite, wheel asset assertion, and PEP 517 build on `ubuntu-latest`. |
 
 ---
@@ -315,7 +315,7 @@ When playing Windows games on Linux through **Steam Play / Proton**:
 
 ## 🧪 Unit Tests Execution
 
-To run the complete suite of 170 automated tests:
+To run the complete suite of 172 automated tests:
 ```bash
 python3 -m unittest discover -s tests -v
 ```

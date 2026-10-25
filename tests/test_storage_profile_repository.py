@@ -324,6 +324,33 @@ class TestJsonProfileRepository(unittest.TestCase):
         # Verificar que el perfil no quedó en memoria
         self.assertIsNone(self.repo.get_by_id("p-rollback"))
 
+    def test_delete_rollback_on_io_error(self):
+        from unittest.mock import patch
+        p = Profile(name="DelRollback", application_id="test:app", dpi=800, profile_id="p-del-roll")
+        self.repo.save(p)
+        self.repo.set_default_profile_id("test:app", p.id)
+
+        with patch.object(self.repo, "_flush", side_effect=OSError("Disk full")):
+            with self.assertRaises(OSError):
+                self.repo.delete(p.id)
+
+        self.assertIsNotNone(self.repo.get_by_id(p.id))
+        self.assertEqual(self.repo.get_default_profile_id("test:app"), p.id)
+
+    def test_set_default_rollback_on_io_error(self):
+        from unittest.mock import patch
+        p1 = Profile(name="P1", application_id="test:app", dpi=800, profile_id="p-1")
+        p2 = Profile(name="P2", application_id="test:app", dpi=800, profile_id="p-2")
+        self.repo.save(p1)
+        self.repo.save(p2)
+        self.repo.set_default_profile_id("test:app", p1.id)
+
+        with patch.object(self.repo, "_flush", side_effect=OSError("Disk full")):
+            with self.assertRaises(OSError):
+                self.repo.set_default_profile_id("test:app", p2.id)
+
+        self.assertEqual(self.repo.get_default_profile_id("test:app"), p1.id)
+
 
 
 

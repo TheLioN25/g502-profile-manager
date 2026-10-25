@@ -74,9 +74,11 @@ class ProfileRepository(Protocol):
         ...
 
 
-# Fuente canónica de persistencia de perfiles en disco.
-# Cualquier modificación en esta ruta debe sincronizarse en docs/ARCHITECTURE.md y READMEs.
-DEFAULT_PROFILES_FILE = Path.home() / ".config/g502-profiles.json"
+def get_default_profiles_file() -> Path:
+    """Fuente canónica y dinámica del archivo de perfiles en disco."""
+    return Path.home() / ".config/g502-profiles.json"
+
+DEFAULT_PROFILES_FILE = get_default_profiles_file()
 
 
 class JsonProfileRepository:
@@ -89,7 +91,7 @@ class JsonProfileRepository:
 
     def __init__(self, file_path: str | Path | None = None):
         if file_path is None:
-            file_path = Path.home() / ".config/g502-profiles.json"
+            file_path = get_default_profiles_file()
         self._file_path = Path(file_path).expanduser().resolve()
         self._profiles: dict[str, Profile] = {}
         self._default_profiles: dict[str, str] = {}  # application_id -> profile_id
