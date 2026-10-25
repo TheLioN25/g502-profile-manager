@@ -19,7 +19,7 @@ Memoria técnica del proyecto entre sesiones (~45 líneas). Estado y decisiones 
 - **173 pruebas unitarias automatizadas** pasando al 100% (`173/173 OK`) en local.
 - **Variantes soportadas:** *G502 Proteus Core*, *G502 Proteus Spectrum*, *G502 HERO*, *G502 LIGHTSPEED*, *G502 X* y *G502 X PLUS / Wireless*.
 - **Características operativas:**
-  - Reconocimiento de variantes en 2 pasos (`ratbagctl list` + desambiguación con `info` para LEDs/DPI).
+  - Reconocimiento de variantes en 2 pasos alineado con upstream libratbag: resolución de 'hero wireless' hacia LIGHTSPEED y desambiguación por batería/LEDs.
   - Escrituras diferenciales (`diff_only=True`) con persistencia compartida en disco (`~/.config/g502-hardware-state.json`).
   - Internacionalización bilingüe completa (ES/EN) con selector en HeaderBar, tray D-Bus y catálogo.
   - Set de iconos multi-resolución en `data/icons/` y `src/gui/icons/` con diseño *squircle* y silueta 3D.
