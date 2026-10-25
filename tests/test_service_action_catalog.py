@@ -150,6 +150,28 @@ class TestActionCatalogService(unittest.TestCase):
             self.assertIn("Magia", categories)
             self.assertEqual(categories["Magia"][0].action_id, "fire_spell")
 
+    def test_canonical_presets_and_icons_match_root_resources(self):
+        project_root = Path(__file__).resolve().parent.parent
+        root_presets = project_root / "presets"
+        pkg_presets = project_root / "src/services/presets"
+        root_icons = project_root / "data/icons"
+        pkg_icons = project_root / "src/gui/icons"
+
+        if root_presets.exists() and pkg_presets.exists():
+            root_preset_files = sorted(p.name for p in root_presets.glob("*.json"))
+            pkg_preset_files = sorted(p.name for p in pkg_presets.glob("*.json"))
+            self.assertEqual(root_preset_files, pkg_preset_files)
+            for name in root_preset_files:
+                self.assertEqual((root_presets / name).read_bytes(), (pkg_presets / name).read_bytes())
+
+        if root_icons.exists() and pkg_icons.exists():
+            root_icon_files = sorted(p.name for p in root_icons.iterdir() if p.is_file())
+            pkg_icon_files = sorted(p.name for p in pkg_icons.iterdir() if p.is_file())
+            self.assertEqual(root_icon_files, pkg_icon_files)
+            for name in root_icon_files:
+                self.assertEqual((root_icons / name).read_bytes(), (pkg_icons / name).read_bytes())
+
+
 
 if __name__ == "__main__":
     unittest.main()
