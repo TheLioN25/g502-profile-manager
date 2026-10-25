@@ -20,6 +20,7 @@ logger_engine = logging.getLogger("g502.engine")
 from adapters import (
     DESKTOP_DIRECTORIES,
     ApplicationDiscoveryAdapter,
+    DesktopNotificationAdapter,
     RatbagDeviceAdapter,
     combine_active_applications,
     discover_active_epic_apps,
@@ -56,6 +57,7 @@ class AutomationEngine:
         desktop_profile_slot: int = 0,
         catalog_service: ActionCatalogService | None = None,
         discovery_adapter: ApplicationDiscoveryAdapter | None = None,
+        notification_adapter: DesktopNotificationAdapter | None = None,
         logger: Callable[[str], None] | None = None,
         on_profile_applied: Callable[[str, Profile], None] | None = None,
         on_desktop_restored: Callable[[], None] | None = None,
@@ -68,6 +70,7 @@ class AutomationEngine:
         self._desktop_profile_slot = desktop_profile_slot
         self._catalog_service = catalog_service or ActionCatalogService()
         self._discovery = discovery_adapter or ApplicationDiscoveryAdapter(steam_libraryfolders_file=self._steam_file)
+        self._notification_adapter = notification_adapter if notification_adapter is not None else DesktopNotificationAdapter()
         self._log = logger if logger is not None else logger_engine.info
         self._on_profile_applied = on_profile_applied
         self._on_desktop_restored = on_desktop_restored
@@ -95,6 +98,11 @@ class AutomationEngine:
     def battery_level(self) -> int | None:
         """Nivel de batería actual en porcentaje (0..100) o None si no aplica."""
         return self._battery_level
+
+    @property
+    def notification_adapter(self) -> DesktopNotificationAdapter | None:
+        """Adaptador de notificaciones OSD asociado al motor."""
+        return self._notification_adapter
 
     def initialize(self) -> bool:
         """
@@ -224,6 +232,13 @@ class AutomationEngine:
                     self._log("         Perfil aplicado al ratón con éxito.")
                     self._current_profile_id = target_profile.id
                     self._current_profile_updated_at = target_profile.updated_at
+                    if self._notification_adapter and self._notification_adapter.enabled:
+                        self._notification_adapter.notify_profile_switched(
+                            app_name=detected_app_name,
+                            profile_name=target_profile.name,
+                            dpi=target_profile.dpi.dpi,
+                            led_color=target_profile.led_color,
+                        )
                     if self._on_profile_applied:
                         self._on_profile_applied(detected_app_name, target_profile)
                 else:
@@ -283,14 +298,18 @@ class AutomationEngine:
         """Restaura el perfil de escritorio en el hardware del ratón."""
         if self._device_id:
             desktop_prof = self._profile_manager.get_active_profile_for_application("desktop:general")
+            dpi_val: int | None = None
             if desktop_prof is not None:
                 self._apply_profile_to_device(desktop_prof, diff_only=True)
                 self._log("       Perfil de escritorio ('desktop:general') restaurado.")
+                dpi_val = desktop_prof.dpi.dpi
             else:
                 self._device_adapter.switch_profile_slot(self._device_id, self._desktop_profile_slot)
                 self._log(f"       Perfil de escritorio (slot {self._desktop_profile_slot}) restaurado.")
             self._current_profile_id = None
             self._current_profile_updated_at = None
+            if self._notification_adapter and self._notification_adapter.enabled:
+                self._notification_adapter.notify_desktop_restored(dpi=dpi_val)
             if self._on_desktop_restored:
                 self._on_desktop_restored()
 

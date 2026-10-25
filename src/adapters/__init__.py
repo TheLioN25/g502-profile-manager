@@ -27,6 +27,7 @@ from .epic_discovery import (
     discover_heroic_installed_apps,
     resolve_epic_applications,
 )
+from .notification_adapter import DesktopNotificationAdapter
 from .process_discovery import (
     ProcessInfo,
     deduplicate_processes,
@@ -55,6 +56,7 @@ __all__ = [
     "ApplicationDiscoveryAdapter",
     "DESKTOP_DIRECTORIES",
     "DesktopEntry",
+    "DesktopNotificationAdapter",
     "EpicAppManifest",
     "G502_BUTTON_INDEX_MAP",
     "ProcessInfo",

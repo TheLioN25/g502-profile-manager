@@ -14,6 +14,7 @@ gi.require_version("Adw", "1")
 from gi.repository import Adw, Gdk, GLib, Gtk, Pango
 
 from adapters.application_discovery_adapter import ApplicationDiscoveryAdapter
+from adapters.notification_adapter import DesktopNotificationAdapter
 from adapters.ratbag_adapter import RatbagDeviceAdapter
 from domain import Action, Application, Button, DEFAULT_VARIANT, DeviceVariant, DpiConfiguration, Profile
 from i18n import _, get_language, set_language, get_available_languages
@@ -87,6 +88,7 @@ class MainWindow(Adw.ApplicationWindow):
         discovery_adapter: ApplicationDiscoveryAdapter,
         ratbag_adapter: RatbagDeviceAdapter | None = None,
         automation_engine: AutomationEngine | None = None,
+        notification_adapter: DesktopNotificationAdapter | None = None,
         start_auto: bool = False,
         preview_hero_banner: bool = False,
     ):
@@ -103,6 +105,7 @@ class MainWindow(Adw.ApplicationWindow):
         self._catalog_service = catalog_service
         self._discovery_adapter = discovery_adapter
         self._ratbag_adapter = ratbag_adapter or RatbagDeviceAdapter()
+        self._notification_adapter = notification_adapter or DesktopNotificationAdapter()
         self._preview_hero_banner: bool = preview_hero_banner
         self._current_variant: DeviceVariant = DEFAULT_VARIANT
         self._automation_engine: AutomationEngine | None = automation_engine
@@ -1659,6 +1662,7 @@ class MainWindow(Adw.ApplicationWindow):
                 device_adapter=self._ratbag_adapter,
                 catalog_service=self._catalog_service,
                 discovery_adapter=self._discovery_adapter,
+                notification_adapter=self._notification_adapter,
                 check_interval=2.0,
                 on_profile_applied=lambda app_name, prof: GLib.idle_add(self._on_auto_profile_applied, app_name, prof),
                 on_desktop_restored=lambda: GLib.idle_add(self._on_auto_desktop_restored),
