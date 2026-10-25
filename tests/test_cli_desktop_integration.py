@@ -140,6 +140,41 @@ class TestCliDesktopIntegration(unittest.TestCase):
         self.assertEqual(mock_engine_cls.call_args.kwargs["check_interval"], 3.5)
         mock_instance.run.assert_called_once()
 
+    def test_cli_add_action_invalid_key_returns_code_1(self):
+        import sys
+        from cli import main
+        test_argv = ["g502", "add-action", "test:app", "test_act", "Test Action", "INVALID_UNRECOGNIZED_KEY_12345"]
+        with patch.object(sys, "argv", test_argv):
+            exit_code = main()
+            self.assertEqual(exit_code, 1)
+
+    def test_cli_create_corrupted_repo_returns_code_1(self):
+        import os
+        import sys
+        import tempfile
+        from cli import main
+
+        with tempfile.TemporaryDirectory() as tmp_home:
+            cfg_dir = Path(tmp_home) / ".config"
+            cfg_dir.mkdir(parents=True, exist_ok=True)
+            prof_file = cfg_dir / "g502-profiles.json"
+            prof_file.write_text("CORRUPTED JSON {", encoding="utf-8")
+
+            test_argv = ["g502", "create", "test:app", "Corrupt Test"]
+            with patch.dict(os.environ, {"HOME": tmp_home}):
+                with patch.object(sys, "argv", test_argv):
+                    exit_code = main()
+                    self.assertEqual(exit_code, 1)
+
+    def test_cli_assign_invalid_profile_returns_code_1(self):
+        import sys
+        from cli import main
+        test_argv = ["g502", "assign", "nonexistent-profile-id-9999", "G5", "some_action"]
+        with patch.object(sys, "argv", test_argv):
+            exit_code = main()
+            self.assertEqual(exit_code, 1)
+
+
 
 if __name__ == "__main__":
     unittest.main()

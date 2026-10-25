@@ -24,12 +24,12 @@ from adapters import (
 from domain import Action, Button, DpiConfiguration
 from engine import AutomationEngine, DEFAULT_PROFILES_FILE
 from services import ActionCatalogService, ProfileManager
-from storage import JsonProfileRepository
+from storage import CorruptedProfileRepositoryError, JsonProfileRepository, ProfileLockError
 from i18n import _, get_language, set_language
 
 
 def get_services():
-    repo = JsonProfileRepository(DEFAULT_PROFILES_FILE)
+    repo = JsonProfileRepository(Path.home() / '.config/g502-profiles.json')
     manager = ProfileManager(repo)
     discovery = ApplicationDiscoveryAdapter()
     adapter = RatbagDeviceAdapter()
@@ -58,7 +58,7 @@ def cmd_profiles(args):
 
     if not profiles:
         print("\nNo hay perfiles configurados.")
-        print("Crea uno nuevo con: g502-profile create <app_id> <name>\n")
+        print("Crea uno nuevo con: g502 create <app_id> <name>\n")
         return
 
     print(f"\nPerfiles configurados ({len(profiles)}):")
@@ -100,7 +100,8 @@ def cmd_create(args):
     if actions:
         categories = catalog.get_categories_for_application(args.app_id)
         print(f"\nCatálogo disponible: {len(actions)} acciones en {len(categories)} categorías.")
-        print(f"Usa 'g502-profile presets {args.app_id}' para ver todas las acciones asignables.")
+        print(f"Usa 'g502 presets {args.app_id}' para ver todas las acciones asignables.")
+    return 0
 
 
 def cmd_presets(args):
@@ -120,13 +121,13 @@ def cmd_presets(args):
             print(f"• [{cat['application_id']}] {cat['name']} ({cat['action_count']} acciones)")
             if cat['description']:
                 print(f"  {cat['description']}")
-        print("\nPara ver el detalle de un juego: g502-profile presets <app_id>\n")
+        print("\nPara ver el detalle de un juego: g502 presets <app_id>\n")
         return
 
     categories = catalog.get_categories_for_application(args.app_id)
     if not categories:
         print(f"No hay catálogo predefinido para '{args.app_id}'.")
-        print(f"Puedes agregar acciones personalizadas con: g502-profile add-action {args.app_id} <action_id> <name> <key>")
+        print(f"Puedes agregar acciones personalizadas con: g502 add-action {args.app_id} <action_id> <name> <key>")
         return
 
     app_name = catalog.get_application_name(args.app_id) or args.app_id
@@ -173,8 +174,10 @@ def cmd_add_action(args):
         print(f"\nAcción personalizada '{action.name}' añadida con éxito a '{args.app_id}'.")
         print(f"Categoría: {action.category} | Tecla: '{action.binding_value}' | Tipo: {action.binding_type}")
         print(f"Persistida en ~/.config/g502-profile-manager/presets/\n")
+        return 0
     else:
         print(f"Error al registrar la acción personalizada.")
+        return 1
 
 
 def cmd_assign(args):
@@ -187,7 +190,7 @@ def cmd_assign(args):
             profile = matching[0]
         else:
             print(f"Error: No se encontró el perfil con ID '{args.profile_id}'.")
-            return
+            return 1
 
     button = Button(button_id=args.button.upper(), name=f"Botón {args.button.upper()}")
 
@@ -216,6 +219,7 @@ def cmd_assign(args):
 
     manager.assign_button(profile.id, button, action)
     print(f"Asignación guardada: {button.button_id} -> {action.name} ['{action.binding_value}'] en perfil '{profile.name}'.")
+    return 0
 
 
 def cmd_reset(args):
@@ -227,10 +231,11 @@ def cmd_reset(args):
             profile = matching[0]
         else:
             print(f"Error: No se encontró el perfil con ID '{args.profile_id}'.")
-            return
+            return 1
 
     manager.reset_profile(profile.id)
     print(f"Asignaciones del perfil '{profile.name}' restablecidas a estado limpio.")
+    return 0
 
 
 def cmd_run(args):
@@ -293,13 +298,13 @@ def cmd_import(args):
 
 def create_parser():
     parser = argparse.ArgumentParser(
-        prog="g502-profile",
+        prog="g502",
         description="Administrador automático y manual de perfiles para Logitech G502 HERO.",
     )
     parser.add_argument(
         "--version",
         action="version",
-        version="g502-profile 0.5.0",
+        version="g502 0.5.0",
     )
     parser.add_argument(
         "--lang",
@@ -708,11 +713,17 @@ def main():
     }
 
     handler = handlers.get(args.command)
-    if handler:
-        handler(args)
-    else:
+    if not handler:
         parser.print_help()
+        return 1
+
+    try:
+        ret = handler(args)
+        return ret if isinstance(ret, int) else 0
+    except (CorruptedProfileRepositoryError, ProfileLockError) as e:
+        sys.stderr.write(f"Error: {e}\n")
+        return 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
