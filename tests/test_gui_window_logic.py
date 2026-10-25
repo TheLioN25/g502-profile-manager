@@ -42,6 +42,12 @@ class TestGuiLogic(unittest.TestCase):
         self.profile_manager = ProfileManager(self.repo)
         self.catalog_service = ActionCatalogService()
 
+        # Aislar archivo de preferencias i18n para no modificar el entorno del usuario
+        self.pref_file = Path(self.temp_dir.name) / "test-gui-preferences.json"
+        from i18n import set_preferences_file, set_language
+        set_preferences_file(self.pref_file)
+        set_language("es", persist=False)
+
         # Mock discovery adapter
         self.mock_discovery = MagicMock()
         self.mock_discovery.discover_all_applications.return_value = [
@@ -61,6 +67,9 @@ class TestGuiLogic(unittest.TestCase):
         self.mock_subp.return_value.stdout = 'inactive'
 
     def tearDown(self):
+        from i18n import get_default_preferences_file, set_preferences_file, set_language
+        set_preferences_file(get_default_preferences_file())
+        set_language("es", persist=False)
         self._subp_patcher.stop()
         self.temp_dir.cleanup()
 

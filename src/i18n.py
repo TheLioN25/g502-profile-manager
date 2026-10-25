@@ -21,8 +21,13 @@ AVAILABLE_LANGUAGES: dict[str, str] = {
     "en": "English",
 }
 
+def get_default_preferences_file() -> Path:
+    """Fuente canónica y dinámica del archivo de preferencias de usuario."""
+    return Path.home() / ".config/g502-preferences.json"
+
+
 DEFAULT_LANGUAGE: str = "es"
-DEFAULT_PREFERENCES_FILE: Path = Path.home() / ".config/g502-preferences.json"
+DEFAULT_PREFERENCES_FILE: Path = get_default_preferences_file()
 
 # Catálogo completo de traducciones al Inglés (Español es el idioma base)
 TRANSLATIONS_EN: dict[str, str] = {
@@ -396,7 +401,7 @@ class I18nManager:
 
     def __init__(self, preferences_file: Path | str | None = None):
         if preferences_file is None:
-            self._preferences_file = DEFAULT_PREFERENCES_FILE
+            self._preferences_file = get_default_preferences_file()
         else:
             self._preferences_file = Path(preferences_file).expanduser().resolve()
 
