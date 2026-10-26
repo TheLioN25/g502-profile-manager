@@ -105,7 +105,12 @@ class MainWindow(Adw.ApplicationWindow):
         self._catalog_service = catalog_service
         self._discovery_adapter = discovery_adapter
         self._ratbag_adapter = ratbag_adapter or RatbagDeviceAdapter()
-        self._notification_adapter = notification_adapter or DesktopNotificationAdapter()
+        initial_notif = True
+        if hasattr(self._profile_manager, "get_notifications_enabled"):
+            initial_notif = self._profile_manager.get_notifications_enabled()
+        self._notification_adapter = notification_adapter or DesktopNotificationAdapter(
+            enabled=initial_notif
+        )
         self._preview_hero_banner: bool = preview_hero_banner
         self._current_variant: DeviceVariant = DEFAULT_VARIANT
         self._automation_engine: AutomationEngine | None = automation_engine
@@ -348,7 +353,16 @@ class MainWindow(Adw.ApplicationWindow):
         self._lang_popover.set_child(lang_box)
         self._lang_menu_btn.set_popover(self._lang_popover)
 
+        # Botón de Notificaciones OSD (Activar / Silenciar)
+        self._notif_btn = Gtk.ToggleButton()
+        self._notif_btn.add_css_class("flat")
+        initial_notif_active = self._notification_adapter.enabled
+        self._notif_btn.set_active(initial_notif_active)
+        self._update_notif_btn_state(initial_notif_active)
+        self._notif_btn.connect("toggled", self._on_notif_btn_toggled)
+
         self._main_header.pack_end(self._lang_menu_btn)
+        self._main_header.pack_end(self._notif_btn)
         self._main_header.pack_end(self._apply_mouse_btn)
         self._main_header.pack_end(self._save_btn)
         self._main_header.pack_end(profile_controls)
@@ -1442,6 +1456,29 @@ class MainWindow(Adw.ApplicationWindow):
             self._mouse_status_label.add_css_class("mouse-status-disconnected")
 
 
+    def _update_notif_btn_state(self, active: bool) -> None:
+        if not hasattr(self, "_notif_btn"):
+            return
+        if active:
+            self._notif_btn.set_icon_name("notifications-symbolic")
+            self._notif_btn.set_tooltip_text(_("Notificaciones OSD activadas (clic para silenciar)"))
+        else:
+            self._notif_btn.set_icon_name("notifications-disabled-symbolic")
+            self._notif_btn.set_tooltip_text(_("Notificaciones OSD silenciadas (clic para activar)"))
+
+    def _on_notif_btn_toggled(self, btn) -> None:
+        active = btn.get_active()
+        self._notification_adapter.enabled = active
+        if self._automation_engine and hasattr(self._automation_engine, "_notification_adapter"):
+            self._automation_engine._notification_adapter.enabled = active
+        if hasattr(self._profile_manager, "set_notifications_enabled"):
+            self._profile_manager.set_notifications_enabled(active)
+        self._update_notif_btn_state(active)
+        if active:
+            self._show_toast(_("🔔 Notificaciones OSD activadas"))
+        else:
+            self._show_toast(_("🔕 Notificaciones OSD silenciadas"))
+
     def _on_change_language(self, lang_code: str) -> None:
         if hasattr(self, "_lang_popover") and self._lang_popover:
             self._lang_popover.popdown()
@@ -1490,6 +1527,9 @@ class MainWindow(Adw.ApplicationWindow):
 
         if hasattr(self, "_lang_menu_btn"):
             self._lang_menu_btn.set_tooltip_text(_("Cambiar idioma"))
+
+        if hasattr(self, "_notif_btn"):
+            self._update_notif_btn_state(self._notif_btn.get_active())
 
         if hasattr(self, "_community_group"):
             self._community_group.set_title(_("Comunidad y Calibración"))

@@ -70,7 +70,13 @@ class AutomationEngine:
         self._desktop_profile_slot = desktop_profile_slot
         self._catalog_service = catalog_service or ActionCatalogService()
         self._discovery = discovery_adapter or ApplicationDiscoveryAdapter(steam_libraryfolders_file=self._steam_file)
-        self._notification_adapter = notification_adapter if notification_adapter is not None else DesktopNotificationAdapter()
+        if notification_adapter is not None:
+            self._notification_adapter = notification_adapter
+        else:
+            notif_enabled = True
+            if hasattr(self._profile_manager, "get_notifications_enabled"):
+                notif_enabled = self._profile_manager.get_notifications_enabled()
+            self._notification_adapter = DesktopNotificationAdapter(enabled=notif_enabled)
         self._log = logger if logger is not None else logger_engine.info
         self._on_profile_applied = on_profile_applied
         self._on_desktop_restored = on_desktop_restored

@@ -3,7 +3,7 @@
 Memoria técnica del proyecto entre sesiones (~45 líneas). Estado y decisiones consolidadas.
 
 ## Estado actual
-- **Versión 0.5.0: Auditoría cruzada aprobada, Wheel funcional, Persistencia tolerante a fallos, OSD Toasts y 182 Tests.**
+- **Versión 0.5.0: Auditoría cruzada aprobada, Wheel funcional, Persistencia tolerante a fallos, OSD Toasts y 185 Tests.**
 - **Robustez de persistencia y concurrencia (R-02, R-04):**
   - Respaldo automático `.corrupt-<timestamp>` y bloqueo de sobreescrituras ante archivos corruptos (`CorruptedProfileRepositoryError`).
   - Sincronización dual: `threading.RLock` (hilos internos) y `fcntl.flock` sobre `.lock` (procesos GUI/CLI concurrentes).
@@ -16,10 +16,10 @@ Memoria técnica del proyecto entre sesiones (~45 líneas). Estado y decisiones 
   - Eliminación de `except TypeError` ciego en motor y de heurística de mocks en `RatbagDeviceAdapter`.
   - Validación de teclas y rechazo de símbolos no soportados con `ValueError` en CLI y adaptador.
   - Servicio systemd generado dinámicamente apuntando al launcher instalado (`g502 run`) sin rutas de desarrollo.
-- **179 pruebas unitarias automatizadas** pasando al 100% (`179/179 OK`) en local.
+- **185 pruebas unitarias automatizadas** pasando al 100% (`185/185 OK`) en local.
 - **Variantes soportadas:** *G502 Proteus Core*, *G502 Proteus Spectrum*, *G502 HERO*, *G502 LIGHTSPEED*, *G502 X* y *G502 X PLUS / Wireless*.
 - **Características operativas:**
-  - Notificaciones OSD / Gaming Toasts discretos vía D-Bus con debounce anti-spam y protección contra bucles de deriva.
+  - Notificaciones OSD / Gaming Toasts con Kill-Switch en HeaderBar, persistencia en JSON, debounce y cortacircuitos (circuit breaker).
   - Sincronización bidireccional de ranura física (`active_slot`) en caché de hardware y restauración silenciosa de deriva.
   - Reconocimiento de variantes en 2 pasos: resolución de 'hero wireless' hacia LIGHTSPEED y desambiguación por batería/LEDs.
   - Escrituras diferenciales (`diff_only=True`) con persistencia compartida en disco (`~/.config/g502-hardware-state.json`).
