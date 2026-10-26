@@ -58,6 +58,8 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
         adapter = RatbagDeviceAdapter(state_cache_file=None, command_runner=mock_runner)
         slot = adapter.get_active_profile_slot("warbling-mara")
         self.assertEqual(slot, 2)
+        # Debe sincronizar la caché interna con el slot devuelto por hardware
+        self.assertEqual(adapter._device_state_cache["warbling-mara"]["active_slot"], 2)
 
     def test_switch_profile_slot(self):
         executed_commands = []
@@ -74,6 +76,7 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
             executed_commands,
             [["ratbagctl", "warbling-mara", "profile", "active", "set", "3"]],
         )
+        self.assertEqual(adapter._device_state_cache["warbling-mara"]["active_slot"], 3)
 
     def test_set_dpi(self):
         executed_commands = []
@@ -557,6 +560,24 @@ number of leds: 2
         success_after_inv = adapter.apply_profile("dev_diff", profile, slot=0, diff_only=True)
         self.assertTrue(success_after_after := success_after_inv)
         self.assertGreater(len(executed_commands), 5)
+
+        # 5. Deriva de hardware / force_slot_switch con diff=0:
+        # Aunque los botones/DPI/LED no cambiaron, si el slot activo difiere o se fuerza,
+        # debe ejecutar exactamente la conmutación de ranura física
+        executed_commands.clear()
+        adapter._device_state_cache["dev_diff"]["active_slot"] = 1  # hardware desfasado en slot 1
+        success_drift = adapter.apply_profile("dev_diff", profile, slot=0, diff_only=True)
+        self.assertTrue(success_drift)
+        flattened_drift = [" ".join(cmd) for cmd in executed_commands]
+        self.assertEqual(flattened_drift, ["ratbagctl dev_diff profile active set 0"])
+        self.assertEqual(adapter._device_state_cache["dev_diff"]["active_slot"], 0)
+
+        # 6. Con force_slot_switch=True explícito
+        executed_commands.clear()
+        success_forced = adapter.apply_profile("dev_diff", profile, slot=0, diff_only=True, force_slot_switch=True)
+        self.assertTrue(success_forced)
+        flattened_forced = [" ".join(cmd) for cmd in executed_commands]
+        self.assertEqual(flattened_forced, ["ratbagctl dev_diff profile active set 0"])
 
 if __name__ == "__main__":
     unittest.main()

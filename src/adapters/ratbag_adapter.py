@@ -450,24 +450,36 @@ class RatbagDeviceAdapter:
     def get_active_profile_slot(self, device: str) -> int | None:
         """
         Obtiene el índice del perfil de hardware activo en el ratón (0..4).
+        Sincroniza la caché de estado con el valor real devuelto por el hardware.
         """
         result = self._runner(["ratbagctl", device, "profile", "active", "get"])
         if result.returncode != 0:
             return None
 
         try:
-            return int(result.stdout.strip())
+            slot_idx = int(result.stdout.strip())
+            cached = self._device_state_cache.setdefault(device, {})
+            if cached.get("active_slot") != slot_idx:
+                cached["active_slot"] = slot_idx
+                self._save_state_cache()
+            return slot_idx
         except ValueError:
             return None
 
     def switch_profile_slot(self, device: str, slot: int) -> bool:
         """
         Conmuta la ranura del perfil activo en el hardware (0..4).
+        Actualiza y persiste inmediatamente la ranura activa en la caché de estado.
         """
         result = self._runner(
             ["ratbagctl", device, "profile", "active", "set", str(slot)]
         )
-        return result.returncode == 0
+        if result.returncode == 0:
+            cached = self._device_state_cache.setdefault(device, {})
+            cached["active_slot"] = slot
+            self._save_state_cache()
+            return True
+        return False
 
     def build_dpi_command(
         self, device: str, dpi: int, slot: int | None = None
@@ -667,6 +679,7 @@ class RatbagDeviceAdapter:
         slot: int | None = None,
         variant: DeviceVariant | None = None,
         diff_only: bool = False,
+        force_slot_switch: bool = False,
     ) -> bool:
         """
         Aplica integralmente un Profile de dominio al hardware:
@@ -785,8 +798,15 @@ class RatbagDeviceAdapter:
             for _, cmd in button_cmds_ordered:
                 commands.append(cmd)
 
+        cached_active_slot = self._device_state_cache.get(device, {}).get("active_slot")
+        needs_slot_switch = force_slot_switch or (not diff_only) or (cached_active_slot != target_slot)
+
         if not commands:
-            # Sin diferencias físicas: no interrumpir el polling del ratón ni escribir en USB
+            # Sin diferencias físicas en DPI/LED/botones para esta ranura.
+            # Si la ranura de hardware difiere o se fuerza la conmutación, conmutar la ranura.
+            if needs_slot_switch:
+                if not self.switch_profile_slot(device, target_slot):
+                    return False
             self._device_state_cache.setdefault(device, {})[target_slot] = new_cached_state
             self._device_state_cache.setdefault(device, {})["active_slot"] = target_slot
             self._save_state_cache()
@@ -810,8 +830,6 @@ class RatbagDeviceAdapter:
         # 4. Asegurar que la ranura de hardware quede activa físicamente
         # Si diff_only=True y la ranura ya está activa en hardware según la caché,
         # evitamos ejecutar 'profile active set' para ahorrar ~1.5s y evitar recargas en flash
-        cached_active_slot = self._device_state_cache.get(device, {}).get("active_slot")
-        needs_slot_switch = (not diff_only) or (cached_active_slot != target_slot)
         if needs_slot_switch:
             if not self.switch_profile_slot(device, target_slot):
                 all_success = False
