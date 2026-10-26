@@ -32,6 +32,9 @@ class DesktopNotificationAdapter:
         dbus_call_sync: Callable[..., tuple] | None = None,
         command_runner: Callable[..., subprocess.CompletedProcess] | None = None,
         debounce_window_sec: float = 3.0,
+        max_burst_count: int = 3,
+        burst_window_sec: float = 10.0,
+        circuit_cooldown_sec: float = 15.0,
     ):
         self._enabled = enabled
         self._app_name = app_name
@@ -43,6 +46,13 @@ class DesktopNotificationAdapter:
         self._debounce_window_sec = debounce_window_sec
         self._last_notification_key: tuple[str, str] | None = None
         self._last_notification_time: float = 0.0
+
+        # Parámetros del Cortacircuitos (Circuit Breaker)
+        self._max_burst_count = max_burst_count
+        self._burst_window_sec = burst_window_sec
+        self._circuit_cooldown_sec = circuit_cooldown_sec
+        self._notification_timestamps: list[float] = []
+        self._circuit_open_until: float = 0.0
 
     @property
     def enabled(self) -> bool:
@@ -78,18 +88,43 @@ class DesktopNotificationAdapter:
         """
         Envía una notificación discreta de escritorio.
         Configura hints transitorios para no interferir con juegos a pantalla completa.
-        Incluye protección debounce para suprimir notificaciones idénticas repetitivas.
+        Incluye protección debounce y cortacircuitos (circuit breaker) anti-ráfaga.
         """
         if not self._enabled:
             return False
 
-        # Protección anti-spam / debounce para evitar bucles o ráfagas idénticas
         now = time.monotonic()
+
+        # 1. Cortacircuitos (Circuit Breaker): supresión si el circuito está abierto
+        if not force and now < self._circuit_open_until:
+            logger.warning(
+                "Notificación OSD suprimida por Cortacircuitos (abierto por %.1fs más)",
+                self._circuit_open_until - now,
+            )
+            return False
+
+        # 2. Protección anti-spam / debounce para evitar bucles o mensajes idénticos consecutivos
         key = (title, body)
         if not force and self._last_notification_key == key:
             if (now - self._last_notification_time) < self._debounce_window_sec:
                 logger.debug("Notificación duplicada suprimida por debounce (%s)", key)
                 return True
+
+        # 3. Control de ráfagas para el cortacircuitos
+        if not force:
+            self._notification_timestamps = [
+                t for t in self._notification_timestamps if (now - t) <= self._burst_window_sec
+            ]
+            if len(self._notification_timestamps) >= self._max_burst_count:
+                self._circuit_open_until = now + self._circuit_cooldown_sec
+                logger.warning(
+                    "Cortacircuitos OSD activado: %d notificaciones en %.1fs. Modo silencioso temporal por %.1fs.",
+                    len(self._notification_timestamps),
+                    self._burst_window_sec,
+                    self._circuit_cooldown_sec,
+                )
+                return False
+            self._notification_timestamps.append(now)
 
         self._last_notification_key = key
         self._last_notification_time = now

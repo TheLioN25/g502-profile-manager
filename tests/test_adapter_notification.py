@@ -149,6 +149,42 @@ class TestDesktopNotificationAdapter(unittest.TestCase):
 
         self.assertEqual(len(sent), 2)
 
+    def test_circuit_breaker_trips_on_excessive_bursts(self):
+        sent = []
+
+        def mock_dbus(title, body, icon, timeout, sync_id):
+            sent.append((title, body))
+            return ("id_burst",)
+
+        # Configurar cortacircuitos: máximo 3 notificaciones en ventana de 10s
+        adapter = DesktopNotificationAdapter(
+            enabled=True,
+            dbus_call_sync=mock_dbus,
+            debounce_window_sec=0.0,  # Sin debounce para probar ráfaga con distintos contenidos
+            max_burst_count=3,
+            burst_window_sec=10.0,
+            circuit_cooldown_sec=15.0,
+        )
+
+        # 3 notificaciones distintas dentro de la ventana: deben pasar
+        r1 = adapter.send_notification("App 1", "Msg 1")
+        r2 = adapter.send_notification("App 2", "Msg 2")
+        r3 = adapter.send_notification("App 3", "Msg 3")
+        self.assertTrue(r1)
+        self.assertTrue(r2)
+        self.assertTrue(r3)
+        self.assertEqual(len(sent), 3)
+
+        # La 4ta notificación en ráfaga debe disparar el cortacircuitos y suprimirse
+        r4 = adapter.send_notification("App 4", "Msg 4")
+        self.assertFalse(r4)
+        self.assertEqual(len(sent), 3)
+
+        # Con force=True se debe poder bypassar incluso con cortacircuitos abierto
+        r_forced = adapter.send_notification("App 5", "Msg 5", force=True)
+        self.assertTrue(r_forced)
+        self.assertEqual(len(sent), 4)
+
 
 class DummyDeviceAdapter:
     def __init__(self):
