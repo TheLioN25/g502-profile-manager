@@ -108,6 +108,47 @@ class TestDesktopNotificationAdapter(unittest.TestCase):
         self.assertIn("800 DPI", body)
         self.assertEqual(timeout, 1500)
 
+    def test_notification_debouncing_suppresses_rapid_duplicates(self):
+        sent = []
+
+        def mock_dbus(title, body, icon, timeout, sync_id):
+            sent.append((title, body))
+            return ("id_1",)
+
+        adapter = DesktopNotificationAdapter(
+            enabled=True, dbus_call_sync=mock_dbus, debounce_window_sec=3.0
+        )
+        res1 = adapter.notify_profile_switched(
+            app_name="Warframe", profile_name="Saryn DPS", dpi=1200
+        )
+        res2 = adapter.notify_profile_switched(
+            app_name="Warframe", profile_name="Saryn DPS", dpi=1200
+        )
+
+        self.assertTrue(res1)
+        self.assertTrue(res2)
+        # Solo se despachó 1 llamada física a D-Bus debido al debounce
+        self.assertEqual(len(sent), 1)
+
+    def test_notification_force_bypasses_debounce(self):
+        sent = []
+
+        def mock_dbus(title, body, icon, timeout, sync_id):
+            sent.append((title, body))
+            return ("id_2",)
+
+        adapter = DesktopNotificationAdapter(
+            enabled=True, dbus_call_sync=mock_dbus, debounce_window_sec=3.0
+        )
+        adapter.notify_profile_switched(
+            app_name="Warframe", profile_name="Saryn DPS", dpi=1200
+        )
+        adapter.notify_profile_switched(
+            app_name="Warframe", profile_name="Saryn DPS", dpi=1200, force=True
+        )
+
+        self.assertEqual(len(sent), 2)
+
 
 class DummyDeviceAdapter:
     def __init__(self):
@@ -201,3 +242,64 @@ class TestEngineNotificationIntegration(unittest.TestCase):
 
         self.assertEqual(len(notifications), 2)
         self.assertEqual(notifications[1], ("restore", 800))
+
+    def test_engine_hardware_drift_does_not_spam_notification(self):
+        repo = MagicMock(spec=JsonProfileRepository)
+        profile_wf = Profile(
+            name="Excalibur",
+            application_id="steam:warframe",
+            dpi=DpiConfiguration(dpi=1600),
+            profile_id="p-wf",
+        )
+        manager = MagicMock(spec=ProfileManager)
+        manager.get_active_profile_for_application.return_value = profile_wf
+
+        notifications = []
+        mock_notifier = MagicMock(spec=DesktopNotificationAdapter)
+        mock_notifier.enabled = True
+        mock_notifier.notify_profile_switched.side_effect = lambda app_name, profile_name, dpi, led_color=None: notifications.append(("switch", app_name, profile_name, dpi))
+
+        # Dispositivo que simula deriva a slot 1 después de activarse
+        current_slot_val = [0]
+        class DriftingDeviceAdapter(DummyDeviceAdapter):
+            def get_active_profile_slot(self, device: str) -> int | None:
+                return current_slot_val[0]
+
+        device_mock = DriftingDeviceAdapter()
+        engine = AutomationEngine(
+            profile_manager=manager,
+            device_adapter=device_mock,
+            discovery_adapter=DummyDiscoveryAdapter(),
+            notification_adapter=mock_notifier,
+            check_interval=0.1,
+            logger=lambda _: None,
+        )
+        engine.initialize()
+
+        from adapters.application_resolver import ActiveApplication
+        active_app = ActiveApplication(
+            name="Warframe",
+            application_id="steam:warframe",
+            source="steam",
+            executable="Warframe.x64.exe",
+            desktop_files=(),
+            process_ids=(1234,),
+            ambiguous=False,
+        )
+        with unittest.mock.patch("engine.discover_processes", return_value=[]), \
+             unittest.mock.patch("engine.resolve_active_applications", return_value=[active_app]), \
+             unittest.mock.patch("engine.combine_active_applications", return_value=[active_app]):
+            # 1. Primer ciclo: activación de perfil (debe notificar una única vez)
+            engine.step()
+            self.assertEqual(len(notifications), 1)
+
+            # 2. Simular deriva de hardware en el ratón (slot cambió a 1 físicamente)
+            current_slot_val[0] = 1
+
+            # Segundo ciclo: debe detectar la deriva, aplicar corrección, pero NO spamear notificación
+            engine.step()
+            self.assertEqual(len(notifications), 1)
+
+            # Tercer ciclo con deriva todavía en 1: sigue sin notificar
+            engine.step()
+            self.assertEqual(len(notifications), 1)

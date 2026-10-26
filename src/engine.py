@@ -149,11 +149,20 @@ class AutomationEngine:
         for app_id in new_catalogs:
             self._log(f"[CATÁLOGO] ¡Nuevo juego detectado e instalado! Catálogo generado al vuelo para '{app_id}'.")
 
-    def _apply_profile_to_device(self, profile: Profile, diff_only: bool = True) -> bool:
+    def _apply_profile_to_device(
+        self, profile: Profile, diff_only: bool = True, force_slot_switch: bool = False
+    ) -> bool:
         """Aplica el perfil al hardware a través del adaptador de dispositivo."""
         if not self._device_id:
             return False
-        return self._device_adapter.apply_profile(self._device_id, profile, diff_only=diff_only)
+        if hasattr(self._device_adapter, "apply_profile"):
+            try:
+                return self._device_adapter.apply_profile(
+                    self._device_id, profile, diff_only=diff_only, force_slot_switch=force_slot_switch
+                )
+            except TypeError:
+                return self._device_adapter.apply_profile(self._device_id, profile, diff_only=diff_only)
+        return False
 
     def step(self) -> bool:
         """
@@ -217,30 +226,38 @@ class AutomationEngine:
         if target_profile is not None:
             current_slot = self._device_adapter.get_active_profile_slot(self._device_id)
             hardware_drifted = (current_slot is not None and current_slot != 0)
-
-            needs_apply = (
+            is_new_profile = (
                 self._current_profile_id != target_profile.id
                 or self._current_profile_updated_at != target_profile.updated_at
-                or hardware_drifted
             )
-            if needs_apply:
-                self._log(f"\n[ACTIVO] Detectado: {detected_app_name} ({target_profile.application_id})")
-                self._log(f"         Aplicando perfil: '{target_profile.name}' | DPI: {target_profile.dpi.dpi} | LED: {target_profile.led_color or 'N/A'}")
 
-                success = self._apply_profile_to_device(target_profile, diff_only=True)
+            needs_apply = is_new_profile or hardware_drifted
+            if needs_apply:
+                if is_new_profile:
+                    self._log(f"\n[ACTIVO] Detectado: {detected_app_name} ({target_profile.application_id})")
+                    self._log(f"         Aplicando perfil: '{target_profile.name}' | DPI: {target_profile.dpi.dpi} | LED: {target_profile.led_color or 'N/A'}")
+                else:
+                    self._log(f"         [DRIFT] Ranura física desviada (slot {current_slot}). Restaurando ranura 0...")
+
+                success = self._apply_profile_to_device(
+                    target_profile, diff_only=True, force_slot_switch=hardware_drifted
+                )
                 if success:
-                    self._log("         Perfil aplicado al ratón con éxito.")
-                    self._current_profile_id = target_profile.id
-                    self._current_profile_updated_at = target_profile.updated_at
-                    if self._notification_adapter and self._notification_adapter.enabled:
-                        self._notification_adapter.notify_profile_switched(
-                            app_name=detected_app_name,
-                            profile_name=target_profile.name,
-                            dpi=target_profile.dpi.dpi,
-                            led_color=target_profile.led_color,
-                        )
-                    if self._on_profile_applied:
-                        self._on_profile_applied(detected_app_name, target_profile)
+                    if is_new_profile:
+                        self._log("         Perfil aplicado al ratón con éxito.")
+                        self._current_profile_id = target_profile.id
+                        self._current_profile_updated_at = target_profile.updated_at
+                        if self._notification_adapter and self._notification_adapter.enabled:
+                            self._notification_adapter.notify_profile_switched(
+                                app_name=detected_app_name,
+                                profile_name=target_profile.name,
+                                dpi=target_profile.dpi.dpi,
+                                led_color=target_profile.led_color,
+                            )
+                        if self._on_profile_applied:
+                            self._on_profile_applied(detected_app_name, target_profile)
+                    else:
+                        self._log("         Ranura de hardware reajustada exitosamente a 0.")
                 else:
                     self._log("         ADVERTENCIA: No se pudo aplicar el perfil completamente.")
         else:
@@ -300,7 +317,7 @@ class AutomationEngine:
             desktop_prof = self._profile_manager.get_active_profile_for_application("desktop:general")
             dpi_val: int | None = None
             if desktop_prof is not None:
-                self._apply_profile_to_device(desktop_prof, diff_only=True)
+                self._apply_profile_to_device(desktop_prof, diff_only=True, force_slot_switch=True)
                 self._log("       Perfil de escritorio ('desktop:general') restaurado.")
                 dpi_val = desktop_prof.dpi.dpi
             else:
