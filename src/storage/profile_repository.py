@@ -73,6 +73,14 @@ class ProfileRepository(Protocol):
         """Importa perfiles desde un diccionario o respaldo JSON."""
         ...
 
+    def get_notifications_enabled(self) -> bool:
+        """Indica si las notificaciones OSD están habilitadas."""
+        ...
+
+    def set_notifications_enabled(self, enabled: bool) -> None:
+        """Establece y persiste si las notificaciones OSD están habilitadas."""
+        ...
+
 
 def get_default_profiles_file() -> Path:
     """Fuente canónica y dinámica del archivo de perfiles en disco."""
@@ -96,6 +104,7 @@ class JsonProfileRepository:
         self._file_path = Path(file_path).expanduser().resolve()
         self._profiles: dict[str, Profile] = {}
         self._default_profiles: dict[str, str] = {}  # application_id -> profile_id
+        self._settings: dict[str, bool] = {"notifications_enabled": True}
         self._last_mtime: float = 0.0
         self._lock = threading.RLock()
         self._is_corrupted: bool = False
@@ -472,6 +481,37 @@ class JsonProfileRepository:
                 if isinstance(app_id, str) and isinstance(prof_id, str):
                     self._default_profiles[app_id.casefold()] = prof_id
 
+        # Cargar configuración global (notificaciones OSD, etc.)
+        settings = data.get("settings", {})
+        if isinstance(settings, dict):
+            self._settings = {
+                "notifications_enabled": bool(settings.get("notifications_enabled", True))
+            }
+        else:
+            self._settings = {"notifications_enabled": True}
+
+    def get_notifications_enabled(self) -> bool:
+        """Indica si las notificaciones OSD están habilitadas en la configuración."""
+        with self._lock:
+            self._reload_if_needed()
+            return bool(self._settings.get("notifications_enabled", True))
+
+    def set_notifications_enabled(self, enabled: bool) -> None:
+        """Establece y persiste si las notificaciones OSD están habilitadas."""
+        with self._lock:
+            with self._file_lock():
+                self._reload_if_needed()
+                if self._is_corrupted:
+                    msg = (
+                        f"El archivo de perfiles está corrupto y no puede sobrescribirse. "
+                        f"Se preservó el archivo original en '{self._corrupt_backup_path}'."
+                        if self._corrupt_backup_path
+                        else "El archivo de perfiles está corrupto y no puede sobrescribirse para preservar el original."
+                    )
+                    raise CorruptedProfileRepositoryError(msg)
+                self._settings["notifications_enabled"] = bool(enabled)
+                self._flush()
+
     def _flush(self) -> None:
         """
         Escribe de forma atómica el estado actual al archivo JSON.
@@ -488,6 +528,7 @@ class JsonProfileRepository:
 
         data = {
             "version": 1,
+            "settings": self._settings,
             "default_profiles": self._default_profiles,
             "profiles": [
                 self._serialize_profile(p) for p in self._profiles.values()

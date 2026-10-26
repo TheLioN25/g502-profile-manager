@@ -32,6 +32,17 @@ class ProfileManager:
         """Ruta al respaldo del archivo corrupto si existió."""
         return getattr(self._repository, "corrupt_backup_path", None)
 
+    def get_notifications_enabled(self) -> bool:
+        """Consulta si las notificaciones OSD están activadas en la persistencia."""
+        if hasattr(self._repository, "get_notifications_enabled"):
+            return self._repository.get_notifications_enabled()
+        return True
+
+    def set_notifications_enabled(self, enabled: bool) -> None:
+        """Persiste la preferencia de activación de notificaciones OSD."""
+        if hasattr(self._repository, "set_notifications_enabled"):
+            self._repository.set_notifications_enabled(enabled)
+
     def create_profile(
         self,
         name: str,

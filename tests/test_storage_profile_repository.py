@@ -351,7 +351,22 @@ class TestJsonProfileRepository(unittest.TestCase):
 
         self.assertEqual(self.repo.get_default_profile_id("test:app"), p1.id)
 
+    def test_notifications_enabled_persistence(self):
+        # 1. Por defecto debe estar habilitado
+        self.assertTrue(self.repo.get_notifications_enabled())
 
+        # 2. Modificar y persistir
+        self.repo.set_notifications_enabled(False)
+        self.assertFalse(self.repo.get_notifications_enabled())
+
+        # 3. Validar recarga desde una nueva instancia independiente
+        new_repo = JsonProfileRepository(self.repo.file_path)
+        self.assertFalse(new_repo.get_notifications_enabled())
+
+        # 4. Reactivar
+        new_repo.set_notifications_enabled(True)
+        self.assertTrue(new_repo.get_notifications_enabled())
+        self.assertTrue(self.repo.get_notifications_enabled())
 
 
 if __name__ == "__main__":

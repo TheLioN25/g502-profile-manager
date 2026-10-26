@@ -165,6 +165,13 @@ class TestProfileManager(unittest.TestCase):
         self.assertTrue(self.manager.delete_profile(p.id))
         self.assertIsNone(self.repo.get_by_id(p.id))
 
+    def test_notifications_enabled_service(self):
+        self.assertTrue(self.manager.get_notifications_enabled())
+        self.manager.set_notifications_enabled(False)
+        self.assertFalse(self.manager.get_notifications_enabled())
+        self.manager.set_notifications_enabled(True)
+        self.assertTrue(self.manager.get_notifications_enabled())
+
 
 if __name__ == "__main__":
     unittest.main()
