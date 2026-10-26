@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import subprocess
+import time
 from typing import Callable
 
 logger = logging.getLogger("g502.notifications")
@@ -30,6 +31,7 @@ class DesktopNotificationAdapter:
         icon: str = "io.github.thelion.G502ProfileManager",
         dbus_call_sync: Callable[..., tuple] | None = None,
         command_runner: Callable[..., subprocess.CompletedProcess] | None = None,
+        debounce_window_sec: float = 3.0,
     ):
         self._enabled = enabled
         self._app_name = app_name
@@ -38,6 +40,9 @@ class DesktopNotificationAdapter:
         self._runner = command_runner or subprocess.run
         self._dbus_conn = None
         self._dbus_init_attempted = False
+        self._debounce_window_sec = debounce_window_sec
+        self._last_notification_key: tuple[str, str] | None = None
+        self._last_notification_time: float = 0.0
 
     @property
     def enabled(self) -> bool:
@@ -68,13 +73,26 @@ class DesktopNotificationAdapter:
         icon: str | None = None,
         timeout_ms: int = 1800,
         synchronous_id: str = "g502-profile-change",
+        force: bool = False,
     ) -> bool:
         """
         Envía una notificación discreta de escritorio.
         Configura hints transitorios para no interferir con juegos a pantalla completa.
+        Incluye protección debounce para suprimir notificaciones idénticas repetitivas.
         """
         if not self._enabled:
             return False
+
+        # Protección anti-spam / debounce para evitar bucles o ráfagas idénticas
+        now = time.monotonic()
+        key = (title, body)
+        if not force and self._last_notification_key == key:
+            if (now - self._last_notification_time) < self._debounce_window_sec:
+                logger.debug("Notificación duplicada suprimida por debounce (%s)", key)
+                return True
+
+        self._last_notification_key = key
+        self._last_notification_time = now
 
         app_icon = icon or self._icon
 
@@ -151,6 +169,7 @@ class DesktopNotificationAdapter:
         profile_name: str,
         dpi: int,
         led_color: str | None = None,
+        force: bool = False,
     ) -> bool:
         """
         Notifica al usuario que se activó un perfil para una aplicación/juego.
@@ -162,9 +181,10 @@ class DesktopNotificationAdapter:
             body=body,
             timeout_ms=1800,
             synchronous_id="g502-profile-change",
+            force=force,
         )
 
-    def notify_desktop_restored(self, dpi: int | None = None) -> bool:
+    def notify_desktop_restored(self, dpi: int | None = None, force: bool = False) -> bool:
         """
         Notifica que se restauró el perfil estándar de escritorio.
         """
@@ -177,4 +197,5 @@ class DesktopNotificationAdapter:
             body=body,
             timeout_ms=1500,
             synchronous_id="g502-profile-change",
+            force=force,
         )
