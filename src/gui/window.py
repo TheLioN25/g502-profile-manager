@@ -4,8 +4,11 @@ Ventana principal de la interfaz gráfica G502 Profile Manager (GTK4 + Libadwait
 
 from __future__ import annotations
 
+import logging
 import threading
 from typing import Sequence
+
+logger = logging.getLogger("g502.gui")
 
 import gi
 
@@ -1468,11 +1471,20 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _on_notif_btn_toggled(self, btn) -> None:
         active = btn.get_active()
-        self._notification_adapter.enabled = active
-        if self._automation_engine and hasattr(self._automation_engine, "_notification_adapter"):
-            self._automation_engine._notification_adapter.enabled = active
         if hasattr(self._profile_manager, "set_notifications_enabled"):
-            self._profile_manager.set_notifications_enabled(active)
+            try:
+                self._profile_manager.set_notifications_enabled(active)
+            except (CorruptedProfileRepositoryError, ProfileLockError, OSError) as err:
+                btn.handler_block_by_func(self._on_notif_btn_toggled)
+                btn.set_active(not active)
+                btn.handler_unblock_by_func(self._on_notif_btn_toggled)
+                self._update_notif_btn_state(not active)
+                self._show_toast(_("No se pudo guardar la preferencia de notificaciones."))
+                logger.error("No se pudo persistir la preferencia de notificaciones: %s", err)
+                return
+        self._notification_adapter.enabled = active
+        if self._automation_engine and self._automation_engine.notification_adapter:
+            self._automation_engine.notification_adapter.enabled = active
         self._update_notif_btn_state(active)
         if active:
             self._show_toast(_("🔔 Notificaciones OSD activadas"))

@@ -509,8 +509,13 @@ class JsonProfileRepository:
                         else "El archivo de perfiles está corrupto y no puede sobrescribirse para preservar el original."
                     )
                     raise CorruptedProfileRepositoryError(msg)
+                previous = self._settings.get("notifications_enabled", True)
                 self._settings["notifications_enabled"] = bool(enabled)
-                self._flush()
+                try:
+                    self._flush()
+                except Exception:
+                    self._settings["notifications_enabled"] = previous
+                    raise
 
     def _flush(self) -> None:
         """

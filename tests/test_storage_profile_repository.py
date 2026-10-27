@@ -368,6 +368,17 @@ class TestJsonProfileRepository(unittest.TestCase):
         self.assertTrue(new_repo.get_notifications_enabled())
         self.assertTrue(self.repo.get_notifications_enabled())
 
+    def test_set_notifications_enabled_rollback_on_io_error(self):
+        from unittest.mock import patch
+        self.assertTrue(self.repo.get_notifications_enabled())
+
+        with patch.object(self.repo, "_flush", side_effect=OSError("Disk full")):
+            with self.assertRaises(OSError):
+                self.repo.set_notifications_enabled(False)
+
+        # Debe conservar el valor previo en memoria tras el fallo de escritura
+        self.assertTrue(self.repo.get_notifications_enabled())
+
 
 if __name__ == "__main__":
     unittest.main()
