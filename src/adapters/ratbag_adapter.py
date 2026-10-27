@@ -7,6 +7,7 @@ reales de ratbagctl sobre el ratón Logitech G502 HERO.
 
 from __future__ import annotations
 
+from dataclasses import replace
 import json
 from pathlib import Path
 import re
@@ -342,6 +343,7 @@ class RatbagDeviceAdapter:
             return self._variant_cache[device_clean]
 
         matched_name = ""
+        leds_known = True
 
         # 1. Obtener el nombre descriptivo mediante 'ratbagctl list'
         list_res = self._runner(["ratbagctl", "list"])
@@ -359,14 +361,24 @@ class RatbagDeviceAdapter:
         # Detección directa por nombres inequívocos
         if "g502 x" in matched_name_lower or "g502x" in matched_name_lower:
             if "wireless" in matched_name_lower or "plus" in matched_name_lower:
-                variant = G502_VARIANTS["g502_x_wireless"]
-            else:
-                # Verificar si info reporta 8 LEDs para el modelo X Plus
-                info_res = self._runner(["ratbagctl", device_clean, "info"])
-                if info_res.returncode == 0 and info_res.stdout and "number of leds: 8" in info_res.stdout.casefold():
-                    variant = G502_VARIANTS["g502_x_wireless"]
+                # '046d:c098' cubre G502 X LIGHTSPEED y G502 X PLUS: el nombre no los
+                # distingue y solo el PLUS tiene el array RGB de 8 LEDs. La verdad está
+                # en el hardware, no en el catálogo.
+                leds = self._probe_led_count(device_clean)
+                leds_known = leds is not None
+                if leds is None:
+                    # Sin dato fiable no se escriben zonas que pueden no existir.
+                    variant = self._with_led_capabilities(G502_VARIANTS["g502_x_wireless"], 0)
                 else:
-                    variant = G502_VARIANTS["g502_x"]
+                    variant = self._with_led_capabilities(G502_VARIANTS["g502_x_wireless"], leds)
+            else:
+                leds = self._probe_led_count(device_clean)
+                leds_known = leds is not None
+                variant = (
+                    self._with_led_capabilities(G502_VARIANTS["g502_x"], leds)
+                    if leds is not None
+                    else G502_VARIANTS["g502_x"]
+                )
         elif "lightspeed" in matched_name_lower or ("hero" in matched_name_lower and "wireless" in matched_name_lower):
             variant = G502_VARIANTS["g502_lightspeed"]
         elif "hero" in matched_name_lower:
@@ -401,7 +413,8 @@ class RatbagDeviceAdapter:
             elif "g502" in matched_name_lower:
                 variant = DEFAULT_VARIANT
 
-        self._variant_cache[device_clean] = variant
+        if leds_known:
+            self._variant_cache[device_clean] = variant
         return variant
 
     def get_battery_level(self, device: str) -> int | None:
@@ -592,19 +605,33 @@ class RatbagDeviceAdapter:
         result = self._runner(cmd)
         return result.returncode == 0
 
-    def get_led_count(self, device: str) -> int:
-        """
-        Obtiene la cantidad de zonas LED configurables del dispositivo.
-        """
+    def _probe_led_count(self, device: str) -> int | None:
+        """Número de zonas LED que reporta el hardware, o None si no se puede saber."""
         result = self._runner(["ratbagctl", device, "info"])
         if result.returncode == 0 and result.stdout:
             for line in result.stdout.splitlines():
                 if "number of leds:" in line.casefold():
                     try:
-                        return int(line.split(":")[-1].strip())
+                        return max(0, int(line.split(":")[-1].strip()))
                     except ValueError:
-                        pass
-        return 2
+                        return None
+        return None
+
+    def get_led_count(self, device: str) -> int:
+        """Número de zonas LED, con 2 como valor histórico por defecto."""
+        leds = self._probe_led_count(device)
+        return 2 if leds is None else leds
+
+    @staticmethod
+    def _with_led_capabilities(variant: DeviceVariant, led_count: int) -> DeviceVariant:
+        """Ajusta iluminación y zonas LED a lo que el ratón reporta realmente."""
+        if led_count <= 0:
+            capabilities = replace(variant.capabilities, has_lighting=False, has_rgb=False, led_zones=0)
+        elif led_count == 1:
+            capabilities = replace(variant.capabilities, has_lighting=True, has_rgb=False, led_zones=1)
+        else:
+            capabilities = replace(variant.capabilities, has_lighting=True, has_rgb=True, led_zones=led_count)
+        return replace(variant, capabilities=capabilities)
 
     def set_led_lighting(
         self,
