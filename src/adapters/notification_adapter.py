@@ -73,10 +73,10 @@ class DesktopNotificationAdapter:
         if self._dbus_init_attempted and (now - self._dbus_last_attempt) < self._dbus_retry_cooldown_sec:
             return None
         self._dbus_last_attempt = now
+        self._dbus_init_attempted = True
         try:
             from gi.repository import Gio
             self._dbus_conn = Gio.bus_get_sync(Gio.BusType.SESSION, None)
-            self._dbus_init_attempted = True
         except Exception as e:
             logger.debug("No se pudo obtener conexión Gio D-Bus para notificaciones: %s", e)
             self._dbus_conn = None

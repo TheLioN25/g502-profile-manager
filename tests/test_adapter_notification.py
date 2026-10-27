@@ -73,7 +73,9 @@ class TestDesktopNotificationAdapter(unittest.TestCase):
         def failing_dbus(*_args):
             raise RuntimeError("D-Bus no disponible")
 
+        runner_kwargs = []
         def timeout_runner(cmd, **kwargs):
+            runner_kwargs.append(kwargs)
             raise subprocess.TimeoutExpired(cmd, 1.0)
 
         adapter = DesktopNotificationAdapter(
@@ -83,6 +85,8 @@ class TestDesktopNotificationAdapter(unittest.TestCase):
         )
         res = adapter.send_notification("Título", "Cuerpo")
         self.assertFalse(res)
+        self.assertEqual(len(runner_kwargs), 1)
+        self.assertEqual(runner_kwargs[0].get("timeout"), 1.0)
 
     def test_dbus_connection_retries_after_cooldown(self):
         from gi.repository import Gio
@@ -107,6 +111,28 @@ class TestDesktopNotificationAdapter(unittest.TestCase):
             self.assertEqual(mock_bus.call_count, 2)
             self.assertEqual(fake_conn.call_sync.call_count, 1)
 
+    def test_dbus_connection_respects_cooldown_on_persistent_failure(self):
+        from gi.repository import Gio
+        with unittest.mock.patch.object(Gio, "bus_get_sync", side_effect=RuntimeError("sin bus")) as mock_bus:
+            adapter = DesktopNotificationAdapter(
+                enabled=True,
+                command_runner=lambda cmd, **_kwargs: subprocess.CompletedProcess(cmd, returncode=0, stdout="", stderr=""),
+            )
+            adapter._dbus_retry_cooldown_sec = 30.0
+
+            # Primer intento: falla e inicia cooldown de 30s
+            adapter.send_notification("T1", "B1")
+            self.assertEqual(mock_bus.call_count, 1)
+
+            # Segundo intento inmediato: respeta cooldown -> no llama a bus_get_sync
+            adapter.send_notification("T2", "B2")
+            self.assertEqual(mock_bus.call_count, 1)
+
+            # Tras vencer cooldown: reintenta la conexión
+            adapter._dbus_last_attempt = 0.0
+            adapter.send_notification("T3", "B3")
+            self.assertEqual(mock_bus.call_count, 2)
+
     def test_gio_path_builds_valid_notify_call(self):
         from gi.repository import Gio
         fake_conn = MagicMock()
@@ -118,6 +144,7 @@ class TestDesktopNotificationAdapter(unittest.TestCase):
         self.assertEqual(args[0], "org.freedesktop.Notifications")
         self.assertEqual(args[1], "/org/freedesktop/Notifications")
         self.assertEqual(args[3], "Notify")
+        self.assertEqual(args[7], 1000)
         params = args[4]
         self.assertEqual(params.get_type_string(), "(susssasa{sv}i)")
         hints = params.get_child_value(6)

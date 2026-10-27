@@ -3,7 +3,7 @@
 Memoria técnica del proyecto entre sesiones (~45 líneas). Estado y decisiones consolidadas.
 
 ## Estado actual
-- **Versión 0.5.1: Release correctiva sobre OSD y variantes hardware. Suite con 191 Tests.**
+- **Versión 0.5.1: Release correctiva sobre OSD y variantes hardware. Suite con 198 Tests.**
 - **Robustez de persistencia y concurrencia (R-02, R-04, C-08):**
   - Respaldo automático `.corrupt-<timestamp>` y bloqueo de sobreescrituras ante archivos corruptos (`CorruptedProfileRepositoryError`).
   - Sincronización dual: `threading.RLock` (hilos internos) y `fcntl.flock` sobre `.lock` (procesos GUI/CLI concurrentes).
@@ -12,11 +12,11 @@ Memoria técnica del proyecto entre sesiones (~45 líneas). Estado y decisiones 
   - Backoff exponencial (`_register_apply_failure` 2s→4s→8s…60s) ante fallos de hardware aislando objetivos (`target_key`).
   - `restore_desktop` verifica confirmación del hardware antes de notificar y no limpia estado si falla.
   - Detección conservadora de zonas LED (`_probe_led_count`) en familia G502 X: no escribe zonas inexistentes y no cachea si `info` no responde.
-- **Notificaciones OSD y D-Bus Resiliente (C-03, C-04, C-05, C-06):**
-  - Reintento de sesión Gio D-Bus tras enfriamiento de 30s (`_dbus_retry_cooldown_sec`).
+- **Notificaciones OSD y D-Bus Resiliente (C-03, C-04, C-05, C-06, R-23):**
+  - Reintento de sesión Gio D-Bus tras enfriamiento real de 30s (`_dbus_retry_cooldown_sec`).
   - Fallback `notify-send` acotado a 1.0s con hint booleano canónico (`boolean:transient:true`).
   - Contrato formal verificado para llamada D-Bus `Notify` y Kill-Switch persistente en HeaderBar.
-- **191 pruebas unitarias automatizadas** pasando al 100% (`191/191 OK`) en local.
+- **198 pruebas unitarias automatizadas** pasando al 100% (`198/198 OK`) en local.
 - **Variantes soportadas:** *G502 Proteus Core*, *G502 Proteus Spectrum*, *G502 HERO*, *G502 LIGHTSPEED*, *G502 X* y *G502 X PLUS / Wireless*.
 
 ## Decisiones arquitectónicas (y por qué)

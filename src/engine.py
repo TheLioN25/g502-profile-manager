@@ -301,8 +301,9 @@ class AutomationEngine:
         else:
             # Volver a perfil de escritorio si estábamos en otro perfil
             if self._current_profile_id is not None:
-                self._log("\n[DESK] Volviendo al modo escritorio...")
-                self.restore_desktop()
+                if self._should_attempt("desktop"):
+                    self._log("\n[DESK] Volviendo al modo escritorio...")
+                    self.restore_desktop()
 
         return True
 
@@ -333,6 +334,7 @@ class AutomationEngine:
             pass
 
         stopped_by_sigterm = False
+        stopped_by_keyboard = False
         try:
             while not self._stop_event.is_set():
                 try:
@@ -345,10 +347,12 @@ class AutomationEngine:
 
         except KeyboardInterrupt:
             self._log("\nDeteniendo motor por teclado...")
+            stopped_by_keyboard = True
             self.stop(restore_desktop_profile=True)
             return
         finally:
-            self.stop(restore_desktop_profile=not stopped_by_sigterm)
+            if not stopped_by_keyboard:
+                self.stop(restore_desktop_profile=not stopped_by_sigterm)
 
     def restore_desktop(self, force: bool = False) -> bool:
         """Restaura el perfil de escritorio en el hardware del ratón.
