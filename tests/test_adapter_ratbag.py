@@ -376,12 +376,15 @@ class TestRatbagDeviceAdapter(unittest.TestCase):
         def mock_x_plus(cmd: list[str]) -> subprocess.CompletedProcess:
             if cmd == ["ratbagctl", "list"]:
                 return subprocess.CompletedProcess(cmd, 0, "dev4: Logitech G502 X PLUS Wireless Gaming Mouse\n", "")
+            if cmd == ["ratbagctl", "dev4", "info"]:
+                return subprocess.CompletedProcess(cmd, 0, "number of leds: 8\n", "")
             return subprocess.CompletedProcess(cmd, 0, "", "")
 
         adapter = RatbagDeviceAdapter(state_cache_file=None, command_runner=mock_x_plus)
         var_x_plus = adapter.detect_device_variant("dev4")
-        self.assertEqual(var_x_plus, G502_VARIANTS["g502_x_wireless"])
+        self.assertEqual(var_x_plus.key, "g502_x_wireless")
         self.assertEqual(var_x_plus.capabilities.led_zones, 8)
+        self.assertTrue(var_x_plus.capabilities.has_rgb)
 
         # 5. Proteus Core (desambiguación por info: 1 LED)
         def mock_core(cmd: list[str]) -> subprocess.CompletedProcess:
@@ -578,6 +581,61 @@ number of leds: 2
         self.assertTrue(success_forced)
         flattened_forced = [" ".join(cmd) for cmd in executed_commands]
         self.assertEqual(flattened_forced, ["ratbagctl dev_diff profile active set 0"])
+
+    def _adapter_with_info(self, leds_line: str) -> RatbagDeviceAdapter:
+        def runner(cmd, **_kwargs):
+            if cmd[1:] == ["list"]:
+                return subprocess.CompletedProcess(cmd, 0, "0: Logitech G502 X Wireless\n", "")
+            return subprocess.CompletedProcess(cmd, 0, f"number of leds: {leds_line}\n", "")
+        return RatbagDeviceAdapter(state_cache_file=None, command_runner=runner)
+
+    def test_g502_x_wireless_without_leds_disables_lighting(self):
+        variant = self._adapter_with_info("0").detect_device_variant("0")
+        self.assertEqual(variant.key, "g502_x_wireless")
+        self.assertFalse(variant.capabilities.has_lighting)
+        self.assertEqual(variant.capabilities.led_zones, 0)
+        self.assertTrue(variant.capabilities.has_battery)
+
+    def test_g502_x_plus_keeps_eight_led_zones(self):
+        variant = self._adapter_with_info("8").detect_device_variant("0")
+        self.assertEqual(variant.capabilities.led_zones, 8)
+        self.assertTrue(variant.capabilities.has_rgb)
+
+    def test_g502_x_wireless_without_info_is_conservative_and_not_cached(self):
+        def runner(cmd, **_kwargs):
+            if cmd[1:] == ["list"]:
+                return subprocess.CompletedProcess(cmd, 0, "0: Logitech G502 X Wireless\n", "")
+            return subprocess.CompletedProcess(cmd, 1, "", "error")
+        adapter = RatbagDeviceAdapter(state_cache_file=None, command_runner=runner)
+        variant = adapter.detect_device_variant("0")
+        self.assertFalse(variant.capabilities.has_lighting)
+        self.assertNotIn("0", adapter._variant_cache)
+
+    def test_apply_profile_with_zero_led_zones_emits_no_led_commands(self):
+        executed_commands = []
+        def runner(cmd, **_kwargs):
+            executed_commands.append(cmd)
+            if cmd[1:] == ["list"]:
+                return subprocess.CompletedProcess(cmd, 0, "0: Logitech G502 X Wireless\n", "")
+            if len(cmd) >= 3 and cmd[2] == "info":
+                return subprocess.CompletedProcess(cmd, 0, "number of leds: 0\n", "")
+            return subprocess.CompletedProcess(cmd, 0, "", "")
+
+        adapter = RatbagDeviceAdapter(state_cache_file=None, command_runner=runner)
+        variant = adapter.detect_device_variant("0")
+        profile = Profile(
+            name="Test",
+            application_id="app",
+            dpi=DpiConfiguration(1600),
+            led_color="#00FFCC",
+            led_mode="on",
+        )
+        success = adapter.apply_profile("0", profile, slot=0, variant=variant)
+        self.assertTrue(success)
+        flattened = [" ".join(cmd) for cmd in executed_commands]
+        led_cmds = [c for c in flattened if "led" in c]
+        self.assertEqual(len(led_cmds), 0)
+
 
 if __name__ == "__main__":
     unittest.main()
