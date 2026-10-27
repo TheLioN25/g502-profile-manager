@@ -6,6 +6,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest.mock import MagicMock, patch
 
 src_path = Path(__file__).resolve().parent.parent / "src"
 if str(src_path) not in sys.path:
@@ -35,6 +36,9 @@ class DummyDeviceAdapter:
     def apply_profile(self, device: str, profile: Profile, slot: int | None = None, **kwargs) -> bool:
         self.applied_profiles.append(profile)
         return True
+
+    def get_active_profile_slot(self, device: str) -> int | None:
+        return 0
 
 
 class TestAutomationEngine(unittest.TestCase):
@@ -133,6 +137,101 @@ class TestAutomationEngine(unittest.TestCase):
         self.assertEqual(engine.device_variant, G502_VARIANTS["g502_lightspeed"])
         self.assertEqual(engine.battery_level, 88)
         self.assertTrue(any("88%" in log for log in self.logs))
+
+    def test_apply_failure_backoff_throttles_retries(self):
+        class FailingApplyAdapter(DummyDeviceAdapter):
+            def __init__(self):
+                super().__init__()
+                self.apply_call_count = 0
+
+            def apply_profile(self, device: str, profile: Profile, **kwargs) -> bool:
+                self.apply_call_count += 1
+                return False
+
+        failing_adapter = FailingApplyAdapter()
+        engine = AutomationEngine(
+            profile_manager=self.manager,
+            device_adapter=failing_adapter,
+            check_interval=0.1,
+            logger=lambda _: None,
+        )
+        engine.initialize()
+
+        from adapters.application_resolver import ActiveApplication
+        game_app = ActiveApplication(
+            name="Game Test",
+            application_id=self.wf_profile.application_id,
+            source="steam",
+            executable="game.exe",
+            desktop_files=(),
+            process_ids=(999,),
+            ambiguous=False,
+        )
+
+        with patch("engine.discover_processes", return_value=[]), \
+             patch("engine.resolve_active_applications", return_value=[game_app]), \
+             patch("engine.combine_active_applications", return_value=[game_app]):
+            # 1. Primer ciclo: debe intentar aplicar y registrar el fallo
+            engine.step()
+            self.assertEqual(failing_adapter.apply_call_count, 1)
+            self.assertEqual(engine._apply_failures, 1)
+
+            # 2. Ciclos subsiguientes inmediatos: deben ser ignorados por el backoff
+            engine.step()
+            engine.step()
+            self.assertEqual(failing_adapter.apply_call_count, 1)
+
+            # 3. Al vencer la ventana de backoff, debe reintentar
+            engine._next_apply_attempt = 0.0
+            engine.step()
+            self.assertEqual(failing_adapter.apply_call_count, 2)
+            self.assertEqual(engine._apply_failures, 2)
+
+    def test_apply_failure_backoff_isolated_by_target(self):
+        class FailingApplyAdapter(DummyDeviceAdapter):
+            def __init__(self):
+                super().__init__()
+                self.apply_call_count = 0
+
+            def apply_profile(self, device: str, profile: Profile, **kwargs) -> bool:
+                self.apply_call_count += 1
+                return False
+
+            def switch_profile_slot(self, device: str, slot: int) -> bool:
+                return False
+
+        failing_adapter = FailingApplyAdapter()
+        engine = AutomationEngine(
+            profile_manager=self.manager,
+            device_adapter=failing_adapter,
+            check_interval=0.1,
+            logger=lambda _: None,
+        )
+        engine.initialize()
+        engine._current_profile_id = self.wf_profile.id
+
+        # Simular fallo en desktop
+        engine._register_apply_failure("desktop", "escritorio")
+        self.assertEqual(engine._apply_failure_target, "desktop")
+
+        # Un perfil de juego diferente no debe heredar el backoff de desktop
+        from adapters.application_resolver import ActiveApplication
+        game_app = ActiveApplication(
+            name="Game Test",
+            application_id=self.wf_profile.application_id,
+            source="steam",
+            executable="game.exe",
+            desktop_files=(),
+            process_ids=(999,),
+            ambiguous=False,
+        )
+        with patch("engine.discover_processes", return_value=[]), \
+             patch("engine.resolve_active_applications", return_value=[game_app]), \
+             patch("engine.combine_active_applications", return_value=[game_app]):
+            engine.step()
+            # Debe haber intentado aplicar el juego porque el target cambió
+            self.assertEqual(failing_adapter.apply_call_count, 1)
+            self.assertEqual(engine._apply_failure_target, self.wf_profile.id)
 
 
 if __name__ == "__main__":
