@@ -193,13 +193,16 @@ class DesktopNotificationAdapter:
                 "-i", app_icon,
                 "-t", str(timeout_ms),
                 "-h", f"string:x-canonical-private-synchronous:{synchronous_id}",
-                "-h", "int:transient:1",
+                "-h", "boolean:transient:true",
                 "-h", "byte:urgency:1",
                 title,
                 body,
             ]
-            res = self._runner(cmd, capture_output=True, text=True)
+            res = self._runner(cmd, capture_output=True, text=True, timeout=1.0)
             return getattr(res, "returncode", 0) == 0
+        except subprocess.TimeoutExpired:
+            logger.debug("notify-send excedió 1s; notificación descartada.")
+            return False
         except Exception as e:
             logger.debug("Error ejecutando fallback notify-send: %s", e)
             return False

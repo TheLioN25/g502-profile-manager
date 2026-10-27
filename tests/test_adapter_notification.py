@@ -67,6 +67,22 @@ class TestDesktopNotificationAdapter(unittest.TestCase):
         self.assertIn("notify-send", cmd[0])
         self.assertIn("Título Fallback", cmd)
         self.assertIn("Cuerpo Fallback", cmd)
+        self.assertIn("boolean:transient:true", cmd)
+
+    def test_notify_send_timeout_expired_handled_gracefully(self):
+        def failing_dbus(*_args):
+            raise RuntimeError("D-Bus no disponible")
+
+        def timeout_runner(cmd, **kwargs):
+            raise subprocess.TimeoutExpired(cmd, 1.0)
+
+        adapter = DesktopNotificationAdapter(
+            enabled=True,
+            dbus_call_sync=failing_dbus,
+            command_runner=timeout_runner,
+        )
+        res = adapter.send_notification("Título", "Cuerpo")
+        self.assertFalse(res)
 
     def test_dbus_connection_retries_after_cooldown(self):
         from gi.repository import Gio
