@@ -43,6 +43,8 @@ class DesktopNotificationAdapter:
         self._runner = command_runner or subprocess.run
         self._dbus_conn = None
         self._dbus_init_attempted = False
+        self._dbus_last_attempt = 0.0
+        self._dbus_retry_cooldown_sec = 30.0
         self._debounce_window_sec = debounce_window_sec
         self._last_notification_key: tuple[str, str] | None = None
         self._last_notification_time: float = 0.0
@@ -64,13 +66,17 @@ class DesktopNotificationAdapter:
         self._enabled = bool(value)
 
     def _get_dbus_connection(self):
-        if self._dbus_conn is not None or self._dbus_init_attempted:
+        """Devuelve la conexión al bus de sesión, reintentando tras un fallo transitorio."""
+        if self._dbus_conn is not None:
             return self._dbus_conn
-
-        self._dbus_init_attempted = True
+        now = time.monotonic()
+        if self._dbus_init_attempted and (now - self._dbus_last_attempt) < self._dbus_retry_cooldown_sec:
+            return None
+        self._dbus_last_attempt = now
         try:
             from gi.repository import Gio
             self._dbus_conn = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+            self._dbus_init_attempted = True
         except Exception as e:
             logger.debug("No se pudo obtener conexión Gio D-Bus para notificaciones: %s", e)
             self._dbus_conn = None

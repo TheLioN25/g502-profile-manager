@@ -68,6 +68,29 @@ class TestDesktopNotificationAdapter(unittest.TestCase):
         self.assertIn("Título Fallback", cmd)
         self.assertIn("Cuerpo Fallback", cmd)
 
+    def test_dbus_connection_retries_after_cooldown(self):
+        from gi.repository import Gio
+        fake_conn = MagicMock()
+        with unittest.mock.patch.object(Gio, "bus_get_sync", side_effect=[RuntimeError("sin bus"), fake_conn]) as mock_bus:
+            runner_calls = []
+            def mock_runner(cmd, **_kwargs):
+                runner_calls.append(cmd)
+                return subprocess.CompletedProcess(cmd, returncode=0, stdout="", stderr="")
+
+            adapter = DesktopNotificationAdapter(enabled=True, command_runner=mock_runner)
+            adapter._dbus_retry_cooldown_sec = 0.0
+
+            # Primer intento: falla Gio.bus_get_sync -> usa fallback notify-send
+            res1 = adapter.send_notification("T1", "B1")
+            self.assertTrue(res1)
+            self.assertEqual(len(runner_calls), 1)
+
+            # Segundo intento: tras cooldown (0.0s), Gio.bus_get_sync tiene éxito -> usa fake_conn
+            res2 = adapter.send_notification("T2", "B2")
+            self.assertTrue(res2)
+            self.assertEqual(mock_bus.call_count, 2)
+            self.assertEqual(fake_conn.call_sync.call_count, 1)
+
     def test_notify_profile_switched_formatting(self):
         sent = []
 
