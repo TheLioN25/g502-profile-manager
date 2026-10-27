@@ -89,6 +89,37 @@ class AutomationEngine:
         self._current_profile_updated_at: str | None = None
         self._desktop_entries_cache = None
         self._tick_counter: int = 0
+        self._apply_failures: int = 0
+        self._apply_failure_target: str | None = None
+        self._next_apply_attempt: float = 0.0
+
+    def _should_attempt(self, target_key: str) -> bool:
+        """Indica si toca intentar una escritura, sin heredar el castigo de otra distinta.
+
+        Un fallo al restaurar el escritorio no debe impedir aplicar el perfil de un
+        juego recién lanzado, y viceversa.
+        """
+        if target_key != self._apply_failure_target:
+            self._apply_failures = 0
+            self._next_apply_attempt = 0.0
+        return time.monotonic() >= self._next_apply_attempt
+
+    def _reset_apply_backoff(self) -> None:
+        """Reinicia el contador y temporizador de fallos de escritura."""
+        self._apply_failures = 0
+        self._apply_failure_target = None
+        self._next_apply_attempt = 0.0
+
+    def _register_apply_failure(self, target_key: str, label: str) -> None:
+        """Programa el siguiente intento con espera creciente para no martillear la EEPROM."""
+        self._apply_failure_target = target_key
+        self._apply_failures += 1
+        delay = min(60.0, float(2 ** min(self._apply_failures, 6)))
+        self._next_apply_attempt = time.monotonic() + delay
+        self._log(
+            f"         ADVERTENCIA: fallo al aplicar {label}. "
+            f"Reintento en {delay:.0f}s (intento {self._apply_failures})."
+        )
 
     @property
     def current_profile_id(self) -> str | None:
@@ -238,7 +269,7 @@ class AutomationEngine:
             )
 
             needs_apply = is_new_profile or hardware_drifted
-            if needs_apply:
+            if needs_apply and self._should_attempt(target_profile.id):
                 if is_new_profile:
                     self._log(f"\n[ACTIVO] Detectado: {detected_app_name} ({target_profile.application_id})")
                     self._log(f"         Aplicando perfil: '{target_profile.name}' | DPI: {target_profile.dpi.dpi} | LED: {target_profile.led_color or 'N/A'}")
@@ -249,6 +280,7 @@ class AutomationEngine:
                     target_profile, diff_only=True, force_slot_switch=hardware_drifted
                 )
                 if success:
+                    self._reset_apply_backoff()
                     if is_new_profile:
                         self._log("         Perfil aplicado al ratón con éxito.")
                         self._current_profile_id = target_profile.id
@@ -265,7 +297,7 @@ class AutomationEngine:
                     else:
                         self._log("         Ranura de hardware reajustada exitosamente a 0.")
                 else:
-                    self._log("         ADVERTENCIA: No se pudo aplicar el perfil completamente.")
+                    self._register_apply_failure(target_profile.id, f"el perfil '{target_profile.name}'")
         else:
             # Volver a perfil de escritorio si estábamos en otro perfil
             if self._current_profile_id is not None:
