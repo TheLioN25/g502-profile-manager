@@ -310,7 +310,8 @@ class AutomationEngine:
         """Detiene el bucle de monitoreo y opcionalmente restaura el perfil de escritorio."""
         self._stop_event.set()
         if restore_desktop_profile:
-            self.restore_desktop()
+            if not self.restore_desktop(force=True):
+                self._log("       ADVERTENCIA: no se pudo restaurar el escritorio al detener el motor.")
         self._log("Motor detenido limpiamente.")
 
     def run(self) -> None:
@@ -349,24 +350,42 @@ class AutomationEngine:
         finally:
             self.stop(restore_desktop_profile=not stopped_by_sigterm)
 
-    def restore_desktop(self) -> None:
-        """Restaura el perfil de escritorio en el hardware del ratón."""
-        if self._device_id:
-            desktop_prof = self._profile_manager.get_active_profile_for_application("desktop:general")
-            dpi_val: int | None = None
-            if desktop_prof is not None:
-                self._apply_profile_to_device(desktop_prof, diff_only=True, force_slot_switch=True)
-                self._log("       Perfil de escritorio ('desktop:general') restaurado.")
-                dpi_val = desktop_prof.dpi.dpi
-            else:
-                self._device_adapter.switch_profile_slot(self._device_id, self._desktop_profile_slot)
-                self._log(f"       Perfil de escritorio (slot {self._desktop_profile_slot}) restaurado.")
-            self._current_profile_id = None
-            self._current_profile_updated_at = None
-            if self._notification_adapter and self._notification_adapter.enabled:
-                self._notification_adapter.notify_desktop_restored(dpi=dpi_val)
-            if self._on_desktop_restored:
-                self._on_desktop_restored()
+    def restore_desktop(self, force: bool = False) -> bool:
+        """Restaura el perfil de escritorio en el hardware del ratón.
+
+        Devuelve True solo si el hardware aceptó la restauración. Si falla, conserva
+        `_current_profile_id` para reintentar en el siguiente ciclo en lugar de
+        declarar un éxito que no ha ocurrido. `force=True` ignora el backoff de C-07
+        (usado en el apagado, donde interesa un último intento).
+        """
+        if not self._device_id:
+            return False
+        if not force and not self._should_attempt("desktop"):
+            return False
+
+        desktop_prof = self._profile_manager.get_active_profile_for_application("desktop:general")
+        dpi_val: int | None = None
+        if desktop_prof is not None:
+            restored = self._apply_profile_to_device(desktop_prof, diff_only=True, force_slot_switch=True)
+            label = "'desktop:general'"
+            dpi_val = desktop_prof.dpi.dpi
+        else:
+            restored = self._device_adapter.switch_profile_slot(self._device_id, self._desktop_profile_slot)
+            label = f"slot {self._desktop_profile_slot}"
+
+        if not restored:
+            self._register_apply_failure("desktop", f"el perfil de escritorio ({label})")
+            return False
+
+        self._reset_apply_backoff()
+        self._log(f"       Perfil de escritorio ({label}) restaurado.")
+        self._current_profile_id = None
+        self._current_profile_updated_at = None
+        if self._notification_adapter and self._notification_adapter.enabled:
+            self._notification_adapter.notify_desktop_restored(dpi=dpi_val)
+        if self._on_desktop_restored:
+            self._on_desktop_restored()
+        return True
 
 
 def main():
