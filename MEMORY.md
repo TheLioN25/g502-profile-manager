@@ -3,39 +3,32 @@
 Memoria técnica del proyecto entre sesiones (~45 líneas). Estado y decisiones consolidadas.
 
 ## Estado actual
-- **Versión 0.5.0: Auditoría cruzada aprobada, Wheel funcional, Persistencia tolerante a fallos, OSD Toasts y 185 Tests.**
-- **Robustez de persistencia y concurrencia (R-02, R-04):**
+- **Versión 0.5.1: Release correctiva sobre OSD y variantes hardware. Suite con 191 Tests.**
+- **Robustez de persistencia y concurrencia (R-02, R-04, C-08):**
   - Respaldo automático `.corrupt-<timestamp>` y bloqueo de sobreescrituras ante archivos corruptos (`CorruptedProfileRepositoryError`).
   - Sincronización dual: `threading.RLock` (hilos internos) y `fcntl.flock` sobre `.lock` (procesos GUI/CLI concurrentes).
-  - Escrituras atómicas con `tempfile.NamedTemporaryFile` previniendo colisiones de PID.
-- **Empaquetado distribuible y CI (R-01, R-11):**
-  - Wheel funcional con `py-modules` (`cli`, `engine`, `i18n`) y recursos empaquetados (`presets/`, `icons/`).
-  - Smoke test en entorno limpio integrado en GitHub Actions validando imports y entry points (`g502 --help`).
-  - Unificación estricta de versión mínima en `Python >=3.10`.
-- **Hardware y Adaptadores (R-05, R-09, R-10):**
-  - Eliminación de `except TypeError` ciego en motor y de heurística de mocks en `RatbagDeviceAdapter`.
-  - Validación de teclas y rechazo de símbolos no soportados con `ValueError` en CLI y adaptador.
-  - Servicio systemd generado dinámicamente apuntando al launcher instalado (`g502 run`) sin rutas de desarrollo.
-- **185 pruebas unitarias automatizadas** pasando al 100% (`185/185 OK`) en local.
+  - Rollback de preferencias de notificación en memoria si `_flush()` falla por E/S; reversión de toggle y toast en GUI.
+- **Hardware, Anti-Bucle y Protección de EEPROM (C-01, C-02, C-07):**
+  - Backoff exponencial (`_register_apply_failure` 2s→4s→8s…60s) ante fallos de hardware aislando objetivos (`target_key`).
+  - `restore_desktop` verifica confirmación del hardware antes de notificar y no limpia estado si falla.
+  - Detección conservadora de zonas LED (`_probe_led_count`) en familia G502 X: no escribe zonas inexistentes y no cachea si `info` no responde.
+- **Notificaciones OSD y D-Bus Resiliente (C-03, C-04, C-05, C-06):**
+  - Reintento de sesión Gio D-Bus tras enfriamiento de 30s (`_dbus_retry_cooldown_sec`).
+  - Fallback `notify-send` acotado a 1.0s con hint booleano canónico (`boolean:transient:true`).
+  - Contrato formal verificado para llamada D-Bus `Notify` y Kill-Switch persistente en HeaderBar.
+- **191 pruebas unitarias automatizadas** pasando al 100% (`191/191 OK`) en local.
 - **Variantes soportadas:** *G502 Proteus Core*, *G502 Proteus Spectrum*, *G502 HERO*, *G502 LIGHTSPEED*, *G502 X* y *G502 X PLUS / Wireless*.
-- **Características operativas:**
-  - Notificaciones OSD / Gaming Toasts con Kill-Switch en HeaderBar, persistencia en JSON, debounce y cortacircuitos (circuit breaker).
-  - Sincronización bidireccional de ranura física (`active_slot`) en caché de hardware y restauración silenciosa de deriva.
-  - Reconocimiento de variantes en 2 pasos: resolución de 'hero wireless' hacia LIGHTSPEED y desambiguación por batería/LEDs.
-  - Escrituras diferenciales (`diff_only=True`) con persistencia compartida en disco (`~/.config/g502-hardware-state.json`).
-  - Internacionalización bilingüe completa (ES/EN) con selector en HeaderBar, tray D-Bus y catálogo.
-  - Set de iconos multi-resolución en `data/icons/` y `src/gui/icons/` con diseño *squircle* y silueta 3D.
 
 ## Decisiones arquitectónicas (y por qué)
-- **Persistencia atómica y resiliente:** Ruta canónica resuelta dinámicamente mediante `get_default_profiles_file()` (`~/.config/g502-profiles.json`). Respaldo inmediato ante corrupción previa para evitar pérdida de datos del usuario.
+- **Persistencia atómica y resiliente:** Ruta canónica resuelta dinámicamente mediante `get_default_profiles_file()` (`~/.config/g502-profiles.json`). Cero cambios de esquema JSON.
 - **Doble candado de concurrencia:** `RLock` de memoria para motor/hilos y `flock` de archivo para comandos CLI concurrentes.
 - **StatusNotifierItem directo en D-Bus (`Gio.DBusConnection`):** D-Bus nativo sin `AppIndicator3` (GTK3 que crashea en GTK4).
-- **Sincronización remota pre-auditoría:** Push a origin/master con 173 tests en verde para validar GitHub Actions CI; la re-revisión de OpenCode auditará este delta publicado y cualquier ajuste se aplicará en commit incremental.
+- **Protección contra desgaste flash:** Ante error de controlador, el backoff corta reescrituras continuas a 1 intento/min.
 - **Sintaxis híbrida `key` vs `macro` en `ratbag_adapter`:**
   - Modificadores (`Shift`, `Ctrl`, `Alt`, `Meta`): `action set key <KEY>` por HID++ 2.0 (-22 EINVAL en macros) y soporte hold.
   - Alfanuméricas y símbolos: `action set macro <KEY>` (`↕KEY`) para Wine/Proton/UE5. Rechazo estricto con `ValueError` para símbolos no soportados.
 
 ## Próximos pasos y Hoja de Ruta Prioritaria
-- Re-revisión de cierre por OpenCode sobre el delta congelado (`56543e4` → `8a66fb5`).
+- Re-revisión y validación de cierre por OpenCode con `response.md` (C-01…C-08 sobre R-14…R-22).
+- Petición de datos reales de `g502 status` a dueños de G502 X LIGHTSPEED en notas de release.
 - Hito dedicado de deuda técnica (R-12): modularizar `MainWindow` introduciendo `typing.Protocol` para adaptadores.
-- Publicación formal de la versión 0.5.0 y paquete AUR cuando se reactiven registros en aur.archlinux.org.
