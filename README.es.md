@@ -5,7 +5,7 @@
 </p>
 
 [![CI Pipeline](https://github.com/TheLioN25/g502-profile-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/TheLioN25/g502-profile-manager/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-173%20passed-brightgreen.svg)](#-ejecución-de-pruebas-unitarias)
+[![Tests](https://img.shields.io/badge/tests-198%20passed-brightgreen.svg)](#-ejecución-de-pruebas-unitarias)
 [![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](pyproject.toml)
 
@@ -83,7 +83,7 @@ Permite configurar visualmente los botones, macros, sensibilidades (DPI) y zonas
   * Presets integrados en formato JSON ampliables para juegos como **Warframe**, **Guild Wars 2** y **AION 2** (incluyendo mecánicas de profesión F1–F5 y habilidades personalizables), además de atajos de productividad para el escritorio.
 
 * 🧪 **Suite de Pruebas Exhaustiva:**
-  * **173 pruebas unitarias automatizadas** con cobertura en dominio, persistencia atómica, adaptadores de hardware, lógica de interfaz gráfica, bandeja del sistema, internacionalización bilingüe, empaquetado de escritorio y servicio systemd.
+  * **198 pruebas unitarias automatizadas** con cobertura en dominio, persistencia atómica, adaptadores de hardware, lógica de interfaz gráfica, bandeja del sistema, internacionalización bilingüe, empaquetado de escritorio y servicio systemd.
 
 ---
 
@@ -142,7 +142,7 @@ g502-profile-manager/
 │   ├── i18n.py                  # Motor singleton de internacionalización y traducciones
 │   ├── engine.py                # Demonio de automatización en tiempo real
 │   └── cli.py                   # Herramienta de línea de comandos
-└── tests/                       # Suite de 173 pruebas unitarias automatizadas
+└── tests/                       # Suite de 198 pruebas unitarias automatizadas
 ```
 
 ---
@@ -161,7 +161,7 @@ Para facilitar la evaluación de la arquitectura, patrones de diseño y calidad 
 | **Aislamiento de Hardware** | [`src/adapters/ratbag_adapter.py`](src/adapters/ratbag_adapter.py) | Sanitización de memoria física EEPROM del ratón y reseteo preventivo a valores de fábrica (modelo G-HUB). |
 | **Bandeja del Sistema D-Bus** | [`src/gui/tray.py`](src/gui/tray.py) | StatusNotifierItem directo sobre `Gio.DBusConnection` (elimina el conflicto clásico de `AppIndicator3` con GTK4). |
 | **Concurrencia en GUI** | [`src/gui/window.py`](src/gui/window.py) | Monitoreo en hilo secundario independiente (`threading.Thread`) y despacho seguro al renderizado GTK4 con `GLib.idle_add`. |
-| **Suite de Pruebas Unitarias**| [`tests/`](tests/) | 173 pruebas unitarias automatizadas con mocks puros (ejecutables con `python3 -m unittest discover -s tests`). |
+| **Suite de Pruebas Unitarias**| [`tests/`](tests/) | 198 pruebas unitarias automatizadas con mocks puros (ejecutables con `python3 -m unittest discover -s tests`). |
 | **Pipeline de CI/CD** | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | Validación en servidor gráfico headless (`xvfb-run`), suite de pruebas, aserción de assets en wheel y construcción PEP 517 en `ubuntu-latest`. |
 
 ---
@@ -315,7 +315,7 @@ Si juegas títulos de Windows en Linux mediante **Steam Play / Proton**:
 
 ## 🧪 Ejecución de Pruebas Unitarias
 
-Para ejecutar la suite completa de 173 pruebas automatizadas:
+Para ejecutar la suite completa de 198 pruebas automatizadas:
 ```bash
 python3 -m unittest discover -s tests -v
 ```
