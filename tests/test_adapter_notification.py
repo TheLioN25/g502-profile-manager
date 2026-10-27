@@ -5,6 +5,7 @@ Pruebas unitarias para DesktopNotificationAdapter (OSD / Gaming Toast).
 from pathlib import Path
 import subprocess
 import sys
+import time
 import unittest
 from unittest.mock import MagicMock
 
@@ -129,7 +130,7 @@ class TestDesktopNotificationAdapter(unittest.TestCase):
             self.assertEqual(mock_bus.call_count, 1)
 
             # Tras vencer cooldown: reintenta la conexión
-            adapter._dbus_last_attempt = 0.0
+            adapter._dbus_last_attempt = time.monotonic() - 35.0
             adapter.send_notification("T3", "B3")
             self.assertEqual(mock_bus.call_count, 2)
 
