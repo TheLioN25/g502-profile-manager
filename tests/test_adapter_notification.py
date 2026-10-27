@@ -107,6 +107,26 @@ class TestDesktopNotificationAdapter(unittest.TestCase):
             self.assertEqual(mock_bus.call_count, 2)
             self.assertEqual(fake_conn.call_sync.call_count, 1)
 
+    def test_gio_path_builds_valid_notify_call(self):
+        from gi.repository import Gio
+        fake_conn = MagicMock()
+        with unittest.mock.patch.object(Gio, "bus_get_sync", return_value=fake_conn):
+            adapter = DesktopNotificationAdapter(enabled=True)
+            self.assertTrue(adapter.send_notification("T", "B", timeout_ms=1800))
+
+        args = fake_conn.call_sync.call_args.args
+        self.assertEqual(args[0], "org.freedesktop.Notifications")
+        self.assertEqual(args[1], "/org/freedesktop/Notifications")
+        self.assertEqual(args[3], "Notify")
+        params = args[4]
+        self.assertEqual(params.get_type_string(), "(susssasa{sv}i)")
+        hints = params.get_child_value(6)
+        self.assertTrue(hints.lookup_value("transient", None).get_boolean())
+        self.assertEqual(
+            hints.lookup_value("x-canonical-private-synchronous", None).get_string(),
+            "g502-profile-change",
+        )
+
     def test_notify_profile_switched_formatting(self):
         sent = []
 
