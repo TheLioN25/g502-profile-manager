@@ -16,6 +16,7 @@ from domain import Action, Button, DpiConfiguration, Profile
 from engine import AutomationEngine
 from services import ProfileManager
 from storage import JsonProfileRepository
+from adapters import DesktopNotificationAdapter
 
 
 class DummyDeviceAdapter:
@@ -232,6 +233,49 @@ class TestAutomationEngine(unittest.TestCase):
             # Debe haber intentado aplicar el juego porque el target cambió
             self.assertEqual(failing_adapter.apply_call_count, 1)
             self.assertEqual(engine._apply_failure_target, self.wf_profile.id)
+
+
+    def test_restore_desktop_failure_does_not_notify_nor_clear_state(self):
+        class FailingAdapter(DummyDeviceAdapter):
+            def switch_profile_slot(self, device, slot):
+                return False
+
+        notifications = []
+        notifier = MagicMock(spec=DesktopNotificationAdapter)
+        notifier.enabled = True
+        notifier.notify_desktop_restored.side_effect = lambda dpi=None: notifications.append(dpi)
+
+        engine = AutomationEngine(
+            profile_manager=self.manager,
+            device_adapter=FailingAdapter(),
+            notification_adapter=notifier,
+            logger=lambda _: None,
+        )
+        engine.initialize()
+        engine._current_profile_id = "p-x"
+
+        self.assertFalse(engine.restore_desktop())
+        self.assertEqual(notifications, [])
+        self.assertEqual(engine._current_profile_id, "p-x")
+
+    def test_restore_desktop_success_notifies_and_clears_state(self):
+        notifications = []
+        notifier = MagicMock(spec=DesktopNotificationAdapter)
+        notifier.enabled = True
+        notifier.notify_desktop_restored.side_effect = lambda dpi=None: notifications.append(dpi)
+
+        engine = AutomationEngine(
+            profile_manager=self.manager,
+            device_adapter=self.adapter,
+            notification_adapter=notifier,
+            logger=lambda _: None,
+        )
+        engine.initialize()
+        engine._current_profile_id = "p-x"
+
+        self.assertTrue(engine.restore_desktop())
+        self.assertEqual(len(notifications), 1)
+        self.assertIsNone(engine._current_profile_id)
 
 
 if __name__ == "__main__":
