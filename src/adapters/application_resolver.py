@@ -24,9 +24,9 @@ class ActiveApplication:
 
 def build_desktop_entry_index(desktop_entries):
     """
-    Agrupa DesktopEntry por nombre de ejecutable.
+    Agrupa DesktopEntry por nombre de ejecutable y clase de ventana (StartupWMClass).
 
-    Un mismo ejecutable puede pertenecer a varias entradas .desktop.
+    Un mismo ejecutable o StartupWMClass puede pertenecer a varias entradas .desktop.
     """
 
     entries_by_executable = {}
@@ -39,6 +39,11 @@ def build_desktop_entry_index(desktop_entries):
 
         key = entry.executable.casefold()
         entries_by_executable.setdefault(key, []).append(entry)
+
+        if entry.startup_wm_class:
+            wm_key = entry.startup_wm_class.casefold()
+            if wm_key != key:
+                entries_by_executable.setdefault(wm_key, []).append(entry)
 
     return entries_by_executable
 

@@ -152,6 +152,75 @@ class TestApplicationDiscoveryAdapter(unittest.TestCase):
         self.assertIsNotNone(entry_en)
         self.assertEqual(entry_en.name, "System Settings")
 
+    def test_discover_desktop_entries_recursive(self):
+        from adapters.desktop_entries import discover_desktop_entries
+
+        sub_dir = Path(self.temp_dir.name) / "wine" / "Programs" / "Game"
+        sub_dir.mkdir(parents=True, exist_ok=True)
+        root_desktop = Path(self.temp_dir.name) / "root_app.desktop"
+        nested_desktop = sub_dir / "nested_game.desktop"
+
+        root_desktop.write_text("[Desktop Entry]\nType=Application\nName=Root\nExec=root\n")
+        nested_desktop.write_text("[Desktop Entry]\nType=Application\nName=Nested\nExec=nested\n")
+
+        found = discover_desktop_entries(directories=[self.temp_dir.name])
+        found_names = {p.name for p in found}
+
+        self.assertIn("root_app.desktop", found_names)
+        self.assertIn("nested_game.desktop", found_names)
+
+    def test_parse_desktop_entry_wine_with_wmclass(self):
+        from adapters import parse_desktop_entry
+
+        desktop_file = Path(self.temp_dir.name) / "soulframe.desktop"
+        desktop_file.write_text(
+            "[Desktop Entry]\n"
+            "Name=Soulframe\n"
+            'Exec=env "WINEPREFIX=/home/user/.wine" wine "C:\\\\users\\\\user\\\\Soulframe.lnk"\n'
+            "Type=Application\n"
+            "StartupWMClass=launcher.exe\n"
+        )
+
+        entry = parse_desktop_entry(desktop_file)
+        self.assertIsNotNone(entry)
+        self.assertEqual(entry.name, "Soulframe")
+        self.assertEqual(entry.executable, "launcher.exe")
+        self.assertEqual(entry.startup_wm_class, "launcher.exe")
+
+    def test_parse_desktop_entry_wine_without_wmclass_extracts_target(self):
+        from adapters import parse_desktop_entry
+
+        desktop_file = Path(self.temp_dir.name) / "game_exe.desktop"
+        desktop_file.write_text(
+            "[Desktop Entry]\n"
+            "Name=My Game\n"
+            'Exec=wine "C:\\\\Games\\\\MyGame\\\\Game.exe"\n'
+            "Type=Application\n"
+        )
+
+        entry = parse_desktop_entry(desktop_file)
+        self.assertIsNotNone(entry)
+        self.assertEqual(entry.name, "My Game")
+        self.assertEqual(entry.executable, "Game.exe")
+        self.assertIsNone(entry.startup_wm_class)
+
+    def test_build_desktop_entry_index_includes_startup_wm_class(self):
+        from adapters.application_resolver import build_desktop_entry_index
+
+        entry = DesktopEntry(
+            name="Soulframe",
+            executable="soulframe",
+            exec_value="wine Soulframe.lnk",
+            desktop_file="/path/to/soulframe.desktop",
+            startup_wm_class="launcher.exe",
+        )
+
+        index = build_desktop_entry_index([entry])
+        self.assertIn("soulframe", index)
+        self.assertIn("launcher.exe", index)
+        self.assertEqual(index["soulframe"][0].name, "Soulframe")
+        self.assertEqual(index["launcher.exe"][0].name, "Soulframe")
+
 
 if __name__ == "__main__":
     unittest.main()
