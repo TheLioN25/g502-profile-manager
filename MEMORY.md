@@ -3,7 +3,7 @@
 Memoria técnica del proyecto entre sesiones (~45 líneas). Estado y decisiones consolidadas.
 
 ## Estado actual
-- **Versión 0.5.1: Release correctiva sobre OSD y variantes hardware. Suite con 198 Tests.**
+- **Versión 0.5.1: Release correctiva sobre OSD y variantes hardware. Suite al 100% (`OK`) vía `python3 -m unittest discover -s tests`.**
 - **Robustez de persistencia y concurrencia (R-02, R-04, C-08):**
   - Respaldo automático `.corrupt-<timestamp>` y bloqueo de sobreescrituras ante archivos corruptos (`CorruptedProfileRepositoryError`).
   - Sincronización dual: `threading.RLock` (hilos internos) y `fcntl.flock` sobre `.lock` (procesos GUI/CLI concurrentes).
@@ -16,7 +16,7 @@ Memoria técnica del proyecto entre sesiones (~45 líneas). Estado y decisiones 
   - Reintento de sesión Gio D-Bus tras enfriamiento real de 30s (`_dbus_retry_cooldown_sec`).
   - Fallback `notify-send` acotado a 1.0s con hint booleano canónico (`boolean:transient:true`).
   - Contrato formal verificado para llamada D-Bus `Notify` y Kill-Switch persistente en HeaderBar.
-- **198 pruebas unitarias automatizadas** pasando al 100% (`198/198 OK`) en local.
+- **Suite de pruebas unitarias automatizadas** pasando al 100% (`OK`) en local.
 - **Variantes soportadas:** *G502 Proteus Core*, *G502 Proteus Spectrum*, *G502 HERO*, *G502 LIGHTSPEED*, *G502 X* y *G502 X PLUS / Wireless*.
 
 ## Decisiones arquitectónicas (y por qué)
