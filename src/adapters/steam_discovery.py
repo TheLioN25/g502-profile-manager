@@ -2,12 +2,16 @@
 Descubrimiento de aplicaciones ejecutadas mediante Steam.
 
 Este módulo identifica lanzamientos activos de Steam usando la información
-expuesta por los procesos supervisores creados durante el lanzamiento.
+expuesta por los procesos supervisores creados durante el lanzamiento,
+así como accesos directos de juegos no oficiales (shortcuts.vdf).
 """
+
+from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
 import re
+import struct
 
 
 STEAM_LAUNCH_PATTERN = re.compile(
@@ -38,6 +42,17 @@ class SteamAppManifest:
 class ActiveSteamApplication:
     launch: SteamLaunch
     manifest: SteamAppManifest
+
+
+@dataclass(frozen=True)
+class SteamShortcut:
+    app_id: int
+    name: str
+    exe: str
+    start_dir: str = ""
+    launch_options: str = ""
+    icon: str = ""
+    shortcut_path: str = ""
 
 
 def extract_steam_app_id(process):
@@ -248,15 +263,27 @@ def discover_installed_steam_apps(libraryfolders_file):
     )
 
 
-def discover_active_steam_apps(processes, libraryfolders_file):
+def discover_active_steam_apps(processes, libraryfolders_file, shortcuts: list[SteamShortcut] | None = None):
     """
     Descubre las aplicaciones de Steam actualmente activas.
 
     Relaciona los lanzamientos detectados en los procesos con las
-    bibliotecas configuradas y los metadatos de sus appmanifest.
+    bibliotecas configuradas y los metadatos de sus appmanifest o shortcuts.vdf.
     """
     launches = discover_steam_launches(processes)
     libraries = discover_steam_libraries(libraryfolders_file)
+
+    shortcuts_by_appid: dict[int, SteamShortcut] = {}
+    if shortcuts is None:
+        try:
+            steam_root = Path(libraryfolders_file).parent.parent if Path(libraryfolders_file).exists() else None
+            for s in discover_steam_shortcuts(steam_root=steam_root):
+                shortcuts_by_appid[s.app_id] = s
+        except Exception:
+            shortcuts_by_appid = {}
+    else:
+        for s in shortcuts:
+            shortcuts_by_appid[s.app_id] = s
 
     active_apps = []
 
@@ -266,10 +293,20 @@ def discover_active_steam_apps(processes, libraryfolders_file):
             libraries,
         )
 
-        if manifest_file is None:
-            continue
+        manifest = None
+        if manifest_file is not None:
+            manifest = parse_steam_app_manifest(manifest_file)
 
-        manifest = parse_steam_app_manifest(manifest_file)
+        # Si no existe appmanifest (caso de juegos Non-Steam como Soulframe), resolver desde shortcuts.vdf
+        if manifest is None and launch.app_id in shortcuts_by_appid:
+            shortcut = shortcuts_by_appid[launch.app_id]
+            manifest = SteamAppManifest(
+                app_id=shortcut.app_id,
+                name=shortcut.name,
+                install_dir=shortcut.start_dir or shortcut.exe,
+                manifest_file="shortcuts.vdf",
+                library_path="",
+            )
 
         if manifest is None:
             continue
@@ -285,3 +322,168 @@ def discover_active_steam_apps(processes, libraryfolders_file):
         )
 
     return active_apps
+
+
+def _clean_vdf_string(val: object) -> str:
+    """Elimina espacios y comillas externas de cadenas leídas de shortcuts.vdf."""
+    s = str(val or "").strip()
+    if len(s) >= 2 and (
+        (s.startswith('"') and s.endswith('"')) or (s.startswith("'") and s.endswith("'"))
+    ):
+        s = s[1:-1].strip()
+    return s
+
+
+def parse_binary_vdf(data: bytes) -> dict:
+    """
+    Decodifica datos en formato Valve Binary KeyValues (shortcuts.vdf).
+
+    Devuelve un diccionario estructurado o {} si los datos están truncados o corruptos.
+    """
+    if not data:
+        return {}
+
+    offset = 0
+    length = len(data)
+
+    def read_string() -> str:
+        nonlocal offset
+        end = data.find(b"\x00", offset)
+        if end == -1:
+            offset = length
+            raise ValueError("Truncated string: missing null terminator")
+        val = data[offset:end]
+        offset = end + 1
+        return val.decode("utf-8", errors="replace")
+
+    def parse_dict() -> dict:
+        nonlocal offset
+        result = {}
+        while offset < length:
+            type_byte = data[offset]
+            offset += 1
+            if type_byte == 8:  # 0x08: Fin de diccionario / bloque
+                break
+            key = read_string()
+            if type_byte == 0:  # 0x00: Sub-diccionario
+                result[key] = parse_dict()
+            elif type_byte == 1:  # 0x01: String
+                result[key] = read_string()
+            elif type_byte == 2:  # 0x02: Int32
+                if offset + 4 <= length:
+                    val = struct.unpack("<I", data[offset:offset + 4])[0]
+                    offset += 4
+                    result[key] = val
+                else:
+                    offset = length
+                    raise ValueError("Truncated int32")
+            elif type_byte == 3:  # 0x03: Float32
+                if offset + 4 <= length:
+                    val = struct.unpack("<f", data[offset:offset + 4])[0]
+                    offset += 4
+                    result[key] = val
+                else:
+                    offset = length
+                    raise ValueError("Truncated float32")
+            elif type_byte == 7:  # 0x07: Int64
+                if offset + 8 <= length:
+                    val = struct.unpack("<Q", data[offset:offset + 8])[0]
+                    offset += 8
+                    result[key] = val
+                else:
+                    offset = length
+                    raise ValueError("Truncated int64")
+            else:
+                # Tipo desconocido o byte inesperado; detener para evitar desalineación
+                break
+        return result
+
+    try:
+        return parse_dict()
+    except Exception:
+        return {}
+
+
+def discover_steam_shortcuts(steam_root: Path | str | None = None) -> list[SteamShortcut]:
+    """
+    Descubre accesos directos de Steam (Non-Steam Games) en los perfiles de userdata.
+
+    Lee todos los archivos shortcuts.vdf encontrados y devuelve una lista desduplicada
+    de objetos SteamShortcut ordenados por nombre y AppID.
+    """
+    if steam_root is None:
+        candidates = [
+            Path.home() / ".local/share/Steam",
+            Path.home() / ".steam/steam",
+            Path.home() / ".steam/root",
+        ]
+        root_path = None
+        for cand in candidates:
+            if cand.is_dir():
+                root_path = cand
+                break
+        if root_path is None:
+            return []
+    else:
+        root_path = Path(steam_root).expanduser().resolve()
+
+    userdata_dir = root_path / "userdata"
+    if not userdata_dir.is_dir():
+        return []
+
+    shortcuts_by_appid: dict[int, SteamShortcut] = {}
+
+    try:
+        shortcut_files = list(userdata_dir.glob("*/config/shortcuts.vdf"))
+    except OSError:
+        return []
+
+    for file_path in shortcut_files:
+        try:
+            raw_data = file_path.read_bytes()
+        except OSError:
+            continue
+
+        parsed = parse_binary_vdf(raw_data)
+        shortcuts_data = parsed.get("shortcuts")
+        if shortcuts_data is None:
+            shortcuts_data = parsed.get("Shortcuts", {})
+        if not isinstance(shortcuts_data, dict):
+            continue
+
+        for key, entry in shortcuts_data.items():
+            if not isinstance(entry, dict):
+                continue
+
+            app_id_raw = entry.get("appid")
+            app_name = _clean_vdf_string(entry.get("AppName"))
+            exe = _clean_vdf_string(entry.get("Exe"))
+
+            if not app_name or app_id_raw is None:
+                continue
+
+            try:
+                app_id = int(app_id_raw) & 0xFFFFFFFF
+            except (ValueError, TypeError):
+                continue
+
+            if app_id == 0:
+                continue
+
+            shortcut = SteamShortcut(
+                app_id=app_id,
+                name=app_name,
+                exe=exe,
+                start_dir=_clean_vdf_string(entry.get("StartDir")),
+                launch_options=str(entry.get("LaunchOptions") or "").strip(),
+                icon=_clean_vdf_string(entry.get("icon")),
+                shortcut_path=_clean_vdf_string(entry.get("ShortcutPath")),
+            )
+
+            if app_id not in shortcuts_by_appid:
+                shortcuts_by_appid[app_id] = shortcut
+
+    return sorted(
+        shortcuts_by_appid.values(),
+        key=lambda s: (s.name.casefold(), s.app_id),
+    )

@@ -15,6 +15,7 @@ from adapters import (
     DesktopEntry,
     ProcessInfo,
     SteamAppManifest,
+    SteamShortcut,
     extract_steam_app_id,
 )
 import tempfile
@@ -57,6 +58,37 @@ class TestApplicationDiscoveryAdapter(unittest.TestCase):
         app_ids = {a.application_id for a in apps}
         self.assertIn("steam:230410", app_ids)
         self.assertIn("steam:1284210", app_ids)
+
+    def test_discover_steam_applications_includes_shortcuts(self):
+        dummy_manifests = [
+            SteamAppManifest(
+                app_id=230410,
+                name="Warframe",
+                install_dir="/games/Warframe",
+                manifest_file="appmanifest_230410.acf",
+                library_path="/games",
+            ),
+        ]
+        dummy_shortcuts = [
+            SteamShortcut(
+                app_id=3519040750,
+                name="Soulframe",
+                exe="/games/Soulframe/Launcher.exe",
+            ),
+        ]
+
+        apps = self.adapter.discover_steam_applications(
+            reader=lambda _: dummy_manifests,
+            shortcuts_finder=lambda **_: dummy_shortcuts,
+        )
+
+        self.assertEqual(len(apps), 2)
+        app_by_id = {a.application_id: a for a in apps}
+        self.assertIn("steam:230410", app_by_id)
+        self.assertIn("steam:3519040750", app_by_id)
+        soulframe = app_by_id["steam:3519040750"]
+        self.assertEqual(soulframe.name, "Soulframe")
+        self.assertTrue(soulframe.is_game)
 
     def test_discover_desktop_applications_mocked(self):
         dummy_files = [Path("/dummy/blender.desktop"), Path("/dummy/gimp.desktop")]
@@ -186,6 +218,7 @@ class TestApplicationDiscoveryAdapter(unittest.TestCase):
         self.assertEqual(entry.name, "Soulframe")
         self.assertEqual(entry.executable, "launcher.exe")
         self.assertEqual(entry.startup_wm_class, "launcher.exe")
+        self.assertTrue(entry.is_game)
 
     def test_parse_desktop_entry_wine_without_wmclass_extracts_target(self):
         from adapters import parse_desktop_entry
@@ -203,6 +236,7 @@ class TestApplicationDiscoveryAdapter(unittest.TestCase):
         self.assertEqual(entry.name, "My Game")
         self.assertEqual(entry.executable, "Game.exe")
         self.assertIsNone(entry.startup_wm_class)
+        self.assertTrue(entry.is_game)
 
     def test_build_desktop_entry_index_includes_startup_wm_class(self):
         from adapters.application_resolver import build_desktop_entry_index

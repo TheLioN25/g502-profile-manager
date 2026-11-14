@@ -21,7 +21,9 @@ from .epic_discovery import (
 )
 from .steam_discovery import (
     SteamAppManifest,
+    SteamShortcut,
     discover_installed_steam_apps,
+    discover_steam_shortcuts,
 )
 
 DEFAULT_STEAM_LIBRARYFOLDERS_FILE = (
@@ -51,26 +53,51 @@ class ApplicationDiscoveryAdapter:
     def discover_steam_applications(
         self,
         reader: Callable[[Path], list[SteamAppManifest]] = discover_installed_steam_apps,
+        shortcuts_finder: Callable[..., list[SteamShortcut]] = discover_steam_shortcuts,
     ) -> list[Application]:
         """
-        Descubre juegos de Steam instalados y los transforma en entidades Application.
+        Descubre juegos de Steam instalados (tanto oficiales como accesos directos
+        non-steam en shortcuts.vdf) y los transforma en entidades Application.
         """
-        if reader is discover_installed_steam_apps and not self._steam_file.exists():
-            return []
+        steam_apps: list[SteamAppManifest] = []
+        if not (reader is discover_installed_steam_apps and not self._steam_file.exists()):
+            try:
+                steam_apps = reader(self._steam_file)
+            except OSError:
+                steam_apps = []
 
-        steam_apps = reader(self._steam_file)
-        applications: list[Application] = []
+        applications: dict[str, Application] = {}
 
         for app in steam_apps:
             app_id = f"steam:{app.app_id}"
-            applications.append(
-                Application(
-                    application_id=app_id,
-                    name=app.name,
-                )
+            applications[app_id] = Application(
+                application_id=app_id,
+                name=app.name,
+                is_game=True,
             )
 
-        return sorted(applications, key=lambda a: a.name.casefold())
+        # Descubrir accesos directos (Non-Steam Games en shortcuts.vdf)
+        steam_root = self._steam_file.parent.parent if self._steam_file.exists() else None
+        try:
+            shortcuts = shortcuts_finder(steam_root=steam_root)
+        except TypeError:
+            try:
+                shortcuts = shortcuts_finder()
+            except Exception:
+                shortcuts = []
+        except Exception:
+            shortcuts = []
+
+        for shortcut in shortcuts:
+            app_id = f"steam:{shortcut.app_id}"
+            if app_id not in applications:
+                applications[app_id] = Application(
+                    application_id=app_id,
+                    name=shortcut.name,
+                    is_game=True,
+                )
+
+        return sorted(applications.values(), key=lambda a: a.name.casefold())
 
     def discover_epic_applications(
         self,
@@ -88,6 +115,7 @@ class ApplicationDiscoveryAdapter:
                 Application(
                     application_id=app.app_id,
                     name=app.title,
+                    is_game=True,
                 )
             )
 
@@ -115,6 +143,7 @@ class ApplicationDiscoveryAdapter:
                 apps_by_id[app_id] = Application(
                     application_id=app_id,
                     name=entry.name,
+                    is_game=entry.is_game,
                 )
 
         return sorted(apps_by_id.values(), key=lambda a: a.name.casefold())

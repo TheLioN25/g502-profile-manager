@@ -45,8 +45,10 @@ from .ratbag_adapter import (
 from .steam_discovery import (
     ActiveSteamApplication,
     SteamAppManifest,
+    SteamShortcut,
     discover_active_steam_apps,
     discover_installed_steam_apps,
+    discover_steam_shortcuts,
     extract_steam_app_id,
 )
 
@@ -62,6 +64,7 @@ __all__ = [
     "ProcessInfo",
     "RatbagDeviceAdapter",
     "SteamAppManifest",
+    "SteamShortcut",
     "build_desktop_entry_index",
     "combine_active_applications",
     "deduplicate_processes",
@@ -72,6 +75,7 @@ __all__ = [
     "discover_heroic_installed_apps",
     "discover_installed_steam_apps",
     "discover_processes",
+    "discover_steam_shortcuts",
     "extract_executable_name",
     "extract_steam_app_id",
     "get_effective_executable_path",
