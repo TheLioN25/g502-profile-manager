@@ -24,6 +24,7 @@ class DesktopEntry:
     exec_value: str
     desktop_file: str
     startup_wm_class: str | None = None
+    is_game: bool = False
 
 
 def extract_exec_name(exec_value, startup_wm_class: str | None = None):
@@ -144,12 +145,26 @@ def parse_desktop_entry(desktop_file, lang: str | None = None):
     if not name:
         return None
 
+    categories = entry.get("Categories", "")
+    categories_list = [c.strip().lower() for c in categories.split(";") if c.strip()]
+    file_str = str(desktop_file).lower()
+    exec_lower = exec_value.lower()
+    is_game = (
+        "game" in categories_list
+        or "/wine/" in file_str
+        or "/steam/" in file_str
+        or "wine" in exec_lower
+        or "proton" in file_str
+        or "proton" in exec_lower
+    )
+
     return DesktopEntry(
         name=name,
         executable=executable,
         exec_value=exec_value,
         desktop_file=str(desktop_file),
         startup_wm_class=startup_wm_class,
+        is_game=is_game,
     )
 
 
