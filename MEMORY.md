@@ -16,7 +16,7 @@ Memoria técnica del proyecto entre sesiones (~45 líneas). Estado y decisiones 
   - Reintento de sesión Gio D-Bus tras enfriamiento real de 30s (`_dbus_retry_cooldown_sec`).
   - Fallback `notify-send` acotado a 1.0s con hint booleano canónico (`boolean:transient:true`).
   - Contrato formal verificado para llamada D-Bus `Notify` y Kill-Switch persistente en HeaderBar.
-- **Suite de pruebas unitarias automatizadas** pasando al 100% (`OK`, 223 tests) en local.
+- **Suite de pruebas unitarias automatizadas** pasando al 100% (`OK`, 224 tests) en local.
 - **Soporte Non-Steam Games y Juegos Wine/Proton (Hitos 1, 2 y 3):**
   - Decodificación pura de `shortcuts.vdf` binario Valve en `steam_discovery.py` sanitizando comillas en rutas.
   - Resolución dinámica de procesos y binarios secundarios (`Soulframe.x64.exe`) mediante `alias_map` y heurística de subárbol en `application_resolver.py`.

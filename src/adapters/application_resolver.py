@@ -8,6 +8,7 @@ descubiertas mediante archivos .desktop, alias conocidos y heurística de subár
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 import shlex
 from typing import Mapping
 
@@ -188,7 +189,12 @@ def resolve_active_applications(processes, desktop_entries, alias_map=None):
         )
 
         primary_entry = matched_entries[0]
-        app_id = f"desktop:{primary_entry.executable.casefold()}" if primary_entry.executable else process_group["executable"]
+        exec_lower = primary_entry.executable.casefold() if primary_entry.executable else ""
+        if exec_lower in {"launcher.exe", "start.exe", "game.exe", "main.exe", "client.exe", "play.exe"}:
+            desktop_stem = Path(primary_entry.desktop_file).stem.casefold() if primary_entry.desktop_file else ""
+            app_id = f"desktop:{desktop_stem}" if desktop_stem else f"desktop:{exec_lower}"
+        else:
+            app_id = f"desktop:{exec_lower}" if exec_lower else process_group["executable"]
 
         active_applications.append(
             ActiveApplication(

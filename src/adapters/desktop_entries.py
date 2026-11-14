@@ -186,7 +186,6 @@ def parse_desktop_entry(desktop_file, lang: str | None = None):
             or "proton" in file_str
             or "proton" in exec_lower
             or (exec_base.endswith(".exe") and ("wine" in exec_lower or "/wine/" in file_str))
-            or ("/wine/" in file_str and "game" in categories_list)
         )
 
     return DesktopEntry(

@@ -138,7 +138,12 @@ class ApplicationDiscoveryAdapter:
             if entry is None or not entry.executable:
                 continue
 
-            app_id = f"desktop:{entry.executable.casefold()}"
+            exec_lower = entry.executable.casefold()
+            if exec_lower in {"launcher.exe", "start.exe", "game.exe", "main.exe", "client.exe", "play.exe"}:
+                desktop_stem = Path(file_path).stem.casefold()
+                app_id = f"desktop:{desktop_stem}" if desktop_stem else f"desktop:{exec_lower}"
+            else:
+                app_id = f"desktop:{exec_lower}"
             if app_id not in apps_by_id:
                 apps_by_id[app_id] = Application(
                     application_id=app_id,

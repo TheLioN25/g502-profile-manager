@@ -305,6 +305,32 @@ class TestAutomationEngine(unittest.TestCase):
             self.assertIsNone(engine._current_profile_id)
             self.assertEqual(engine._profile_release_grace_until, 0.0)
 
+    def test_unrelated_game_with_generic_launcher_does_not_receive_soulframe_profile(self) -> None:
+        from adapters.application_resolver import ActiveApplication
+        from adapters.process_discovery import ProcessInfo
+        # Perfil guardado únicamente para Soulframe
+        soulframe_profile = self.manager.create_profile("Soulframe Profile", "desktop:soulframe")
+        self.manager.set_default_profile("desktop:soulframe", soulframe_profile.id)
+
+        # Proceso ajeno con lanzador genérico que resolvió a su propia identidad
+        unrelated_app = ActiveApplication(
+            name="Other RPG",
+            application_id="desktop:other_rpg",
+            source="desktop",
+            executable="Launcher.exe",
+            desktop_files=("/path/to/other_rpg.desktop",),
+            process_ids=(4321,),
+            ambiguous=False,
+        )
+
+        with patch("engine.discover_processes", return_value=[ProcessInfo(4321, "Launcher.exe", "Launcher.exe", "Launcher.exe", "wine Launcher.exe")]), \
+             patch("engine.resolve_active_applications", return_value=[unrelated_app]), \
+             patch("engine.discover_active_steam_apps", return_value=[]), \
+             patch("engine.discover_active_epic_apps", return_value=[]):
+            self.engine.step()
+            # El motor NO debe aplicar el perfil de Soulframe
+            self.assertIsNone(self.engine._current_profile_id)
+
 
 if __name__ == "__main__":
     unittest.main()

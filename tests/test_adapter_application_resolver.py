@@ -61,7 +61,7 @@ class TestApplicationResolver(unittest.TestCase):
         self.assertEqual(len(resolved), 1)
         app = resolved[0]
         self.assertEqual(app.name, "Soulframe")
-        self.assertEqual(app.application_id, "desktop:launcher.exe")
+        self.assertEqual(app.application_id, "desktop:soulframe")
         self.assertEqual(app.executable, "Launcher.exe")
 
     def test_resolve_active_applications_secondary_binary_soulframe_x64(self) -> None:
@@ -76,7 +76,7 @@ class TestApplicationResolver(unittest.TestCase):
         self.assertEqual(len(resolved), 1)
         app = resolved[0]
         self.assertEqual(app.name, "Soulframe")
-        self.assertEqual(app.application_id, "desktop:launcher.exe")
+        self.assertEqual(app.application_id, "desktop:soulframe")
         self.assertEqual(app.executable, "Soulframe.x64.exe")
 
     def test_resolve_active_applications_tree_heuristic_fallback(self) -> None:
@@ -93,7 +93,7 @@ class TestApplicationResolver(unittest.TestCase):
         self.assertEqual(len(resolved), 1)
         app = resolved[0]
         self.assertEqual(app.name, "Soulframe")
-        self.assertEqual(app.application_id, "desktop:launcher.exe")
+        self.assertEqual(app.application_id, "desktop:soulframe")
         self.assertEqual(app.executable, "UnlistedHelper.exe")
 
     def test_tree_heuristic_does_not_cross_attribute_games_under_program_files(self) -> None:
@@ -128,6 +128,19 @@ class TestApplicationResolver(unittest.TestCase):
         index = build_desktop_entry_index([unrelated_entry], alias_map=self.alias_map)
         # No debe asociar soulframe.x64.exe a Other RPG
         self.assertNotIn("soulframe.x64.exe", index)
+
+        proc_unrelated = ProcessInfo(
+            pid=4321,
+            name="Launcher.exe",
+            executable_path="C:\\Games\\OtherRPG\\Launcher.exe",
+            real_executable_path="/usr/bin/wine64-preloader",
+            command="wine Launcher.exe",
+        )
+        resolved = resolve_active_applications([proc_unrelated], [unrelated_entry], alias_map=self.alias_map)
+        self.assertEqual(len(resolved), 1)
+        self.assertEqual(resolved[0].name, "Other RPG")
+        self.assertEqual(resolved[0].application_id, "desktop:other_rpg")
+        self.assertNotEqual(resolved[0].application_id, "desktop:soulframe")
 
 
 if __name__ == "__main__":
