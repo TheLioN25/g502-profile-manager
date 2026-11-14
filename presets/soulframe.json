@@ -1,0 +1,167 @@
+{
+  "application_id": "soulframe",
+  "name": "Soulframe",
+  "executable": "Soulframe.x64.exe",
+  "description": "Juego de rol de acción y fantasía en tercera persona de Digital Extremes.",
+  "aliases": [
+    "desktop:launcher.exe",
+    "launcher.exe",
+    "soulframe",
+    "soulframe.x64.exe",
+    "steam:3519040750"
+  ],
+  "actions": [
+    {
+      "action_id": "sf_light_attack",
+      "name": "Ataque Ligero",
+      "category": "Combate",
+      "description": "Ataque principal con arma cuerpo a cuerpo o lanzamiento",
+      "binding_type": "special",
+      "binding_value": "button 1"
+    },
+    {
+      "action_id": "sf_heavy_attack",
+      "name": "Ataque Pesado / Carga",
+      "category": "Combate",
+      "description": "Golpe cargado o ataque pesado de ruptura",
+      "binding_type": "key",
+      "binding_value": "e"
+    },
+    {
+      "action_id": "sf_aim_range",
+      "name": "Apuntar / Modo Rango",
+      "category": "Combate",
+      "description": "Apuntar con arco o lanzar arma a distancia",
+      "binding_type": "special",
+      "binding_value": "button 2"
+    },
+    {
+      "action_id": "sf_block_parry",
+      "name": "Bloqueo / Parada (Parry)",
+      "category": "Combate",
+      "description": "Bloquear ataque entrante o desviar en el momento justo",
+      "binding_type": "key",
+      "binding_value": "q"
+    },
+    {
+      "action_id": "sf_pact_arm",
+      "name": "Brazo de Pacto (Pact Arm)",
+      "category": "Combate",
+      "description": "Invocar y canalizar los poderes del brazo pactado",
+      "binding_type": "key",
+      "binding_value": "button 3"
+    },
+    {
+      "action_id": "sf_kick_bash",
+      "name": "Patada / Desestabilizar",
+      "category": "Combate",
+      "description": "Romper guardia de enemigos con escudo",
+      "binding_type": "key",
+      "binding_value": "v"
+    },
+    {
+      "action_id": "sf_pact_magic_1",
+      "name": "Magia de Pacto 1",
+      "category": "Habilidades",
+      "description": "Primera habilidad mágica de preludio",
+      "binding_type": "key",
+      "binding_value": "1"
+    },
+    {
+      "action_id": "sf_pact_magic_2",
+      "name": "Magia de Pacto 2",
+      "category": "Habilidades",
+      "description": "Segunda habilidad mágica de afinidad espiritual",
+      "binding_type": "key",
+      "binding_value": "2"
+    },
+    {
+      "action_id": "sf_pact_magic_3",
+      "name": "Magia de Pacto 3",
+      "category": "Habilidades",
+      "description": "Tercera habilidad mágica de combate",
+      "binding_type": "key",
+      "binding_value": "3"
+    },
+    {
+      "action_id": "sf_ultimate",
+      "name": "Habilidad Definitiva (Ancestral)",
+      "category": "Habilidades",
+      "description": "Liberar el poder total del alma y los ancestros",
+      "binding_type": "key",
+      "binding_value": "4"
+    },
+    {
+      "action_id": "sf_heal_potion",
+      "name": "Poción / Curación",
+      "category": "Habilidades",
+      "description": "Consumir bálsamo o elixir para restaurar salud",
+      "binding_type": "key",
+      "binding_value": "r"
+    },
+    {
+      "action_id": "sf_jump",
+      "name": "Saltar",
+      "category": "Movimiento",
+      "description": "Saltar obstáculos y escalar salientes",
+      "binding_type": "key",
+      "binding_value": "space"
+    },
+    {
+      "action_id": "sf_dodge_roll",
+      "name": "Esquivar / Rodar",
+      "category": "Movimiento",
+      "description": "Rodar para evadir golpes pesados",
+      "binding_type": "key",
+      "binding_value": "c"
+    },
+    {
+      "action_id": "sf_sprint",
+      "name": "Correr / Sprint",
+      "category": "Movimiento",
+      "description": "Esprintar rápidamente",
+      "binding_type": "key",
+      "binding_value": "leftshift"
+    },
+    {
+      "action_id": "sf_crouch_stealth",
+      "name": "Agacharse / Sigilo",
+      "category": "Movimiento",
+      "description": "Moverse agachado para asesinatos sigilosos",
+      "binding_type": "key",
+      "binding_value": "leftctrl"
+    },
+    {
+      "action_id": "sf_interact",
+      "name": "Interactuar / Saquear",
+      "category": "Interacción",
+      "description": "Abrir cofres, hablar o interactuar con el entorno",
+      "binding_type": "key",
+      "binding_value": "f"
+    },
+    {
+      "action_id": "sf_astral_vision",
+      "name": "Visión Espiritual / Ojo de Cuervo",
+      "category": "Interacción",
+      "description": "Escanear rastros espirituales y puntos de interés",
+      "binding_type": "key",
+      "binding_value": "x"
+    },
+    {
+      "action_id": "sf_map",
+      "name": "Mapa de Alca",
+      "category": "Interacción",
+      "description": "Abrir mapa del mundo",
+      "binding_type": "key",
+      "binding_value": "m"
+    },
+    {
+      "action_id": "sf_inventory",
+      "name": "Inventario / Reposo",
+      "category": "Interacción",
+      "description": "Abrir inventario de objetos y pactos",
+      "binding_type": "key",
+      "binding_value": "tab"
+    }
+  ]
+}

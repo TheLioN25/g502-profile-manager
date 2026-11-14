@@ -213,6 +213,14 @@ class ActionCatalogService:
 
         return None
 
+    def get_alias_map(self) -> dict[str, str]:
+        """Devuelve una copia del mapa de alias a identificadores canónicos del catálogo."""
+        return dict(self._alias_map)
+
+    def resolve_application_id(self, application_id: str) -> str | None:
+        """Resuelve un identificador de aplicación o alias hacia la clave canónica del catálogo."""
+        return self._resolve_app_key(application_id)
+
     def has_catalog(self, application_id: str) -> bool:
         """Determina si existe un catálogo cargado para el identificador dado o sus alias."""
         return self._resolve_app_key(application_id) is not None
@@ -338,7 +346,11 @@ class ActionCatalogService:
                 continue
 
             app_key = app.application_id.strip().casefold()
-            is_game = app.application_id.startswith("steam:") or app.application_id.startswith("epic:")
+            is_game = (
+                getattr(app, "is_game", False)
+                or app.application_id.startswith("steam:")
+                or app.application_id.startswith("epic:")
+            )
             if is_game and auto_generate_for_games:
                     name_lower = app.name.strip().casefold()
                     if any(ignored in name_lower for ignored in IGNORED_GAME_PATTERNS):

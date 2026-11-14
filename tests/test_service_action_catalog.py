@@ -150,6 +150,46 @@ class TestActionCatalogService(unittest.TestCase):
             self.assertIn("Magia", categories)
             self.assertEqual(categories["Magia"][0].action_id, "fire_spell")
 
+    def test_soulframe_preset_and_desktop_launcher_alias(self):
+        self.assertTrue(self.catalog.has_catalog("soulframe"))
+        self.assertTrue(self.catalog.has_catalog("desktop:launcher.exe"))
+        self.assertEqual(self.catalog.get_application_name("desktop:launcher.exe"), "Soulframe")
+
+        actions = self.catalog.get_actions_for_application("desktop:launcher.exe")
+        self.assertGreaterEqual(len(actions), 15)
+
+        categories = self.catalog.get_categories_for_application("desktop:launcher.exe")
+        self.assertIn("Combate", categories)
+        self.assertIn("Habilidades", categories)
+        self.assertIn("Movimiento", categories)
+        self.assertIn("Interacción", categories)
+
+        combat_ids = [a.action_id for a in categories["Combate"]]
+        self.assertIn("sf_light_attack", combat_ids)
+        self.assertIn("sf_block_parry", combat_ids)
+
+        # Verificar alias para acceso directo de Steam (Non-Steam game)
+        self.assertTrue(self.catalog.has_catalog("steam:3519040750"))
+        self.assertEqual(self.catalog.get_application_name("steam:3519040750"), "Soulframe")
+        steam_actions = self.catalog.get_actions_for_application("steam:3519040750")
+        self.assertGreaterEqual(len(steam_actions), 15)
+
+    def test_sync_with_installed_applications_generic_wine_game(self):
+        generic_wine_app = Application(
+            application_id="desktop:other_game.exe",
+            name="Other Wine Game",
+            is_game=True,
+        )
+        self.assertFalse(self.catalog.has_catalog("desktop:other_game.exe"))
+
+        newly_synced = self.catalog.sync_with_installed_applications([generic_wine_app], persist=False)
+        self.assertIn("desktop:other_game.exe", newly_synced)
+        self.assertTrue(self.catalog.has_catalog("desktop:other_game.exe"))
+
+        categories = self.catalog.get_categories_for_application("desktop:other_game.exe")
+        self.assertIn("Combate", categories)
+        self.assertIn("Movimiento", categories)
+
     def test_canonical_presets_and_icons_match_root_resources(self):
         project_root = Path(__file__).resolve().parent.parent
         root_presets = project_root / "presets"

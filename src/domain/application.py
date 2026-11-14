@@ -75,6 +75,7 @@ class Application:
         application_id: str,
         name: str,
         actions: Iterable[Action] | None = None,
+        is_game: bool = False,
     ):
         if not isinstance(application_id, str) or not application_id.strip():
             raise ValueError("application_id no puede estar vacío.")
@@ -83,11 +84,17 @@ class Application:
 
         self._application_id: str = application_id.strip()
         self._name: str = name.strip()
+        self._is_game: bool = bool(is_game)
         self._actions: dict[str, Action] = {}
 
         if actions:
             for action in actions:
                 self.add_action(action)
+
+    @property
+    def is_game(self) -> bool:
+        """Indica si la aplicación es identificada como videojuego."""
+        return self._is_game
 
     @property
     def application_id(self) -> str:
