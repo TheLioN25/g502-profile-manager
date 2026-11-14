@@ -96,6 +96,6 @@ En juegos como Soulframe (y muchos títulos de Wine/Steam):
   - [x] Mecanismo de resolución para `Soulframe.x64.exe` (alias de proceso o heurística de directorio).
   - [x] Verificación en `src/adapters/application_resolver.py` y `src/engine.py`.
   - [x] Tests unitarios de resolución de procesos hijos/juegos Wine.
-- [ ] **Hito 4:**
-  - [ ] Verificación final de la suite completa (`python3 -m unittest discover -s tests`).
-  - [ ] Generación de `brief.md` para revisión cruzada con OpenCode (Regla 11) si aplica.
+- [x] **Hito 4:**
+  - [x] Verificación final de la suite completa (`python3 -m unittest discover -s tests`).
+  - [x] Generación de `brief.md` para revisión cruzada con OpenCode (Regla 11) si aplica.

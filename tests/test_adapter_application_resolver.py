@@ -96,6 +96,39 @@ class TestApplicationResolver(unittest.TestCase):
         self.assertEqual(app.application_id, "desktop:launcher.exe")
         self.assertEqual(app.executable, "UnlistedHelper.exe")
 
+    def test_tree_heuristic_does_not_cross_attribute_games_under_program_files(self) -> None:
+        # Dos juegos distintos bajo Program Files
+        entry_game_a = DesktopEntry(
+            name="Game A",
+            executable="gamea.exe",
+            exec_value='wine "C:\\Program Files\\GameA\\GameA.exe"',
+            desktop_file="/path/to/gamea.desktop",
+            is_game=True,
+        )
+        proc_game_b = ProcessInfo(
+            pid=8888,
+            name="GameB.exe",
+            executable_path="C:\\Program Files\\GameB\\GameB.exe",
+            real_executable_path="/usr/bin/wine64-preloader",
+            command='"C:\\Program Files\\GameB\\GameB.exe"',
+        )
+        # GameB no debe asociarse a GameA por el directorio padre Program Files
+        resolved = resolve_active_applications([proc_game_b], [entry_game_a], alias_map=None)
+        self.assertEqual(len(resolved), 0)
+
+    def test_unrelated_game_with_generic_launcher_does_not_hijack_soulframe_alias(self) -> None:
+        # Entrada de otro juego que casualmente usa Launcher.exe
+        unrelated_entry = DesktopEntry(
+            name="Other RPG",
+            executable="launcher.exe",
+            exec_value='wine "C:\\Games\\OtherRPG\\Launcher.exe"',
+            desktop_file="/path/to/other_rpg.desktop",
+            is_game=True,
+        )
+        index = build_desktop_entry_index([unrelated_entry], alias_map=self.alias_map)
+        # No debe asociar soulframe.x64.exe a Other RPG
+        self.assertNotIn("soulframe.x64.exe", index)
+
 
 if __name__ == "__main__":
     unittest.main()

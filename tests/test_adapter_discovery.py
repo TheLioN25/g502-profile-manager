@@ -238,6 +238,21 @@ class TestApplicationDiscoveryAdapter(unittest.TestCase):
         self.assertIsNone(entry.startup_wm_class)
         self.assertTrue(entry.is_game)
 
+    def test_parse_desktop_entry_wine_utilities_not_classified_as_game(self):
+        from adapters import parse_desktop_entry
+
+        for util_cmd in ["winecfg", "winetricks", "wine wineboot.exe", "wine uninstaller.exe"]:
+            desktop_file = Path(self.temp_dir.name) / f"util_{util_cmd.split()[-1]}.desktop"
+            desktop_file.write_text(
+                "[Desktop Entry]\n"
+                f"Name=Wine Util {util_cmd}\n"
+                f"Exec={util_cmd}\n"
+                "Type=Application\n"
+            )
+            entry = parse_desktop_entry(desktop_file)
+            self.assertIsNotNone(entry)
+            self.assertFalse(entry.is_game, f"{util_cmd} should not be classified as a game")
+
     def test_build_desktop_entry_index_includes_startup_wm_class(self):
         from adapters.application_resolver import build_desktop_entry_index
 

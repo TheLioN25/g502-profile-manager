@@ -224,7 +224,7 @@ class ProfileManager:
             return None
         return self._repository.get_by_id(default_id)
 
-    def list_all_profiles(self) -> list[Profile]:
+    def list_all_profiles(self) -> tuple[Profile, ...]:
         """Devuelve todos los perfiles registrados en el repositorio."""
         return self._repository.list_all()
 

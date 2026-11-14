@@ -271,19 +271,24 @@ def discover_active_steam_apps(processes, libraryfolders_file, shortcuts: list[S
     bibliotecas configuradas y los metadatos de sus appmanifest o shortcuts.vdf.
     """
     launches = discover_steam_launches(processes)
+    if not launches:
+        return []
+
     libraries = discover_steam_libraries(libraryfolders_file)
 
-    shortcuts_by_appid: dict[int, SteamShortcut] = {}
-    if shortcuts is None:
-        try:
-            steam_root = Path(libraryfolders_file).parent.parent if Path(libraryfolders_file).exists() else None
-            for s in discover_steam_shortcuts(steam_root=steam_root):
-                shortcuts_by_appid[s.app_id] = s
-        except Exception:
-            shortcuts_by_appid = {}
-    else:
-        for s in shortcuts:
-            shortcuts_by_appid[s.app_id] = s
+    shortcuts_by_appid: dict[int, SteamShortcut] | None = None
+    if shortcuts is not None:
+        shortcuts_by_appid = {s.app_id: s for s in shortcuts}
+
+    def _get_shortcuts() -> dict[int, SteamShortcut]:
+        nonlocal shortcuts_by_appid
+        if shortcuts_by_appid is None:
+            try:
+                steam_root = Path(libraryfolders_file).parent.parent if Path(libraryfolders_file).exists() else None
+                shortcuts_by_appid = {s.app_id: s for s in discover_steam_shortcuts(steam_root=steam_root)}
+            except (OSError, ValueError, struct.error):
+                shortcuts_by_appid = {}
+        return shortcuts_by_appid
 
     active_apps = []
 
@@ -298,15 +303,17 @@ def discover_active_steam_apps(processes, libraryfolders_file, shortcuts: list[S
             manifest = parse_steam_app_manifest(manifest_file)
 
         # Si no existe appmanifest (caso de juegos Non-Steam como Soulframe), resolver desde shortcuts.vdf
-        if manifest is None and launch.app_id in shortcuts_by_appid:
-            shortcut = shortcuts_by_appid[launch.app_id]
-            manifest = SteamAppManifest(
-                app_id=shortcut.app_id,
-                name=shortcut.name,
-                install_dir=shortcut.start_dir or shortcut.exe,
-                manifest_file="shortcuts.vdf",
-                library_path="",
-            )
+        if manifest is None:
+            loaded_shortcuts = _get_shortcuts()
+            if launch.app_id in loaded_shortcuts:
+                shortcut = loaded_shortcuts[launch.app_id]
+                manifest = SteamAppManifest(
+                    app_id=shortcut.app_id,
+                    name=shortcut.name,
+                    install_dir=shortcut.start_dir or shortcut.exe,
+                    manifest_file="shortcuts.vdf",
+                    library_path="",
+                )
 
         if manifest is None:
             continue
@@ -394,13 +401,13 @@ def parse_binary_vdf(data: bytes) -> dict:
                     offset = length
                     raise ValueError("Truncated int64")
             else:
-                # Tipo desconocido o byte inesperado; detener para evitar desalineación
-                break
+                # Tipo desconocido o byte inesperado; abortar para evitar corrupcion de datos
+                raise ValueError(f"Unknown VDF type byte: {type_byte} at offset {offset - 1}")
         return result
 
     try:
         return parse_dict()
-    except Exception:
+    except (OSError, ValueError, struct.error, IndexError):
         return {}
 
 

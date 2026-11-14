@@ -62,9 +62,17 @@ def build_desktop_entry_index(desktop_entries, alias_map=None):
             if entry.startup_wm_class:
                 candidates.extend([entry.startup_wm_class.casefold(), f"desktop:{entry.startup_wm_class.casefold()}"])
 
+            GENERIC_LAUNCHER_NAMES = {"launcher.exe", "desktop:launcher.exe", "start.exe", "game.exe"}
+
             for cand in candidates:
                 canonical = alias_map.get(cand)
                 if canonical and canonical.casefold() in canonical_to_aliases:
+                    cand_lower = cand.casefold()
+                    if cand_lower in GENERIC_LAUNCHER_NAMES:
+                        context = f"{entry.name} {entry.desktop_file} {entry.exec_value}".casefold()
+                        if canonical.casefold() not in context:
+                            continue
+
                     for related_alias in canonical_to_aliases[canonical.casefold()]:
                         clean_alias = related_alias.replace("desktop:", "").replace("steam:", "").strip()
                         if clean_alias and clean_alias != key:
@@ -107,6 +115,24 @@ def resolve_active_applications(processes, desktop_entries, alias_map=None):
         processes_by_executable[key]["processes"].append(process)
 
     # Identificar árboles de instalación conocidos de juegos para la heurística de subárbol
+    GENERIC_CONTAINER_NAMES = {
+        "program files",
+        "program files (x86)",
+        "drive_c",
+        "windows",
+        "system32",
+        "users",
+        "appdata",
+        "games",
+        "steamapps",
+        "common",
+        "wine",
+        "pfx",
+        "prefix",
+        "compatdata",
+        "dosdevices",
+    }
+
     game_install_trees: list[tuple[str, DesktopEntry]] = []
     for entry in desktop_entries:
         if getattr(entry, "is_game", False) and entry.exec_value:
@@ -119,13 +145,10 @@ def resolve_active_applications(processes, desktop_entries, alias_map=None):
                 clean = tok.replace("\\", "/").strip().strip('"').strip("'")
                 if clean.lower().endswith((".exe", ".bin", ".lnk", ".sh")) and "/" in clean:
                     exe_dir = clean.rsplit("/", 1)[0].casefold()
-                    if len(exe_dir) >= 8:
+                    base_dir_name = exe_dir.rsplit("/", 1)[-1] if "/" in exe_dir else exe_dir
+                    if len(exe_dir) >= 8 and base_dir_name not in GENERIC_CONTAINER_NAMES:
                         if (exe_dir, entry) not in game_install_trees:
                             game_install_trees.append((exe_dir, entry))
-                        parent_dir = exe_dir.rsplit("/", 1)[0] if "/" in exe_dir else ""
-                        if len(parent_dir) >= 12 and not parent_dir.endswith(("/games", "/steamapps", "/common", "/wine")):
-                            if (parent_dir, entry) not in game_install_trees:
-                                game_install_trees.append((parent_dir, entry))
 
     active_applications = []
 

@@ -149,14 +149,45 @@ def parse_desktop_entry(desktop_file, lang: str | None = None):
     categories_list = [c.strip().lower() for c in categories.split(";") if c.strip()]
     file_str = str(desktop_file).lower()
     exec_lower = exec_value.lower()
-    is_game = (
-        "game" in categories_list
-        or "/wine/" in file_str
-        or "/steam/" in file_str
-        or "wine" in exec_lower
-        or "proton" in file_str
-        or "proton" in exec_lower
+    exec_base = Path(executable).name.lower() if executable else ""
+
+    WINE_UTILITIES = {
+        "winecfg",
+        "winecfg.exe",
+        "winetricks",
+        "wineboot",
+        "wineboot.exe",
+        "winefile",
+        "winefile.exe",
+        "winepath",
+        "wineserver",
+        "uninstaller",
+        "uninstaller.exe",
+        "control",
+        "control.exe",
+        "regedit",
+        "regedit.exe",
+        "notepad",
+        "notepad.exe",
+        "wordpad",
+        "wordpad.exe",
+        "oleview",
+        "oleview.exe",
+    }
+    is_wine_utility = exec_base in WINE_UTILITIES or any(
+        u in exec_lower for u in ("winecfg", "winetricks", "wineboot", "uninstaller.exe")
     )
+
+    is_game = False
+    if not is_wine_utility:
+        is_game = (
+            "game" in categories_list
+            or "/steam/" in file_str
+            or "proton" in file_str
+            or "proton" in exec_lower
+            or (exec_base.endswith(".exe") and ("wine" in exec_lower or "/wine/" in file_str))
+            or ("/wine/" in file_str and "game" in categories_list)
+        )
 
     return DesktopEntry(
         name=name,
