@@ -277,6 +277,34 @@ class TestAutomationEngine(unittest.TestCase):
         self.assertEqual(len(notifications), 1)
         self.assertIsNone(engine._current_profile_id)
 
+    def test_engine_anti_flapping_transition_holds_profile_during_grace_period(self):
+        engine = AutomationEngine(
+            profile_manager=self.manager,
+            device_adapter=self.adapter,
+            check_interval=0.1,
+            logger=lambda _: None,
+            profile_release_grace_seconds=2.0,
+        )
+        engine.initialize()
+        engine._current_profile_id = self.wf_profile.id
+
+        # Simular que por 1 ciclo no hay ningún proceso activo (transición launcher -> binario real)
+        with patch("engine.discover_processes", return_value=[]), \
+             patch("engine.resolve_active_applications", return_value=[]), \
+             patch("engine.discover_active_steam_apps", return_value=[]), \
+             patch("engine.discover_active_epic_apps", return_value=[]):
+            engine.step()
+
+            # El perfil NO debe haber sido desarmado aún gracias a la ventana anti-flapping
+            self.assertEqual(engine._current_profile_id, self.wf_profile.id)
+            self.assertGreater(engine._profile_release_grace_until, 0.0)
+
+            # Si el tiempo supera la ventana de gracia, entonces sí se restaura el escritorio
+            engine._profile_release_grace_until = 1.0  # tiempo en el pasado
+            engine.step()
+            self.assertIsNone(engine._current_profile_id)
+            self.assertEqual(engine._profile_release_grace_until, 0.0)
+
 
 if __name__ == "__main__":
     unittest.main()

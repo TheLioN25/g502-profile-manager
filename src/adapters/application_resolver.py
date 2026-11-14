@@ -2,10 +2,14 @@
 Resolución de aplicaciones activas para G502 Profile Manager.
 
 Este módulo relaciona procesos en ejecución con aplicaciones instaladas
-descubiertas mediante archivos .desktop.
+descubiertas mediante archivos .desktop, alias conocidos y heurística de subárbol.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
+import shlex
+from typing import Mapping
 
 from .desktop_entries import DesktopEntry
 from .process_discovery import ProcessInfo, extract_executable_name
@@ -22,14 +26,21 @@ class ActiveApplication:
     ambiguous: bool
 
 
-def build_desktop_entry_index(desktop_entries):
+def build_desktop_entry_index(desktop_entries, alias_map=None):
     """
-    Agrupa DesktopEntry por nombre de ejecutable y clase de ventana (StartupWMClass).
+    Agrupa DesktopEntry por nombre de ejecutable, clase de ventana (StartupWMClass)
+    y alias o binarios secundarios conocidos (ej. Soulframe.x64.exe).
 
     Un mismo ejecutable o StartupWMClass puede pertenecer a varias entradas .desktop.
     """
-
     entries_by_executable = {}
+
+    # Construir mapa invertido de canonical_key -> set de alias
+    canonical_to_aliases: dict[str, set[str]] = {}
+    if alias_map and isinstance(alias_map, dict):
+        for alias, target in alias_map.items():
+            if isinstance(target, str):
+                canonical_to_aliases.setdefault(target.casefold(), set()).add(alias.casefold())
 
     for entry in desktop_entries:
         if not isinstance(entry, DesktopEntry):
@@ -45,18 +56,35 @@ def build_desktop_entry_index(desktop_entries):
             if wm_key != key:
                 entries_by_executable.setdefault(wm_key, []).append(entry)
 
+        # Enlazar alias y binarios secundarios asociados a esta entrada
+        if alias_map and canonical_to_aliases:
+            candidates = [key, f"desktop:{key}"]
+            if entry.startup_wm_class:
+                candidates.extend([entry.startup_wm_class.casefold(), f"desktop:{entry.startup_wm_class.casefold()}"])
+
+            for cand in candidates:
+                canonical = alias_map.get(cand)
+                if canonical and canonical.casefold() in canonical_to_aliases:
+                    for related_alias in canonical_to_aliases[canonical.casefold()]:
+                        clean_alias = related_alias.replace("desktop:", "").replace("steam:", "").strip()
+                        if clean_alias and clean_alias != key:
+                            entries = entries_by_executable.setdefault(clean_alias, [])
+                            if entry not in entries:
+                                entries.append(entry)
+                    break
+
     return entries_by_executable
 
 
-def resolve_active_applications(processes, desktop_entries):
+def resolve_active_applications(processes, desktop_entries, alias_map=None):
     """
     Relaciona procesos en ejecución con entradas .desktop.
 
     Agrupa todos los procesos que comparten ejecutable y conserva
-    las posibles entradas .desktop asociadas.
+    las posibles entradas .desktop asociadas utilizando coincidencia directa,
+    alias secundarios y heurística por subárbol de instalación.
     """
-
-    entries_by_executable = build_desktop_entry_index(desktop_entries)
+    entries_by_executable = build_desktop_entry_index(desktop_entries, alias_map=alias_map)
     processes_by_executable = {}
 
     for process in processes:
@@ -78,10 +106,39 @@ def resolve_active_applications(processes, desktop_entries):
 
         processes_by_executable[key]["processes"].append(process)
 
+    # Identificar árboles de instalación conocidos de juegos para la heurística de subárbol
+    game_install_trees: list[tuple[str, DesktopEntry]] = []
+    for entry in desktop_entries:
+        if getattr(entry, "is_game", False) and entry.exec_value:
+            try:
+                tokens = shlex.split(entry.exec_value)
+            except ValueError:
+                tokens = entry.exec_value.split()
+
+            for tok in tokens:
+                clean = tok.replace("\\", "/").strip().strip('"').strip("'")
+                if clean.lower().endswith((".exe", ".bin", ".lnk", ".sh")) and "/" in clean:
+                    exe_dir = clean.rsplit("/", 1)[0].casefold()
+                    if len(exe_dir) >= 8:
+                        if (exe_dir, entry) not in game_install_trees:
+                            game_install_trees.append((exe_dir, entry))
+                        parent_dir = exe_dir.rsplit("/", 1)[0] if "/" in exe_dir else ""
+                        if len(parent_dir) >= 12 and not parent_dir.endswith(("/games", "/steamapps", "/common", "/wine")):
+                            if (parent_dir, entry) not in game_install_trees:
+                                game_install_trees.append((parent_dir, entry))
+
     active_applications = []
 
     for key, process_group in processes_by_executable.items():
-        matched_entries = entries_by_executable.get(key, [])
+        matched_entries = list(entries_by_executable.get(key, []))
+
+        # Si no hubo coincidencia por ejecutable ni alias, aplicar heurística por subárbol
+        if not matched_entries and game_install_trees:
+            for proc in process_group["processes"]:
+                full_cmd = f"{proc.executable_path} {proc.command}".replace("\\", "/").casefold()
+                for tree_dir, entry in game_install_trees:
+                    if tree_dir in full_cmd and entry not in matched_entries:
+                        matched_entries.append(entry)
 
         if not matched_entries:
             continue
@@ -107,10 +164,13 @@ def resolve_active_applications(processes, desktop_entries):
             })
         )
 
+        primary_entry = matched_entries[0]
+        app_id = f"desktop:{primary_entry.executable.casefold()}" if primary_entry.executable else process_group["executable"]
+
         active_applications.append(
             ActiveApplication(
                 name=" / ".join(names),
-                application_id=process_group["executable"],
+                application_id=app_id,
                 source="desktop",
                 executable=process_group["executable"],
                 desktop_files=desktop_files,

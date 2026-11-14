@@ -224,6 +224,10 @@ class ProfileManager:
             return None
         return self._repository.get_by_id(default_id)
 
+    def list_all_profiles(self) -> list[Profile]:
+        """Devuelve todos los perfiles registrados en el repositorio."""
+        return self._repository.list_all()
+
     def get_active_profile_for_application(
         self, application_id: str
     ) -> Profile | None:
@@ -232,7 +236,8 @@ class ProfileManager:
 
         1. Si existe un perfil predeterminado configurado, lo devuelve.
         2. Si no hay predeterminado explícito pero hay perfiles configurados, devuelve el primero.
-        3. Si la aplicación no tiene ningún perfil, devuelve None.
+        3. Tolera variantes con/sin prefijo 'desktop:' para coincidir ejecutable directo.
+        4. Si la aplicación no tiene ningún perfil, devuelve None.
         """
         default_profile = self.get_default_profile(application_id)
         if default_profile is not None:
@@ -241,6 +246,20 @@ class ProfileManager:
         profiles = self.get_profiles_for_application(application_id)
         if profiles:
             return profiles[0]
+
+        alt_id = None
+        if application_id.startswith("desktop:"):
+            alt_id = application_id[8:]
+        elif ":" not in application_id:
+            alt_id = f"desktop:{application_id.casefold()}"
+
+        if alt_id:
+            default_profile = self.get_default_profile(alt_id)
+            if default_profile is not None:
+                return default_profile
+            profiles = self.get_profiles_for_application(alt_id)
+            if profiles:
+                return profiles[0]
 
         return None
 

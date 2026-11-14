@@ -336,6 +336,7 @@ class TestEngineNotificationIntegration(unittest.TestCase):
             notification_adapter=mock_notifier,
             check_interval=0.1,
             logger=lambda _: None,
+            profile_release_grace_seconds=0.0,
         )
         engine.initialize()
 
@@ -396,6 +397,7 @@ class TestEngineNotificationIntegration(unittest.TestCase):
             notification_adapter=mock_notifier,
             check_interval=0.1,
             logger=lambda _: None,
+            profile_release_grace_seconds=0.0,
         )
         engine.initialize()
 

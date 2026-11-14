@@ -61,6 +61,7 @@ class AutomationEngine:
         logger: Callable[[str], None] | None = None,
         on_profile_applied: Callable[[str, Profile], None] | None = None,
         on_desktop_restored: Callable[[], None] | None = None,
+        profile_release_grace_seconds: float = 3.0,
     ):
         self._profile_manager = profile_manager
         self._device_adapter = device_adapter
@@ -80,6 +81,7 @@ class AutomationEngine:
         self._log = logger if logger is not None else logger_engine.info
         self._on_profile_applied = on_profile_applied
         self._on_desktop_restored = on_desktop_restored
+        self._profile_release_grace_seconds = profile_release_grace_seconds
         self._stop_event = threading.Event()
 
         self._device_id: str | None = None
@@ -92,6 +94,7 @@ class AutomationEngine:
         self._apply_failures: int = 0
         self._apply_failure_target: str | None = None
         self._next_apply_attempt: float = 0.0
+        self._profile_release_grace_until: float = 0.0
 
     def _should_attempt(self, target_key: str) -> bool:
         """Indica si toca intentar una escritura, sin heredar el castigo de otra distinta.
@@ -231,10 +234,16 @@ class AutomationEngine:
 
         processes = discover_processes()
 
-        # 1. Resolver aplicaciones de escritorio
+        # 1. Resolver aplicaciones de escritorio con alias y binarios secundarios
+        alias_map = (
+            self._catalog_service.get_alias_map()
+            if hasattr(self._catalog_service, "get_alias_map")
+            else getattr(self._catalog_service, "_alias_map", None)
+        )
         desktop_apps = resolve_active_applications(
             processes,
             self._desktop_entries_cache or [],
+            alias_map=alias_map,
         )
 
         # 2. Resolver juegos de Steam
@@ -254,6 +263,15 @@ class AutomationEngine:
 
         for app in active_applications:
             prof = self._profile_manager.get_active_profile_for_application(app.application_id)
+            if prof is None and self._catalog_service:
+                canonical = self._catalog_service.resolve_application_id(app.application_id)
+                if canonical and hasattr(self._profile_manager, "list_all_profiles"):
+                    for p in self._profile_manager.list_all_profiles():
+                        if self._catalog_service.resolve_application_id(p.application_id) == canonical:
+                            prof = self._profile_manager.get_active_profile_for_application(p.application_id)
+                            if prof is not None:
+                                break
+
             if prof is not None:
                 target_profile = prof
                 detected_app_name = app.name
@@ -261,6 +279,7 @@ class AutomationEngine:
 
         # 5. Aplicar o restaurar según corresponda
         if target_profile is not None:
+            self._profile_release_grace_until = 0.0
             current_slot = self._device_adapter.get_active_profile_slot(self._device_id)
             hardware_drifted = (current_slot is not None and current_slot != 0)
             is_new_profile = (
@@ -301,6 +320,17 @@ class AutomationEngine:
         else:
             # Volver a perfil de escritorio si estábamos en otro perfil
             if self._current_profile_id is not None:
+                # Anti-flapping: Si pasamos de un juego a None, esperar ventana de gracia
+                # para tolerar la transición entre launcher y binario real (Soulframe.x64.exe)
+                if self._profile_release_grace_seconds > 0.0:
+                    now = time.monotonic()
+                    if self._profile_release_grace_until == 0.0:
+                        self._profile_release_grace_until = now + self._profile_release_grace_seconds
+                        return True
+                    elif now < self._profile_release_grace_until:
+                        return True
+
+                self._profile_release_grace_until = 0.0
                 if self._should_attempt("desktop"):
                     self._log("\n[DESK] Volviendo al modo escritorio...")
                     self.restore_desktop()
@@ -385,6 +415,7 @@ class AutomationEngine:
         self._log(f"       Perfil de escritorio ({label}) restaurado.")
         self._current_profile_id = None
         self._current_profile_updated_at = None
+        self._profile_release_grace_until = 0.0
         if self._notification_adapter and self._notification_adapter.enabled:
             self._notification_adapter.notify_desktop_restored(dpi=dpi_val)
         if self._on_desktop_restored:
