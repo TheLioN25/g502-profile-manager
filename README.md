@@ -5,6 +5,7 @@
 </p>
 
 [![CI Pipeline](https://github.com/TheLioN25/g502-profile-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/TheLioN25/g502-profile-manager/actions/workflows/ci.yml)
+[![Unit Tests](https://img.shields.io/badge/tests-224%20passed-brightgreen.svg)](tests/)
 [![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](pyproject.toml)
 
@@ -64,9 +65,10 @@ Visually configure buttons, macros, DPI sensitivity stages, and LIGHTSYNC RGB li
 * 🔄 **Reactive Automation Engine (`engine.py`):**
   * Lightweight continuous process monitoring in background (via CLI or GUI switch).
   * **Unified Application Discovery:**
-    * 🎮 **Steam:** Detects installed and running games by parsing VDF libraries and `.acf` manifests (`steam:<appid>`).
+    * 🎮 **Steam:** Detects installed and running official games (`.acf` manifests) as well as Non-Steam library shortcuts via a pure Valve binary KeyValues parser (`shortcuts.vdf` -> `steam:<appid>`).
+    * 🍷 **Wine / Proton & Dedicated Launchers:** Dynamic process resolution connecting child binaries (e.g. `Soulframe.x64.exe`) to their parent launcher entry, supported by an anti-flapping grace window (3.0s) to prevent hardware EEPROM stress and profile thrashing during game startup.
     * ⚔️ **Epic Games:** Automatic discovery across Linux launchers (Heroic Games Launcher, Legendary, and Lutris).
-    * 🖥️ **Linux Desktop:** Integration with standard system `.desktop` files (XDG).
+    * 🖥️ **Linux Desktop:** Recursive integration with standard system `.desktop` files (XDG) and Windows executable extraction for Wine apps.
   * **Smart Fallback:** Exiting a game, stopping the engine, or turning off the switch automatically restores the **Desktop / System** profile (`desktop:general`).
 
 * ⚙️ **Native System Service (`systemd --user`):**
@@ -78,10 +80,10 @@ Visually configure buttons, macros, DPI sensitivity stages, and LIGHTSYNC RGB li
   * Strict 1:1 hardware mapping policy with zero automated or timed click loops, no synthetic continuous inputs are generated. Compliance with specific game anti-cheat policies is not guaranteed.
 
 * 🧩 **Modular Catalogs & Presets (`presets/`):**
-  * Extensible JSON presets for titles like **Warframe**, **Guild Wars 2**, and **AION 2** (including profession F1–F5 keys and custom actions), plus desktop productivity shortcuts.
+  * Extensible JSON presets for titles like **Warframe**, **Soulframe**, **Guild Wars 2**, and **AION 2** (including profession F1–F5 keys and custom actions), plus desktop productivity shortcuts.
 
-* 🧪 **Exhaustive Test Suite:**
-  * **Automated unit test suite** covering domain logic, atomic storage, hardware adapters, GUI presentation, system tray D-Bus, i18n, bilingual packaging, desktop packaging, and systemd integration (`python3 -m unittest discover -s tests`).
+* 🧪 **Exhaustive Test Suite (224 Tests):**
+  * **224 automated unit tests** passing at 100% (`OK`) covering domain logic, atomic storage, hardware adapters, binary VDF parsing, launcher resolution, anti-flapping, GUI presentation, system tray D-Bus, i18n, bilingual packaging, desktop packaging, and systemd integration (`python3 -m unittest discover -s tests`).
 
 ---
 
@@ -314,11 +316,11 @@ When playing Windows games on Linux through **Steam Play / Proton**:
 
 ## 🧪 Unit Tests Execution
 
-To run the complete automated test suite:
+To run the complete automated test suite (224 unit tests):
 ```bash
 python3 -m unittest discover -s tests -v
 ```
-Tests validate domain invariants, atomic disk persistence, profile import/export, hardware communication via test doubles, internationalization, and GUI logic without requiring connected physical hardware.
+The suite finishes with `Ran 224 tests ... OK (0 failures, 0 errors)`. Tests validate domain invariants, atomic disk persistence, profile import/export, hardware communication via test doubles, binary VDF parser, dynamic process resolution, anti-flapping transitions, internationalization, and GUI logic without requiring connected physical hardware.
 
 ---
 

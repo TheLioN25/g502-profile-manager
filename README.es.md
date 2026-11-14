@@ -5,6 +5,7 @@
 </p>
 
 [![CI Pipeline](https://github.com/TheLioN25/g502-profile-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/TheLioN25/g502-profile-manager/actions/workflows/ci.yml)
+[![Pruebas Unitarias](https://img.shields.io/badge/tests-224%20pasadas-brightgreen.svg)](tests/)
 [![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](pyproject.toml)
 
@@ -65,9 +66,10 @@ Permite configurar visualmente los botones, macros, sensibilidades (DPI) y zonas
 * 🔄 **Motor de Automatización Reactivo (`engine.py`):**
   * Monitoreo continuo y ligero de procesos activos en segundo plano (vía CLI o interruptor en la GUI).
   * **Descubrimiento unificado de aplicaciones:**
-    * 🎮 **Steam:** Detección de juegos instalados y activos mediante lectura de librerías VDF y manifiestos `.acf` (`steam:<appid>`).
+    * 🎮 **Steam:** Detección de juegos oficiales (`.acf`) y accesos directos no oficiales (**Non-Steam games**) mediante parser binario puro de KeyValues de Valve (`shortcuts.vdf` -> `steam:<appid>`).
+    * 🍷 **Wine / Proton y Lanzadores Dedicados:** Resolución dinámica de procesos que conecta binarios secundarios (ej. `Soulframe.x64.exe`) con la entrada de su lanzador, respaldado por una ventana de gracia anti-flapping (3.0s) que protege la EEPROM del ratón y previene parpadeos durante el arranque del juego.
     * ⚔️ **Epic Games:** Detección automática en lanzadores Linux (Heroic Games Launcher, Legendary y Lutris).
-    * 🖥️ **Escritorio Linux:** Integración con entradas `.desktop` estándar del sistema (XDG).
+    * 🖥️ **Escritorio Linux:** Integración recursiva con entradas `.desktop` estándar del sistema (XDG) y extracción de ejecutables Windows para aplicaciones Wine.
   * **Restauración Inteligente:** Al cerrar un juego, detener el motor o apagar el interruptor, se restaura automáticamente el perfil de **Escritorio / Sistema** (`desktop:general`).
 
 * ⚙️ **Servicio de Sistema Nativo (`systemd --user`):**
@@ -79,10 +81,10 @@ Permite configurar visualmente los botones, macros, sensibilidades (DPI) y zonas
   * Política estricta de mapeo de hardware 1:1 sin macros automatizadas o temporizadas, sin pulsaciones continuas automatizadas. El cumplimiento de las políticas específicas de software anti-trampas de cada juego no se garantiza.
 
 * 🧩 **Catálogos y Presets Modulares (`presets/`):**
-  * Presets integrados en formato JSON ampliables para juegos como **Warframe**, **Guild Wars 2** y **AION 2** (incluyendo mecánicas de profesión F1–F5 y habilidades personalizables), además de atajos de productividad para el escritorio.
+  * Presets integrados en formato JSON ampliables para juegos como **Warframe**, **Soulframe**, **Guild Wars 2** y **AION 2** (incluyendo mecánicas de profesión F1–F5 y habilidades personalizables), además de atajos de productividad para el escritorio.
 
-* 🧪 **Suite de Pruebas Exhaustiva:**
-  * **Suite de pruebas unitarias automatizada** con cobertura en dominio, persistencia atómica, adaptadores de hardware, lógica de interfaz gráfica, bandeja del sistema, internacionalización bilingüe, empaquetado de escritorio y servicio systemd (`python3 -m unittest discover -s tests`).
+* 🧪 **Suite de Pruebas Exhaustiva (224 Pruebas):**
+  * **224 pruebas unitarias automatizadas** pasando al 100% (`OK`) con cobertura en invariantes de dominio, persistencia atómica, adaptadores de hardware, parser binario VDF, resolución de lanzadores Wine, anti-flapping, lógica de GUI GTK4, bandeja del sistema D-Bus, i18n bilingüe, empaquetado de escritorio y servicio systemd (`python3 -m unittest discover -s tests`).
 
 ---
 
@@ -314,11 +316,11 @@ Si juegas títulos de Windows en Linux mediante **Steam Play / Proton**:
 
 ## 🧪 Ejecución de Pruebas Unitarias
 
-Para ejecutar la suite completa de pruebas automatizadas:
+Para ejecutar la suite completa de pruebas automatizadas (224 pruebas unitarias):
 ```bash
 python3 -m unittest discover -s tests -v
 ```
-Las pruebas validan invariantes de dominio, persistencia atómica en disco, importación/exportación resiliente, sincronización de hardware mediante mocks, internacionalización y la lógica de la interfaz gráfica sin requerir hardware físico conectado.
+La suite concluye con `Ran 224 tests ... OK (0 fallos, 0 errores)`. Las pruebas validan invariantes de dominio, persistencia atómica en disco, importación/exportación resiliente, sincronización de hardware mediante mocks, parser binario VDF, resolución de procesos dinámicos, transiciones anti-flapping, internacionalización y la lógica de la interfaz gráfica sin requerir hardware físico conectado.
 
 ---
 
