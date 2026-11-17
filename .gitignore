@@ -7,3 +7,5 @@ dist/
 contextoprevio.md
 spec.md
 docs/specs/
+harness-report.json
+*.harness_bak

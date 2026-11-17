@@ -2,6 +2,7 @@
 Pruebas unitarias para el descubrimiento de juegos de Epic Games en Linux.
 """
 
+from dataclasses import FrozenInstanceError
 import json
 from pathlib import Path
 import sys
@@ -107,6 +108,38 @@ class TestEpicDiscovery(unittest.TestCase):
         self.assertEqual(resolved[0].application_id, "epic:Cyberpunk")
         self.assertEqual(resolved[0].name, "Cyberpunk 2077")
         self.assertEqual(resolved[0].source, "epic")
+        self.assertTrue(resolved[0].is_game)
+
+    def test_epic_app_manifest_is_immutable(self) -> None:
+        """Verifica que EpicAppManifest sea una dataclass inmutable (frozen)."""
+        manifest = EpicAppManifest(
+            app_name="Sugar",
+            title="Fall Guys",
+            install_path="/games/FallGuys",
+            executable="FallGuys_client.exe",
+        )
+        with self.assertRaises(FrozenInstanceError):
+            manifest.title = "Changed"  # type: ignore
+
+    def test_discover_heroic_installed_apps_fallback_when_app_name_missing(self) -> None:
+        """Verifica que si app_name falta en el JSON, se use app_key como fallback."""
+        dummy_data = {
+            "GameWithoutAppName": {
+                "title": "Some Game",
+                "install_path": "/games/SomeGame",
+                "executable": "game.exe",
+            }
+        }
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+            json.dump(dummy_data, f)
+            temp_path = Path(f.name)
+
+        try:
+            apps = discover_heroic_installed_apps([temp_path])
+            self.assertEqual(len(apps), 1)
+            self.assertEqual(apps[0].app_name, "GameWithoutAppName")
+        finally:
+            temp_path.unlink(missing_ok=True)
 
 
 if __name__ == "__main__":

@@ -331,6 +331,60 @@ class TestAutomationEngine(unittest.TestCase):
             # El motor NO debe aplicar el perfil de Soulframe
             self.assertIsNone(self.engine._current_profile_id)
 
+    def test_engine_prioritizes_populated_profile_over_empty_canonical_alias(self) -> None:
+        """
+        Verifica que si existen múltiples perfiles para el mismo juego canónico
+        (uno vacío y otro con asignaciones), el motor elija siempre el perfil con botones.
+        """
+        from adapters.application_resolver import ActiveApplication
+        from adapters.process_discovery import ProcessInfo
+        from domain import Action, Button
+
+        # 1. Perfil vacío para el lanzador
+        empty_prof = self.manager.create_profile("Soulframe Vacío", "desktop:launcher.exe")
+
+        # 2. Perfil con botones para la versión Steam
+        populated_prof = self.manager.create_profile("Soulframe Configurado", "steam:3519040750")
+        btn = Button(button_id="G4", name="G4")
+        act = Action(
+            action_id="custom_c",
+            name="C",
+            application_id="steam:3519040750",
+            description="Tecla C",
+            binding_type="key",
+            binding_value="c",
+        )
+        self.manager.assign_button(populated_prof.id, btn, act)
+
+        # Mock catalog_service para resolver ambos a la clave 'soulframe'
+        mock_cat = MagicMock()
+        mock_cat.resolve_application_id.side_effect = lambda app_id: "soulframe" if app_id in (
+            "desktop:soulframe", "desktop:launcher.exe", "steam:3519040750"
+        ) else None
+        self.engine._catalog_service = mock_cat
+
+        # Simular proceso activo detectado como desktop:soulframe
+        active_app = ActiveApplication(
+            name="Soulframe",
+            application_id="desktop:soulframe",
+            source="desktop",
+            executable="Soulframe.x64.exe",
+            desktop_files=(),
+            process_ids=(229023,),
+            ambiguous=False,
+            is_game=True,
+        )
+
+        with patch("engine.discover_processes", return_value=[ProcessInfo(229023, "Soulframe.x64.exe", "Soulframe.x64.exe", "Soulframe.x64.exe", "Soulframe.x64.exe")]), \
+             patch("engine.resolve_active_applications", return_value=[active_app]), \
+             patch("engine.discover_active_steam_apps", return_value=[]), \
+             patch("engine.discover_active_epic_apps", return_value=[]):
+            self.engine.step()
+
+            # El motor DEBE aplicar el perfil poblado (populated_prof.id) y no el vacío
+            self.assertEqual(self.engine._current_profile_id, populated_prof.id)
+            self.assertIn(populated_prof, self.adapter.applied_profiles)
+
 
 if __name__ == "__main__":
     unittest.main()

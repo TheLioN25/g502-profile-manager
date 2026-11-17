@@ -19,6 +19,7 @@ logger_engine = logging.getLogger("g502.engine")
 
 from adapters import (
     DESKTOP_DIRECTORIES,
+    ActiveApplication,
     ApplicationDiscoveryAdapter,
     DesktopNotificationAdapter,
     RatbagDeviceAdapter,
@@ -204,6 +205,51 @@ class AutomationEngine:
                 return self._device_adapter.apply_profile(self._device_id, profile, diff_only=diff_only)
         return False
 
+    def _resolve_target_profile_for_app(self, app: ActiveApplication) -> Profile | None:
+        """
+        Resuelve el mejor perfil para una aplicación activa evaluando asignaciones,
+        coincidencia exacta y equivalencias canónicas de catálogo.
+        """
+        all_profiles = (
+            self._profile_manager.list_all_profiles()
+            if hasattr(self._profile_manager, "list_all_profiles")
+            else ()
+        )
+        canonical = (
+            self._catalog_service.resolve_application_id(app.application_id)
+            if self._catalog_service
+            else None
+        )
+
+        candidates: list[tuple[tuple, Profile]] = []
+        for p in all_profiles:
+            p_canon = (
+                self._catalog_service.resolve_application_id(p.application_id)
+                if self._catalog_service
+                else None
+            )
+            is_direct = (p.application_id.casefold() == app.application_id.casefold())
+            is_canonical = (canonical is not None and p_canon is not None and p_canon == canonical)
+
+            if is_direct or is_canonical:
+                assignments_count = len(p.list_assignments())
+                def_p = self._profile_manager.get_default_profile(p.application_id)
+                is_default = (def_p is not None and def_p.id == p.id)
+                score = (
+                    assignments_count > 0,
+                    is_direct,
+                    is_default,
+                    assignments_count,
+                    p.updated_at or "",
+                )
+                candidates.append((score, p))
+
+        if candidates:
+            candidates.sort(key=lambda c: c[0], reverse=True)
+            return candidates[0][1]
+
+        return self._profile_manager.get_active_profile_for_application(app.application_id)
+
     def step(self) -> bool:
         """
         Ciclo de inspección y reacción:
@@ -254,24 +300,15 @@ class AutomationEngine:
         epic_active = discover_active_epic_apps(processes)
         epic_apps = resolve_epic_applications(epic_active)
 
-        # 4. Combinar identidades activas
-        active_applications = combine_active_applications((desktop_apps, steam_apps, epic_apps))
+        # 4. Combinar identidades activas (priorizando juegos y plataformas)
+        active_applications = combine_active_applications((steam_apps, epic_apps, desktop_apps))
 
         # 5. Buscar si alguna aplicación activa tiene un perfil configurado
         target_profile: Profile | None = None
         detected_app_name: str = "Escritorio"
 
         for app in active_applications:
-            prof = self._profile_manager.get_active_profile_for_application(app.application_id)
-            if prof is None and self._catalog_service:
-                canonical = self._catalog_service.resolve_application_id(app.application_id)
-                if canonical and hasattr(self._profile_manager, "list_all_profiles"):
-                    for p in self._profile_manager.list_all_profiles():
-                        if self._catalog_service.resolve_application_id(p.application_id) == canonical:
-                            prof = self._profile_manager.get_active_profile_for_application(p.application_id)
-                            if prof is not None:
-                                break
-
+            prof = self._resolve_target_profile_for_app(app)
             if prof is not None:
                 target_profile = prof
                 detected_app_name = app.name

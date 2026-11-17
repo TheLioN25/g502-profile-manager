@@ -25,6 +25,7 @@ class ActiveApplication:
     desktop_files: tuple[str, ...]
     process_ids: tuple[int, ...]
     ambiguous: bool
+    is_game: bool = False
 
 
 def build_desktop_entry_index(desktop_entries, alias_map=None):
@@ -189,6 +190,7 @@ def resolve_active_applications(processes, desktop_entries, alias_map=None):
         )
 
         primary_entry = matched_entries[0]
+        is_game_app = any(getattr(entry, "is_game", False) for entry in matched_entries)
         exec_lower = primary_entry.executable.casefold() if primary_entry.executable else ""
         if exec_lower in {"launcher.exe", "start.exe", "game.exe", "main.exe", "client.exe", "play.exe"}:
             desktop_stem = Path(primary_entry.desktop_file).stem.casefold() if primary_entry.desktop_file else ""
@@ -205,6 +207,7 @@ def resolve_active_applications(processes, desktop_entries, alias_map=None):
                 desktop_files=desktop_files,
                 process_ids=process_ids,
                 ambiguous=len(names) > 1,
+                is_game=is_game_app,
             )
         )
 
@@ -245,6 +248,7 @@ def resolve_steam_applications(steam_applications):
                 desktop_files=(),
                 process_ids=(launch.supervisor_pid,),
                 ambiguous=False,
+                is_game=True,
             )
         )
 
@@ -287,8 +291,9 @@ def combine_active_applications(application_groups):
     return sorted(
         applications_by_identity.values(),
         key=lambda application: (
+            0 if getattr(application, "is_game", False) else 1,
+            0 if application.source == "steam" else (1 if application.source == "epic" else 2),
             application.name.casefold(),
-            application.source.casefold(),
             application.application_id.casefold(),
         ),
     )

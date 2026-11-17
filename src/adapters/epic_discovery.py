@@ -193,6 +193,7 @@ def resolve_epic_applications(
                 desktop_files=(),
                 process_ids=(),
                 ambiguous=False,
+                is_game=True,
             )
         )
     return results

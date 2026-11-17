@@ -4,6 +4,7 @@ Pruebas unitarias para ApplicationResolver (resolución dinámica de procesos y 
 
 from __future__ import annotations
 
+from dataclasses import FrozenInstanceError
 from pathlib import Path
 import sys
 import unittest
@@ -15,6 +16,7 @@ if str(src_path) not in sys.path:
 from adapters.application_resolver import (
     ActiveApplication,
     build_desktop_entry_index,
+    combine_active_applications,
     resolve_active_applications,
 )
 from adapters.desktop_entries import DesktopEntry
@@ -141,6 +143,69 @@ class TestApplicationResolver(unittest.TestCase):
         self.assertEqual(resolved[0].name, "Other RPG")
         self.assertEqual(resolved[0].application_id, "desktop:other_rpg")
         self.assertNotEqual(resolved[0].application_id, "desktop:soulframe")
+
+    def test_active_application_is_immutable(self) -> None:
+        """Verifica que ActiveApplication sea una dataclass inmutable (frozen)."""
+        app = ActiveApplication(
+            name="Test",
+            application_id="desktop:test",
+            source="desktop",
+            executable="test",
+            desktop_files=(),
+            process_ids=(),
+            ambiguous=False,
+            is_game=False,
+        )
+        with self.assertRaises(FrozenInstanceError):
+            app.name = "Modified"  # type: ignore
+
+    def test_active_application_default_is_game_is_false(self) -> None:
+        """Verifica que el campo is_game sea False por defecto en ActiveApplication."""
+        app = ActiveApplication(
+            name="Test",
+            application_id="desktop:test",
+            source="desktop",
+            executable="test",
+            desktop_files=(),
+            process_ids=(),
+            ambiguous=False,
+        )
+        self.assertFalse(app.is_game)
+
+    def test_build_desktop_entry_index_handles_non_dict_alias_map(self) -> None:
+        """Verifica que valores no-diccionario en alias_map no provoquen errores."""
+        index = build_desktop_entry_index([self.soulframe_entry], alias_map="invalid_string")  # type: ignore
+        self.assertIn("launcher.exe", index)
+        index2 = build_desktop_entry_index([self.soulframe_entry], alias_map=123)  # type: ignore
+        self.assertIn("launcher.exe", index2)
+
+    def test_combine_active_applications_prioritizes_games(self) -> None:
+        """Verifica que combine_active_applications ordene juegos antes que utilidades de escritorio."""
+        desktop_util = ActiveApplication(
+            name="Brave Browser",
+            application_id="desktop:brave",
+            source="desktop",
+            executable="brave",
+            desktop_files=(),
+            process_ids=(1,),
+            ambiguous=False,
+            is_game=False,
+        )
+        steam_game = ActiveApplication(
+            name="Soulframe",
+            application_id="steam:3519040750",
+            source="steam",
+            executable="Soulframe.x64.exe",
+            desktop_files=(),
+            process_ids=(2,),
+            ambiguous=False,
+            is_game=True,
+        )
+        combined = combine_active_applications([[desktop_util], [steam_game]])
+        self.assertEqual(len(combined), 2)
+        # El juego debe quedar en primera posición aunque alfabéticamente "Brave" < "Soulframe"
+        self.assertEqual(combined[0].application_id, "steam:3519040750")
+        self.assertEqual(combined[1].application_id, "desktop:brave")
 
 
 if __name__ == "__main__":
