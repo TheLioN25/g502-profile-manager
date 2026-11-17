@@ -13,6 +13,7 @@ if str(src_path) not in sys.path:
 from adapters import (
     ApplicationDiscoveryAdapter,
     DesktopEntry,
+    EpicAppManifest,
     ProcessInfo,
     SteamAppManifest,
     SteamShortcut,
@@ -58,6 +59,8 @@ class TestApplicationDiscoveryAdapter(unittest.TestCase):
         app_ids = {a.application_id for a in apps}
         self.assertIn("steam:230410", app_ids)
         self.assertIn("steam:1284210", app_ids)
+        # M-02: Verificar que todos los juegos de Steam se marquen como is_game=True
+        self.assertTrue(all(a.is_game for a in apps), "Todos los juegos de Steam deben tener is_game=True")
 
     def test_discover_steam_applications_includes_shortcuts(self):
         dummy_manifests = [
@@ -89,6 +92,57 @@ class TestApplicationDiscoveryAdapter(unittest.TestCase):
         soulframe = app_by_id["steam:3519040750"]
         self.assertEqual(soulframe.name, "Soulframe")
         self.assertTrue(soulframe.is_game)
+
+    def test_discover_steam_guard_skips_default_reader_when_file_missing(self):
+        """
+        M-01: Verifica la guarda lógica de la línea 63.
+        Con el lector por defecto y sin archivo en disco, debe devolver [].
+        Con un lector inyectado y sin archivo en disco, SÍ debe ejecutarse.
+        """
+        from adapters.steam_discovery import discover_installed_steam_apps
+
+        # Adaptador apuntando a un archivo que NO existe
+        missing_file = Path(self.temp_dir.name) / "no_existe.vdf"
+        adapter_no_file = ApplicationDiscoveryAdapter(steam_libraryfolders_file=missing_file)
+
+        # Con lector por defecto y archivo inexistente: la guarda impide la lectura → []
+        apps_default = adapter_no_file.discover_steam_applications(
+            reader=discover_installed_steam_apps,
+            shortcuts_finder=lambda **_: [],
+        )
+        self.assertEqual(apps_default, [])
+
+        # Con lector inyectado personalizado y archivo inexistente: la guarda NO impide → se ejecuta
+        dummy = [SteamAppManifest(app_id=999, name="TestGame", install_dir="/g", manifest_file="m.acf", library_path="/g")]
+        apps_custom = adapter_no_file.discover_steam_applications(
+            reader=lambda _: dummy,
+            shortcuts_finder=lambda **_: [],
+        )
+        self.assertEqual(len(apps_custom), 1)
+        self.assertEqual(apps_custom[0].application_id, "steam:999")
+        self.assertTrue(apps_custom[0].is_game)
+
+    def test_discover_epic_applications_mocked(self):
+        """
+        M-03: Verifica que discover_epic_applications marque is_game=True
+        y retorne aplicaciones ordenadas alfabéticamente.
+        """
+        dummy_epic = [
+            EpicAppManifest(app_name="zephyr-123", title="Zephyr Online", install_path="/games/Zephyr"),
+            EpicAppManifest(app_name="aion-456", title="AION 2", install_path="/games/AION2"),
+        ]
+
+        apps = self.adapter.discover_epic_applications(finder=lambda: dummy_epic)
+
+        self.assertEqual(len(apps), 2)
+        # Verificar orden alfabético (AION 2 antes de Zephyr Online)
+        self.assertEqual(apps[0].name, "AION 2")
+        self.assertEqual(apps[1].name, "Zephyr Online")
+        # Verificar IDs (app_id es propiedad derivada: "epic:" + app_name)
+        self.assertEqual(apps[0].application_id, "epic:aion-456")
+        self.assertEqual(apps[1].application_id, "epic:zephyr-123")
+        # M-03: Verificar que TODOS sean is_game=True
+        self.assertTrue(all(a.is_game for a in apps), "Todos los juegos de Epic deben tener is_game=True")
 
     def test_discover_desktop_applications_mocked(self):
         dummy_files = [Path("/dummy/blender.desktop"), Path("/dummy/gimp.desktop")]
