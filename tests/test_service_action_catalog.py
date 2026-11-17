@@ -7,6 +7,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest.mock import MagicMock, patch
 
 src_path = Path(__file__).resolve().parent.parent / "src"
 if str(src_path) not in sys.path:
@@ -210,6 +211,25 @@ class TestActionCatalogService(unittest.TestCase):
             self.assertEqual(root_icon_files, pkg_icon_files)
             for name in root_icon_files:
                 self.assertEqual((root_icons / name).read_bytes(), (pkg_icons / name).read_bytes())
+
+    def test_resolve_builtin_presets_dir_requires_existing_directory_with_json(self):
+        """Verifica que _resolve_builtin_presets_dir requiera tanto que exista como que tenga *.json."""
+        from services.action_catalog import _resolve_builtin_presets_dir
+        mock_path = MagicMock(spec=Path)
+        mock_path.exists.return_value = False
+        mock_path.glob.return_value = [Path("dummy.json")]
+        with patch("importlib.resources.files") as mock_files:
+            mock_files.return_value.joinpath.return_value = mock_path
+            with patch("services.action_catalog.Path", return_value=mock_path):
+                res = _resolve_builtin_presets_dir()
+                self.assertNotEqual(res, mock_path)
+
+    def test_generate_default_game_actions_empty_or_symbols_fallback_to_game_prefix(self):
+        """Verifica que si el nombre del juego no tiene caracteres válidos, use el prefijo 'game'."""
+        from services.action_catalog import generate_default_game_actions
+        actions = generate_default_game_actions("test:symbols", "!@#$%^&*")
+        self.assertGreater(len(actions), 0)
+        self.assertTrue(all(a.action_id.startswith("game_") for a in actions))
 
 
 

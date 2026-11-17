@@ -384,6 +384,68 @@ class TestAutomationEngine(unittest.TestCase):
             # El motor DEBE aplicar el perfil poblado (populated_prof.id) y no el vacío
             self.assertEqual(self.engine._current_profile_id, populated_prof.id)
             self.assertIn(populated_prof, self.adapter.applied_profiles)
+            self.assertNotIn(empty_prof, self.adapter.applied_profiles)
+
+    def test_direct_profile_not_hijacked_by_fuzzy_substring_alias(self) -> None:
+        """
+        R-01: Verifica que un perfil directo exacto propio (ej. desktop:soulframe2)
+        no sea suplantado por un perfil canónico ajeno solo por contener la subcadena.
+        """
+        from adapters.application_resolver import ActiveApplication
+        from adapters.process_discovery import ProcessInfo
+        from domain import Action, Button
+        from services.action_catalog import ActionCatalogService
+
+        # 1. Perfil directo para una app diferente pero cuyo nombre contiene 'soulframe'
+        direct_prof = self.manager.create_profile("Soulframe 2 Directo", "desktop:soulframe2", dpi=1600)
+        self.manager.set_default_profile("desktop:soulframe2", direct_prof.id)
+
+        # 2. Perfil poblado para el Soulframe original
+        sf_populated = self.manager.create_profile("Soulframe Original", "steam:3519040750")
+        btn = Button(button_id="G4", name="G4")
+        act = Action(
+            action_id="custom_c",
+            name="C",
+            application_id="steam:3519040750",
+            description="Tecla C",
+            binding_type="key",
+            binding_value="c",
+        )
+        self.manager.assign_button(sf_populated.id, btn, act)
+
+        # Usar ActionCatalogService real
+        self.engine._catalog_service = ActionCatalogService()
+
+        active_app = ActiveApplication(
+            name="Soulframe 2",
+            application_id="desktop:soulframe2",
+            source="desktop",
+            executable="soulframe2.exe",
+            desktop_files=(),
+            process_ids=(5555,),
+            ambiguous=False,
+            is_game=True,
+        )
+
+        with patch("engine.discover_processes", return_value=[ProcessInfo(5555, "soulframe2.exe", "soulframe2.exe", "soulframe2.exe", "soulframe2.exe")]), \
+             patch("engine.resolve_active_applications", return_value=[active_app]), \
+             patch("engine.discover_active_steam_apps", return_value=[]), \
+             patch("engine.discover_active_epic_apps", return_value=[]):
+            self.engine.step()
+
+            # El motor DEBE aplicar el perfil directo de soulframe2 y NO el ajeno
+            self.assertEqual(self.engine._current_profile_id, direct_prof.id)
+            self.assertIn(direct_prof, self.adapter.applied_profiles)
+            self.assertNotIn(sf_populated, self.adapter.applied_profiles)
+
+    def test_default_notification_adapter_enabled_by_default(self) -> None:
+        """Verifica que el adaptador de notificación por defecto esté habilitado (True)."""
+        engine = AutomationEngine(
+            profile_manager=object(),  # type: ignore
+            device_adapter=self.adapter,
+            notification_adapter=None,
+        )
+        self.assertTrue(engine._notification_adapter.enabled)
 
 
 if __name__ == "__main__":

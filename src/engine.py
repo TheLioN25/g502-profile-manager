@@ -215,32 +215,45 @@ class AutomationEngine:
             if hasattr(self._profile_manager, "list_all_profiles")
             else ()
         )
-        canonical = (
-            self._catalog_service.resolve_application_id(app.application_id)
-            if self._catalog_service
-            else None
-        )
+        canonical = None
+        if self._catalog_service:
+            try:
+                canonical = self._catalog_service.resolve_application_id(
+                    app.application_id, exact_alias_only=True
+                )
+            except TypeError:
+                canonical = self._catalog_service.resolve_application_id(app.application_id)
 
+        default_by_app: dict[str, Profile | None] = {}
         candidates: list[tuple[tuple, Profile]] = []
+
         for p in all_profiles:
-            p_canon = (
-                self._catalog_service.resolve_application_id(p.application_id)
-                if self._catalog_service
-                else None
-            )
+            p_canon = None
+            if self._catalog_service:
+                try:
+                    p_canon = self._catalog_service.resolve_application_id(
+                        p.application_id, exact_alias_only=True
+                    )
+                except TypeError:
+                    p_canon = self._catalog_service.resolve_application_id(p.application_id)
+
             is_direct = (p.application_id.casefold() == app.application_id.casefold())
             is_canonical = (canonical is not None and p_canon is not None and p_canon == canonical)
 
             if is_direct or is_canonical:
                 assignments_count = len(p.list_assignments())
-                def_p = self._profile_manager.get_default_profile(p.application_id)
+                if p.application_id not in default_by_app:
+                    default_by_app[p.application_id] = self._profile_manager.get_default_profile(p.application_id)
+                def_p = default_by_app[p.application_id]
                 is_default = (def_p is not None and def_p.id == p.id)
+
                 score = (
-                    assignments_count > 0,
-                    is_direct,
-                    is_default,
-                    assignments_count,
-                    p.updated_at or "",
+                    is_direct and assignments_count > 0,  # 1. Perfil directo con botones configurados
+                    assignments_count > 0,                # 2. Perfil con botones (alias canónico exacto)
+                    is_direct,                            # 3. Perfil directo propio (ej. solo DPI/LED)
+                    is_default,                           # 4. Es perfil predeterminado
+                    assignments_count,                    # 5. Cantidad de asignaciones
+                    p.updated_at or "",                   # 6. Modificado más recientemente
                 )
                 candidates.append((score, p))
 

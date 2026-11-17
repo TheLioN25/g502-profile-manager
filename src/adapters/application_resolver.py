@@ -291,8 +291,8 @@ def combine_active_applications(application_groups):
     return sorted(
         applications_by_identity.values(),
         key=lambda application: (
-            0 if getattr(application, "is_game", False) else 1,
-            0 if application.source == "steam" else (1 if application.source == "epic" else 2),
+            0 if application.is_game else 1,
+            0 if application.source.casefold() == "steam" else (1 if application.source.casefold() == "epic" else 2),
             application.name.casefold(),
             application.application_id.casefold(),
         ),

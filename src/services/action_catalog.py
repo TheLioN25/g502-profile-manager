@@ -175,11 +175,14 @@ class ActionCatalogService:
                 )
                 self._catalogs[app_key]["actions"][action.action_id] = action
 
-    def _resolve_app_key(self, application_id: str) -> str | None:
+    def _resolve_app_key(
+        self, application_id: str, exact_alias_only: bool = False
+    ) -> str | None:
         """
         Resuelve un identificador de aplicación o alias hacia la clave canónica del catálogo.
         Soporta coincidencias exactas, prefijos (steam:, desktop:, etc.), alias registrados
         y búsqueda por similitud normalizada para variantes de nombres o lanzadores.
+        Si exact_alias_only es True, solo admite coincidencia exacta o con prefijo/alias explícito.
         """
         if not isinstance(application_id, str):
             return None
@@ -199,6 +202,9 @@ class ActionCatalogService:
             if bare in self._alias_map:
                 return self._alias_map[bare]
 
+        if exact_alias_only:
+            return None
+
         norm_query = "".join(c for c in raw if c.isalnum())
         if norm_query:
             for alias, target_key in self._alias_map.items():
@@ -217,9 +223,11 @@ class ActionCatalogService:
         """Devuelve una copia del mapa de alias a identificadores canónicos del catálogo."""
         return dict(self._alias_map)
 
-    def resolve_application_id(self, application_id: str) -> str | None:
+    def resolve_application_id(
+        self, application_id: str, exact_alias_only: bool = False
+    ) -> str | None:
         """Resuelve un identificador de aplicación o alias hacia la clave canónica del catálogo."""
-        return self._resolve_app_key(application_id)
+        return self._resolve_app_key(application_id, exact_alias_only=exact_alias_only)
 
     def has_catalog(self, application_id: str) -> bool:
         """Determina si existe un catálogo cargado para el identificador dado o sus alias."""
