@@ -3,7 +3,7 @@
 Memoria técnica del proyecto entre sesiones (~45 líneas). Estado y decisiones consolidadas.
 
 ## Estado actual
-- **Versión 0.6.0: Soporte Wine/Proton, shortcuts.vdf binario de Steam, preset Soulframe y resolución de procesos dinámicos con anti-flapping. Suite al 100% (`OK`, 237 tests).**
+- **Versión 0.6.0: Soporte Wine/Proton, shortcuts.vdf binario de Steam, preset Soulframe y resolución de procesos dinámicos con anti-flapping. Suite al 100% (`OK`, 242 tests).**
 - **Robustez de persistencia y concurrencia (R-02, R-04, C-08):**
   - Respaldo automático `.corrupt-<timestamp>` y bloqueo de sobreescrituras ante archivos corruptos (`CorruptedProfileRepositoryError`).
   - Sincronización dual: `threading.RLock` (hilos internos) y `fcntl.flock` sobre `.lock` (procesos GUI/CLI concurrentes).
@@ -16,7 +16,7 @@ Memoria técnica del proyecto entre sesiones (~45 líneas). Estado y decisiones 
   - Reintento de sesión Gio D-Bus tras enfriamiento real de 30s (`_dbus_retry_cooldown_sec`).
   - Fallback `notify-send` acotado a 1.0s con hint booleano canónico (`boolean:transient:true`).
   - Contrato formal verificado para llamada D-Bus `Notify` y Kill-Switch persistente en HeaderBar.
-- **Suite de pruebas unitarias automatizadas** pasando al 100% (`OK`, 237 tests) en local y 8/8 mutantes eliminados en Capa 2 (Harness).
+- **Suite de pruebas unitarias automatizadas** pasando al 100% (`OK`, 242 tests) en local y 8/8 mutantes eliminados en Capa 2 (Harness).
 - **Resolución reactiva de perfiles:** Prioriza perfiles con asignaciones sobre vacíos en resolución canónica (`_resolve_target_profile_for_app`), previene secuestros por subcadenas difusas y ordena videojuegos antes que utilidades de fondo (`ActiveApplication.is_game`).
 - **Soporte Non-Steam Games y Juegos Wine/Proton (Hitos 1, 2 y 3):**
   - Decodificación pura de `shortcuts.vdf` binario Valve en `steam_discovery.py` sanitizando comillas en rutas.

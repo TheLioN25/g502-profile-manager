@@ -19,6 +19,7 @@ from adapters import (
     SteamShortcut,
     extract_steam_app_id,
 )
+from adapters.desktop_entries import extract_exec_name
 import tempfile
 
 
@@ -323,6 +324,36 @@ class TestApplicationDiscoveryAdapter(unittest.TestCase):
         self.assertIn("launcher.exe", index)
         self.assertEqual(index["soulframe"][0].name, "Soulframe")
         self.assertEqual(index["launcher.exe"][0].name, "Soulframe")
+
+    # --- Tests de blindaje para desktop_entries.py (Módulo 2 del Diario) ---
+
+    def test_desktop_entry_is_immutable(self):
+        """M-01: DesktopEntry debe ser frozen (inmutable)."""
+        entry = DesktopEntry(
+            name="Test", executable="test", exec_value="test", desktop_file="/tmp/t.desktop"
+        )
+        with self.assertRaises(AttributeError):
+            entry.name = "Modified"
+
+    def test_desktop_entry_default_is_game_is_false(self):
+        """M-02: El default de is_game debe ser False cuando no se pasa explícitamente."""
+        entry = DesktopEntry(
+            name="Blender", executable="blender", exec_value="blender %f", desktop_file="/tmp/b.desktop"
+        )
+        self.assertFalse(entry.is_game, "is_game debe ser False por defecto")
+
+    def test_extract_exec_name_returns_none_for_empty_input(self):
+        """M-03: extract_exec_name con input vacío debe retornar None."""
+        self.assertIsNone(extract_exec_name(""))
+        self.assertIsNone(extract_exec_name(None))
+
+    def test_extract_exec_name_returns_none_for_malformed_quotes(self):
+        """M-04: extract_exec_name con comillas desbalanceadas (ValueError en shlex) debe retornar None."""
+        self.assertIsNone(extract_exec_name('wine "broken'))
+
+    def test_extract_exec_name_returns_none_when_only_env_variables(self):
+        """M-05: extract_exec_name con solo env y variables sin binario debe retornar None."""
+        self.assertIsNone(extract_exec_name("env FOO=bar BAZ=qux"))
 
 
 if __name__ == "__main__":
