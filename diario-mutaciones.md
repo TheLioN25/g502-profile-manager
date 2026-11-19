@@ -28,11 +28,8 @@
 ### ~~2. `src/adapters/desktop_entries.py`~~ ✅ BLINDADO (Score: 0% → 100% — 3/3 eliminados)
 > Resuelto en commit `d958ae6` — Tests: inmutabilidad `DesktopEntry`, default `is_game=False`, `extract_exec_name` con inputs vacío/malformado/solo-env.
 
-### 3. `src/adapters/epic_discovery.py` (Score: 80.0% — 1 superviviente(s))
-* **[M-01] Línea 99:** Inversión booleana (True por False)
-  * **Original:** `conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True)`
-  * **Mutado:**   `conn = sqlite3.connect(f"file:{path}?mode=ro", uri=False)`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
+### ~~3. `src/adapters/epic_discovery.py`~~ ✅ BLINDADO (Score: 80.0% → 100% — 3/3 eliminados)
+> Resuelto — Tests: `test_discover_lutris_epic_apps_mocked` (aniquilación de M-01 verificando SQLite `uri=True` / `mode=ro` y mapeo de juegos Epic) y `test_discover_lutris_epic_apps_missing_db`.
 
 ### 4. `src/adapters/notification_adapter.py` (Score: 60.0% — 2 superviviente(s))
 * **[M-01] Línea 29:** Inversión booleana (True por False)

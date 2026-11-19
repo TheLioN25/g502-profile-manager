@@ -5,6 +5,7 @@ Pruebas unitarias para el descubrimiento de juegos de Epic Games en Linux.
 from dataclasses import FrozenInstanceError
 import json
 from pathlib import Path
+import sqlite3
 import sys
 import tempfile
 import unittest
@@ -20,6 +21,7 @@ from adapters import (
     discover_heroic_installed_apps,
     resolve_epic_applications,
 )
+from adapters.epic_discovery import discover_lutris_epic_apps
 
 
 class TestEpicDiscovery(unittest.TestCase):
@@ -140,6 +142,48 @@ class TestEpicDiscovery(unittest.TestCase):
             self.assertEqual(apps[0].app_name, "GameWithoutAppName")
         finally:
             temp_path.unlink(missing_ok=True)
+
+    def test_discover_lutris_epic_apps_mocked(self) -> None:
+        """Verifica el descubrimiento de juegos de Epic en la base de datos de Lutris."""
+        with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
+            temp_db_path = Path(f.name)
+
+        try:
+            conn = sqlite3.connect(temp_db_path)
+            cursor = conn.cursor()
+            cursor.execute(
+                "CREATE TABLE games (slug TEXT, name TEXT, directory TEXT, service TEXT, installer_slug TEXT)"
+            )
+            cursor.executemany(
+                "INSERT INTO games VALUES (?, ?, ?, ?, ?)",
+                [
+                    ("fall-guys", "Fall Guys", "/games/fallguys", "epic", None),
+                    ("fortnite", "Fortnite", "/games/fortnite", "wine", "epic-games-store"),
+                    ("portal", "Portal", "/games/portal", "steam", None),
+                    ("", "Empty Slug", "/games/empty", "epic", None),
+                ],
+            )
+            conn.commit()
+            conn.close()
+
+            apps = discover_lutris_epic_apps(db_path=temp_db_path)
+            self.assertEqual(len(apps), 2)
+            by_name = {app.app_name: app for app in apps}
+            self.assertIn("fall-guys", by_name)
+            self.assertIn("fortnite", by_name)
+            self.assertEqual(by_name["fall-guys"].app_id, "epic:fall-guys")
+            self.assertEqual(by_name["fall-guys"].title, "Fall Guys")
+            self.assertEqual(by_name["fall-guys"].install_path, "/games/fallguys")
+            self.assertEqual(by_name["fortnite"].app_id, "epic:fortnite")
+            self.assertEqual(by_name["fortnite"].title, "Fortnite")
+        finally:
+            temp_db_path.unlink(missing_ok=True)
+
+    def test_discover_lutris_epic_apps_missing_db(self) -> None:
+        """Verifica que si la base de datos no existe retorne una lista vacía de forma segura."""
+        nonexistent = Path(tempfile.gettempdir()) / "nonexistent_lutris_test.db"
+        apps = discover_lutris_epic_apps(db_path=nonexistent)
+        self.assertEqual(apps, [])
 
 
 if __name__ == "__main__":
