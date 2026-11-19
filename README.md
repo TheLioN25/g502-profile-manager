@@ -5,7 +5,7 @@
 </p>
 
 [![CI Pipeline](https://github.com/TheLioN25/g502-profile-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/TheLioN25/g502-profile-manager/actions/workflows/ci.yml)
-[![Unit Tests](https://img.shields.io/badge/tests-259%20passed-brightgreen.svg)](tests/)
+[![Unit Tests](https://img.shields.io/badge/tests-262%20passed-brightgreen.svg)](tests/)
 [![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](pyproject.toml)
 
@@ -82,8 +82,8 @@ Visually configure buttons, macros, DPI sensitivity stages, and LIGHTSYNC RGB li
 * 🧩 **Modular Catalogs & Presets (`presets/`):**
   * Extensible JSON presets for titles like **Warframe**, **Soulframe**, **Guild Wars 2**, and **AION 2** (including profession F1–F5 keys and custom actions), plus desktop productivity shortcuts.
 
-* 🧪 **Exhaustive Test Suite (259 Tests):**
-  * **259 automated unit tests** passing at 100% (`OK`) covering domain logic, atomic storage, hardware adapters, binary VDF parsing, launcher resolution, anti-flapping, GUI presentation, system tray D-Bus, i18n, bilingual packaging, desktop packaging, and systemd integration (`python3 -m unittest discover -s tests`).
+* 🧪 **Exhaustive Test Suite (262 Tests):**
+  * **262 automated unit tests** passing at 100% (`OK`) covering domain logic, atomic storage, hardware adapters, binary VDF parsing, launcher resolution, anti-flapping, GUI presentation, system tray D-Bus, i18n, bilingual packaging, desktop packaging, and systemd integration (`python3 -m unittest discover -s tests`).
 
 ---
 
@@ -316,11 +316,11 @@ When playing Windows games on Linux through **Steam Play / Proton**:
 
 ## 🧪 Unit Tests Execution
 
-To run the complete automated test suite (259 unit tests):
+To run the complete automated test suite (262 unit tests):
 ```bash
 python3 -m unittest discover -s tests -v
 ```
-The suite finishes with `Ran 259 tests ... OK (0 failures, 0 errors)`. Tests validate domain invariants, atomic disk persistence, profile import/export, hardware communication via test doubles, binary VDF parser, dynamic process resolution, anti-flapping transitions, internationalization, and GUI logic without requiring connected physical hardware.
+The suite finishes with `Ran 262 tests ... OK (0 failures, 0 errors)`. Tests validate domain invariants, atomic disk persistence, profile import/export, hardware communication via test doubles, binary VDF parser, dynamic process resolution, anti-flapping transitions, internationalization, and GUI logic without requiring connected physical hardware.
 
 ---
 

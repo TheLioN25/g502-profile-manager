@@ -2,9 +2,11 @@
 Pruebas unitarias para RatbagDeviceAdapter.
 """
 
+import json
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 import unittest
 
 src_path = Path(__file__).resolve().parent.parent / "src"
@@ -15,6 +17,7 @@ from adapters import (
     RatbagDeviceAdapter,
     normalize_key_to_input_code,
 )
+from adapters.ratbag_adapter import default_command_runner
 from domain import Action, Button, DpiConfiguration, Profile, G502_VARIANTS, DEFAULT_VARIANT
 
 
@@ -635,6 +638,69 @@ number of leds: 2
         flattened = [" ".join(cmd) for cmd in executed_commands]
         led_cmds = [c for c in flattened if "led" in c]
         self.assertEqual(len(led_cmds), 0)
+
+    def test_default_command_runner(self) -> None:
+        """
+        [M-01, M-02, M-03] Verifica que default_command_runner capture la salida como texto
+        (capture_output=True, text=True) y no lance excepciones con check=False ante errores.
+        """
+        # 1. Comando exitoso: valida capture_output=True y text=True
+        res = default_command_runner(["echo", "hello"])
+        self.assertIsInstance(res.stdout, str)
+        self.assertEqual(res.stdout.strip(), "hello")
+        self.assertEqual(res.returncode, 0)
+
+        # 2. Comando con código de salida no cero: valida check=False (no lanza CalledProcessError)
+        res_fail = default_command_runner(["sh", "-c", "exit 42"])
+        self.assertEqual(res_fail.returncode, 42)
+
+    def test_load_state_cache_with_none_file(self) -> None:
+        """
+        [M-04] Verifica que _load_state_cache maneje de forma segura cuando state_cache_file es None
+        (validando el cortocircuito del operador 'or' sin lanzar AttributeError).
+        """
+        adapter = RatbagDeviceAdapter(
+            state_cache_file=None,
+            command_runner=lambda cmd: subprocess.CompletedProcess(cmd, 0, "", ""),
+        )
+        # Invocación directa: no debe lanzar AttributeError al evaluar .exists() sobre None
+        adapter._load_state_cache()
+        self.assertEqual(adapter._device_state_cache, {})
+
+    def test_load_state_cache_parses_profile_slots_correctly(self) -> None:
+        """
+        [M-05] Verifica que _load_state_cache procese correctamente las ranuras de perfil
+        y no las salte al filtrar la clave 'active_slot' (validando 's_key == active_slot').
+        """
+        dummy_state = {
+            "devices": {
+                "dev_g502": {
+                    "active_slot": 0,
+                    "0": {
+                        "dpi": 1200,
+                        "led_cmds": [["led", "0", "set", "mode", "on"]],
+                        "buttons": {"0": ["button", "0", "action", "set", "button", "1"]},
+                    },
+                }
+            }
+        }
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump(dummy_state, f)
+            temp_path = Path(f.name)
+
+        try:
+            adapter = RatbagDeviceAdapter(
+                state_cache_file=temp_path,
+                command_runner=lambda cmd: subprocess.CompletedProcess(cmd, 0, "", ""),
+            )
+            # Verifica que active_slot se haya cargado
+            self.assertEqual(adapter._device_state_cache["dev_g502"]["active_slot"], 0)
+            # Verifica que la ranura 0 se haya procesado y esté presente (con != s_key se omitiría)
+            self.assertIn(0, adapter._device_state_cache["dev_g502"])
+            self.assertEqual(adapter._device_state_cache["dev_g502"][0]["dpi"], 1200)
+            self.assertIn(0, adapter._device_state_cache["dev_g502"][0]["buttons"])
+        finally:
+            temp_path.unlink(missing_ok=True)
 
 
 if __name__ == "__main__":

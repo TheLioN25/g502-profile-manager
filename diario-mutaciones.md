@@ -37,27 +37,8 @@
 ### ~~5. `src/adapters/process_discovery.py`~~ ✅ BLINDADO (Score: 0.0% → 100% — 3/3 eliminados)
 > Resuelto — Suite unitaria dedicada `tests/test_adapter_process_discovery.py` (13 tests): inmutabilidad de `ProcessInfo` (M-01), parsing estricto de `cmdline` con y sin terminador nulo sin pop erróneo (M-02, M-03), retorno `None` ante `cmdline` vacío (M-04), y manejo seguro de `/proc` volátil / errores de E/S retornando `None` (M-05).
 
-### 6. `src/adapters/ratbag_adapter.py` (Score: 0.0% — 5 superviviente(s))
-* **[M-01] Línea 205:** Inversión booleana (True por False)
-  * **Original:** `capture_output=True,`
-  * **Mutado:**   `capture_output=False,`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
-* **[M-02] Línea 206:** Inversión booleana (True por False)
-  * **Original:** `text=True,`
-  * **Mutado:**   `text=False,`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
-* **[M-03] Línea 207:** Inversión booleana (False por True)
-  * **Original:** `check=False,`
-  * **Mutado:**   `check=True,`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
-* **[M-04] Línea 237:** Inversión lógica (or por and)
-  * **Original:** `if not self._state_cache_file or not self._state_cache_file.exists():`
-  * **Mutado:**   `if not self._state_cache_file and not self._state_cache_file.exists():`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
-* **[M-05] Línea 248:** Inversión de igualdad (== por !=)
-  * **Original:** `if s_key == "active_slot":`
-  * **Mutado:**   `if s_key != "active_slot":`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
+### ~~6. `src/adapters/ratbag_adapter.py`~~ ✅ BLINDADO (Score: 0.0% → 100% — 3/3 eliminados)
+> Resuelto — Tests: `test_default_command_runner` (aniquilación de M-01 `capture_output=True`, M-02 `text=True` y M-03 `check=False`), `test_load_state_cache_with_none_file` (M-04 validando cortocircuito `or`), y `test_load_state_cache_parses_profile_slots_correctly` (M-05 validando procesamiento de ranuras y filtro `s_key == 'active_slot'`).
 
 ### 7. `src/adapters/steam_discovery.py` (Score: 20.0% — 4 superviviente(s))
 * **[M-01] Línea 26:** Inversión booleana (True por False)
