@@ -308,7 +308,7 @@ def create_parser():
     parser.add_argument(
         "--version",
         action="version",
-        version="g502 0.6.0",
+        version="g502 0.6.1",
     )
     parser.add_argument(
         "--lang",
