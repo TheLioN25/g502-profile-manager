@@ -34,27 +34,8 @@
 ### ~~4. `src/adapters/notification_adapter.py`~~ ✅ BLINDADO (Score: 60.0% → 100% — 3/3 eliminados)
 > Resuelto — Tests: `test_default_initialization` (aniquilación de M-01 validando default `enabled=True` y M-02 validando `_dbus_init_attempted=False`) y `test_dbus_init_attempted_transition_on_first_call`.
 
-### 5. `src/adapters/process_discovery.py` (Score: 0.0% — 5 superviviente(s))
-* **[M-01] Línea 33:** Inversión booleana (True por False)
-  * **Original:** `@dataclass(frozen=True)`
-  * **Mutado:**   `@dataclass(frozen=False)`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
-* **[M-02] Línea 65:** Inversión de igualdad (== por !=)
-  * **Original:** `if raw_arguments and raw_arguments[-1] == b"":`
-  * **Mutado:**   `if raw_arguments and raw_arguments[-1] != b"":`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
-* **[M-03] Línea 65:** Inversión lógica (and por or)
-  * **Original:** `if raw_arguments and raw_arguments[-1] == b"":`
-  * **Mutado:**   `if raw_arguments or raw_arguments[-1] == b"":`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
-* **[M-04] Línea 69:** Alteración de retorno None
-  * **Original:** `return None`
-  * **Mutado:**   `return True`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
-* **[M-05] Línea 85:** Alteración de retorno None
-  * **Original:** `return None`
-  * **Mutado:**   `return True`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
+### ~~5. `src/adapters/process_discovery.py`~~ ✅ BLINDADO (Score: 0.0% → 100% — 3/3 eliminados)
+> Resuelto — Suite unitaria dedicada `tests/test_adapter_process_discovery.py` (13 tests): inmutabilidad de `ProcessInfo` (M-01), parsing estricto de `cmdline` con y sin terminador nulo sin pop erróneo (M-02, M-03), retorno `None` ante `cmdline` vacío (M-04), y manejo seguro de `/proc` volátil / errores de E/S retornando `None` (M-05).
 
 ### 6. `src/adapters/ratbag_adapter.py` (Score: 0.0% — 5 superviviente(s))
 * **[M-01] Línea 205:** Inversión booleana (True por False)
