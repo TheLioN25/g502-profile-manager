@@ -31,15 +31,8 @@
 ### ~~3. `src/adapters/epic_discovery.py`~~ ✅ BLINDADO (Score: 80.0% → 100% — 3/3 eliminados)
 > Resuelto — Tests: `test_discover_lutris_epic_apps_mocked` (aniquilación de M-01 verificando SQLite `uri=True` / `mode=ro` y mapeo de juegos Epic) y `test_discover_lutris_epic_apps_missing_db`.
 
-### 4. `src/adapters/notification_adapter.py` (Score: 60.0% — 2 superviviente(s))
-* **[M-01] Línea 29:** Inversión booleana (True por False)
-  * **Original:** `enabled: bool = True,`
-  * **Mutado:**   `enabled: bool = False,`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
-* **[M-02] Línea 45:** Inversión booleana (False por True)
-  * **Original:** `self._dbus_init_attempted = False`
-  * **Mutado:**   `self._dbus_init_attempted = True`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
+### ~~4. `src/adapters/notification_adapter.py`~~ ✅ BLINDADO (Score: 60.0% → 100% — 3/3 eliminados)
+> Resuelto — Tests: `test_default_initialization` (aniquilación de M-01 validando default `enabled=True` y M-02 validando `_dbus_init_attempted=False`) y `test_dbus_init_attempted_transition_on_first_call`.
 
 ### 5. `src/adapters/process_discovery.py` (Score: 0.0% — 5 superviviente(s))
 * **[M-01] Línea 33:** Inversión booleana (True por False)

@@ -21,6 +21,21 @@ from storage import JsonProfileRepository
 
 
 class TestDesktopNotificationAdapter(unittest.TestCase):
+    def test_default_initialization(self):
+        """Verifica los valores predeterminados del constructor de DesktopNotificationAdapter."""
+        adapter = DesktopNotificationAdapter()
+        self.assertTrue(adapter.enabled)
+        self.assertFalse(adapter._dbus_init_attempted)
+        self.assertEqual(adapter._app_name, "G502 Profile Manager")
+        self.assertEqual(adapter._icon, "io.github.thelion.G502ProfileManager")
+
+    def test_dbus_init_attempted_transition_on_first_call(self):
+        """Verifica que _dbus_init_attempted cambie de False a True tras el primer intento de conexión."""
+        adapter = DesktopNotificationAdapter()
+        self.assertFalse(adapter._dbus_init_attempted)
+        adapter._get_dbus_connection()
+        self.assertTrue(adapter._dbus_init_attempted)
+
     def test_disabled_notification_returns_false(self):
         adapter = DesktopNotificationAdapter(enabled=False)
         self.assertFalse(adapter.enabled)
