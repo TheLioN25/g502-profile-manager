@@ -43,27 +43,8 @@
 ### ~~7. `src/adapters/steam_discovery.py`~~ ✅ BLINDADO (Score: 20.0% → 100% — 3/3 eliminados)
 > Resuelto — Test: `test_steam_dataclasses_are_immutable` (aniquilación de M-01 `SteamLaunch`, M-02 `SteamAppManifest`, M-03 `ActiveSteamApplication` y M-04 `SteamShortcut` validando inmutabilidad con `FrozenInstanceError`).
 
-### 8. `src/cli.py` (Score: 0.0% — 5 superviviente(s))
-* **[M-01] Línea 14:** Inversión de pertenencia (not in por in)
-  * **Original:** `if str(current_dir) not in sys.path:`
-  * **Mutado:**   `if str(current_dir) in sys.path:`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
-* **[M-02] Línea 61:** Inversión menor estricto (< por >)
-  * **Original:** `print("Crea uno nuevo con: g502 create <app_id> <name>\n")`
-  * **Mutado:**   `print("Crea uno nuevo con: g502 create >app_id> <name>\n")`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
-* **[M-03] Línea 61:** Inversión mayor estricto (> por <)
-  * **Original:** `print("Crea uno nuevo con: g502 create <app_id> <name>\n")`
-  * **Mutado:**   `print("Crea uno nuevo con: g502 create <app_id< <name>\n")`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
-* **[M-04] Línea 67:** Inversión de igualdad (== por !=)
-  * **Original:** `is_default = repo.get_default_profile_id(p.application_id) == p.id`
-  * **Mutado:**   `is_default = repo.get_default_profile_id(p.application_id) != p.id`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
-* **[M-05] Línea 115:** Inversión de igualdad (== por !=)
-  * **Original:** `if not args.app_id or args.app_id.strip() == "list":`
-  * **Mutado:**   `if not args.app_id or args.app_id.strip() != "list":`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
+### ~~8. `src/cli.py`~~ ✅ BLINDADO (Score: 0.0% → 100% — 3/3 eliminados)
+> Resuelto — Suite unitaria dedicada `tests/test_cli_commands.py` (5 tests): `test_cli_bootstraps_sys_path` (M-01), `test_cmd_profiles_empty_repository_hint` (M-02, M-03), `test_cmd_profiles_default_tag_accuracy` (M-04), `test_cmd_presets_branching_list_vs_detail` (M-05) y `test_cmd_create_success`.
 
 ### 9. `src/domain/application.py` (Score: 60.0% — 2 superviviente(s))
 * **[M-01] Línea 11:** Inversión booleana (True por False)
