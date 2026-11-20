@@ -40,23 +40,8 @@
 ### ~~6. `src/adapters/ratbag_adapter.py`~~ ✅ BLINDADO (Score: 0.0% → 100% — 3/3 eliminados)
 > Resuelto — Tests: `test_default_command_runner` (aniquilación de M-01 `capture_output=True`, M-02 `text=True` y M-03 `check=False`), `test_load_state_cache_with_none_file` (M-04 validando cortocircuito `or`), y `test_load_state_cache_parses_profile_slots_correctly` (M-05 validando procesamiento de ranuras y filtro `s_key == 'active_slot'`).
 
-### 7. `src/adapters/steam_discovery.py` (Score: 20.0% — 4 superviviente(s))
-* **[M-01] Línea 26:** Inversión booleana (True por False)
-  * **Original:** `@dataclass(frozen=True)`
-  * **Mutado:**   `@dataclass(frozen=False)`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
-* **[M-02] Línea 32:** Inversión booleana (True por False)
-  * **Original:** `@dataclass(frozen=True)`
-  * **Mutado:**   `@dataclass(frozen=False)`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
-* **[M-03] Línea 41:** Inversión booleana (True por False)
-  * **Original:** `@dataclass(frozen=True)`
-  * **Mutado:**   `@dataclass(frozen=False)`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
-* **[M-04] Línea 47:** Inversión booleana (True por False)
-  * **Original:** `@dataclass(frozen=True)`
-  * **Mutado:**   `@dataclass(frozen=False)`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
+### ~~7. `src/adapters/steam_discovery.py`~~ ✅ BLINDADO (Score: 20.0% → 100% — 3/3 eliminados)
+> Resuelto — Test: `test_steam_dataclasses_are_immutable` (aniquilación de M-01 `SteamLaunch`, M-02 `SteamAppManifest`, M-03 `ActiveSteamApplication` y M-04 `SteamShortcut` validando inmutabilidad con `FrozenInstanceError`).
 
 ### 8. `src/cli.py` (Score: 0.0% — 5 superviviente(s))
 * **[M-01] Línea 14:** Inversión de pertenencia (not in por in)

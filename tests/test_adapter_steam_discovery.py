@@ -4,6 +4,7 @@ Pruebas unitarias para el descubrimiento de aplicaciones y accesos directos de S
 
 from __future__ import annotations
 
+from dataclasses import FrozenInstanceError
 from pathlib import Path
 import struct
 import sys
@@ -16,6 +17,8 @@ if str(src_path) not in sys.path:
 
 from adapters.steam_discovery import (
     ActiveSteamApplication,
+    SteamAppManifest,
+    SteamLaunch,
     SteamShortcut,
     discover_active_steam_apps,
     discover_steam_shortcuts,
@@ -231,6 +234,42 @@ class TestSteamShortcutsDiscovery(unittest.TestCase):
         self.assertEqual(active[0].manifest.app_id, 3519040750)
         self.assertEqual(active[0].manifest.name, "Soulframe")
         self.assertEqual(active[0].launch.app_id, 3519040750)
+
+    def test_steam_dataclasses_are_immutable(self) -> None:
+        """
+        [M-01, M-02, M-03, M-04] Verifica que las dataclasses del dominio de Steam
+        (SteamLaunch, SteamAppManifest, ActiveSteamApplication y SteamShortcut)
+        sean inmutables (frozen=True).
+        """
+        # [M-01] SteamLaunch
+        launch = SteamLaunch(app_id=123, supervisor_pid=456, command="steam -applaunch 123")
+        with self.assertRaises(FrozenInstanceError):
+            launch.app_id = 999  # type: ignore
+
+        # [M-02] SteamAppManifest
+        manifest = SteamAppManifest(
+            app_id=123,
+            name="Test Game",
+            install_dir="/games/test",
+            manifest_file="appmanifest_123.acf",
+            library_path="/games/steam",
+        )
+        with self.assertRaises(FrozenInstanceError):
+            manifest.name = "Hacked"  # type: ignore
+
+        # [M-03] ActiveSteamApplication
+        active = ActiveSteamApplication(launch=launch, manifest=manifest)
+        with self.assertRaises(FrozenInstanceError):
+            active.launch = launch  # type: ignore
+
+        # [M-04] SteamShortcut
+        shortcut = SteamShortcut(
+            app_id=3519040750,
+            name="Soulframe",
+            exe="/games/Soulframe/Launcher.exe",
+        )
+        with self.assertRaises(FrozenInstanceError):
+            shortcut.name = "Hacked"  # type: ignore
 
 
 if __name__ == "__main__":
