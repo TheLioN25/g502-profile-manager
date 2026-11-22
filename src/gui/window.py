@@ -188,6 +188,11 @@ class MainWindow(Adw.ApplicationWindow):
         sidebar_header.pack_start(refresh_btn)
         box.append(sidebar_header)
 
+        # Línea divisoria láser sobre la lista de juegos (encima de Escritorio / Sistema)
+        sidebar_top_sep = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+        sidebar_top_sep.add_css_class("laser-divider")
+        box.append(sidebar_top_sep)
+
         # 1. Sección Superior: Perfiles Configurados
         configured_scrolled = Gtk.ScrolledWindow()
         configured_scrolled.set_propagate_natural_height(True)
@@ -244,7 +249,6 @@ class MainWindow(Adw.ApplicationWindow):
 
         # HeaderBar del panel principal
         self._main_header = Adw.HeaderBar()
-        self._main_header.add_css_class("main-header-laser")
         self._window_title = Adw.WindowTitle(title=_("G502 Profile Manager"), subtitle=_("Selecciona una aplicación"))
         self._main_header.set_title_widget(self._window_title)
 
