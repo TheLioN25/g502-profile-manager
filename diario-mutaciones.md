@@ -55,11 +55,8 @@
 ### ~~11. `src/domain/profile.py`~~ ✅ BLINDADO (Score: 80.0% → 100% — 3/3 eliminados)
 > Resuelto — Tests: `test_dpi_configuration_is_immutable` (aniquilación de M-01 validando `FrozenInstanceError` al mutar `dpi` o `shift_dpi`), y suite dedicada `TestDomainAssignment` verificando creación, tipado estricto e inmutabilidad (`FrozenInstanceError`) para `Assignment`.
 
-### 12. `src/gui/app.py` (Score: 50.0% — 1 superviviente(s))
-* **[M-01] Línea 109:** Inversión booleana (True por False)
-  * **Original:** `start_auto=True,`
-  * **Mutado:**   `start_auto=False,`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
+### ~~12. `src/gui/app.py`~~ ✅ BLINDADO (Score: 50.0% → 100% — 2/2 eliminados)
+> Resuelto — Test `test_app_do_activate_instantiates_window_with_start_auto` en `tests/test_gui_window_logic.py` (aniquilación de M-01 comprobando que `MainWindow` se inicialice obligatoriamente con `start_auto=True` e idempotencia del ciclo de activación).
 
 ### 13. `src/gui/dialogs.py` (Score: 0.0% — 5 superviviente(s))
 * **[M-01] Línea 39:** Inversión booleana (True por False)

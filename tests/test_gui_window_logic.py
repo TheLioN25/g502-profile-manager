@@ -610,6 +610,31 @@ class TestGuiLogic(unittest.TestCase):
             window._on_set_default_profile_clicked(None)
             window._on_duplicate_profile_clicked(None)
 
+    def test_app_do_activate_instantiates_window_with_start_auto(self):
+        """
+        [M-01] Verifica que do_activate instancie MainWindow con start_auto=True
+        y que sea idempotente al activarse repetidamente.
+        """
+        app = G502Application()
+        with patch("gui.app.MainWindow") as mock_window_cls:
+            mock_win = MagicMock()
+            mock_window_cls.return_value = mock_win
+
+            # Primera activación: debe crear MainWindow con start_auto=True y presentarla
+            app.do_activate()
+
+            mock_window_cls.assert_called_once()
+            _, kwargs = mock_window_cls.call_args
+            self.assertIn("start_auto", kwargs)
+            self.assertTrue(kwargs["start_auto"])
+            mock_win.present.assert_called_once()
+
+            # Segunda activación: debe reutilizar la ventana sin volver a instanciar
+            app.do_activate()
+            self.assertEqual(mock_window_cls.call_count, 1)
+            self.assertEqual(mock_win.present.call_count, 2)
+
+
 
 if __name__ == "__main__":
     unittest.main()

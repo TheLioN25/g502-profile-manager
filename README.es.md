@@ -5,7 +5,7 @@
 </p>
 
 [![CI Pipeline](https://github.com/TheLioN25/g502-profile-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/TheLioN25/g502-profile-manager/actions/workflows/ci.yml)
-[![Pruebas Unitarias](https://img.shields.io/badge/tests-276%20pasadas-brightgreen.svg)](tests/)
+[![Pruebas Unitarias](https://img.shields.io/badge/tests-277%20pasadas-brightgreen.svg)](tests/)
 [![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](pyproject.toml)
 
@@ -83,8 +83,8 @@ Permite configurar visualmente los botones, macros, sensibilidades (DPI) y zonas
 * 🧩 **Catálogos y Presets Modulares (`presets/`):**
   * Presets integrados en formato JSON ampliables para juegos como **Warframe**, **Soulframe**, **Guild Wars 2** y **AION 2** (incluyendo mecánicas de profesión F1–F5 y habilidades personalizables), además de atajos de productividad para el escritorio.
 
-* 🧪 **Suite de Pruebas Exhaustiva (276 Pruebas):**
-  * **276 pruebas unitarias automatizadas** pasando al 100% (`OK`) con cobertura en invariantes de dominio, persistencia atómica, adaptadores de hardware, parser binario VDF, resolución de lanzadores Wine, anti-flapping, lógica de GUI GTK4, bandeja del sistema D-Bus, i18n bilingüe, empaquetado de escritorio y servicio systemd (`python3 -m unittest discover -s tests`).
+* 🧪 **Suite de Pruebas Exhaustiva (277 Pruebas):**
+  * **277 pruebas unitarias automatizadas** pasando al 100% (`OK`) con cobertura en invariantes de dominio, persistencia atómica, adaptadores de hardware, parser binario VDF, resolución de lanzadores Wine, anti-flapping, lógica de GUI GTK4, bandeja del sistema D-Bus, i18n bilingüe, empaquetado de escritorio y servicio systemd (`python3 -m unittest discover -s tests`).
 
 ---
 
@@ -316,11 +316,11 @@ Si juegas títulos de Windows en Linux mediante **Steam Play / Proton**:
 
 ## 🧪 Ejecución de Pruebas Unitarias
 
-Para ejecutar la suite completa de pruebas automatizadas (276 pruebas unitarias):
+Para ejecutar la suite completa de pruebas automatizadas (277 pruebas unitarias):
 ```bash
 python3 -m unittest discover -s tests -v
 ```
-La suite concluye con `Ran 276 tests ... OK (0 fallos, 0 errores)`. Las pruebas validan invariantes de dominio, persistencia atómica en disco, importación/exportación resiliente, sincronización de hardware mediante mocks, parser binario VDF, resolución de procesos dinámicos, transiciones anti-flapping, internacionalización y la lógica de la interfaz gráfica sin requerir hardware físico conectado.
+La suite concluye con `Ran 277 tests ... OK (0 fallos, 0 errores)`. Las pruebas validan invariantes de dominio, persistencia atómica en disco, importación/exportación resiliente, sincronización de hardware mediante mocks, parser binario VDF, resolución de procesos dinámicos, transiciones anti-flapping, internacionalización y la lógica de la interfaz gráfica sin requerir hardware físico conectado.
 
 ---
 
