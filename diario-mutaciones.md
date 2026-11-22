@@ -58,27 +58,8 @@
 ### ~~12. `src/gui/app.py`~~ ✅ BLINDADO (Score: 50.0% → 100% — 2/2 eliminados)
 > Resuelto — Test `test_app_do_activate_instantiates_window_with_start_auto` en `tests/test_gui_window_logic.py` (aniquilación de M-01 comprobando que `MainWindow` se inicialice obligatoriamente con `start_auto=True` e idempotencia del ciclo de activación).
 
-### 13. `src/gui/dialogs.py` (Score: 0.0% — 5 superviviente(s))
-* **[M-01] Línea 39:** Inversión booleana (True por False)
-  * **Original:** `modal=True,`
-  * **Mutado:**   `modal=False,`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
-* **[M-02] Línea 78:** Inversión booleana (True por False)
-  * **Original:** `self._search_entry.set_hexpand(True)`
-  * **Mutado:**   `self._search_entry.set_hexpand(False)`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
-* **[M-03] Línea 85:** Inversión booleana (True por False)
-  * **Original:** `scrolled.set_vexpand(True)`
-  * **Mutado:**   `scrolled.set_vexpand(False)`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
-* **[M-04] Línea 86:** Inversión booleana (True por False)
-  * **Original:** `scrolled.set_hexpand(True)`
-  * **Mutado:**   `scrolled.set_hexpand(False)`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
-* **[M-05] Línea 146:** Inversión booleana (True por False)
-  * **Original:** `row.set_activatable(True)`
-  * **Mutado:**   `row.set_activatable(False)`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
+### ~~13. `src/gui/dialogs.py`~~ ✅ BLINDADO (Score: 0.0% → 100% — 3/3 eliminados)
+> Resuelto — Test `test_action_picker_dialog` en `tests/test_gui_window_logic.py` (aniquilación de M-01 validando `get_modal()`, M-02 comprobando `get_hexpand()` en buscador, M-03 y M-04 comprobando `get_vexpand()` y `get_hexpand()` en ScrolledWindow contenedor vía Viewport, M-05 comprobando `get_activatable()` y activación funcional por señal `activated`, más blindaje de modalidad preventivo en `NewProfileDialog`).
 
 ### 14. `src/gui/mouse_diagram.py` (Score: 40.0% — 3 superviviente(s))
 * **[M-01] Línea 49:** Inversión booleana (False por True)

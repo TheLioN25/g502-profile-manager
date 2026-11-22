@@ -183,7 +183,29 @@ class TestGuiLogic(unittest.TestCase):
         self.assertIsNotNone(dialog)
         self.assertEqual(len(dialog._rows), 1)
 
-        # Probar selección de acción
+        # [M-01] Validar que el diálogo sea modal para evitar desincronización de estado
+        self.assertTrue(dialog.get_modal())
+
+        # [M-02] Validar que el buscador expanda horizontalmente
+        self.assertTrue(dialog._search_entry.get_hexpand())
+
+        # [M-03, M-04] Validar que el contenedor con scroll expanda en ambas dimensiones
+        viewport = dialog._pref_page.get_parent()
+        scrolled = viewport.get_parent() if isinstance(viewport, Gtk.Viewport) else viewport
+        self.assertIsInstance(scrolled, Gtk.ScrolledWindow)
+        self.assertTrue(scrolled.get_vexpand())
+        self.assertTrue(scrolled.get_hexpand())
+
+        # [M-05] Validar que la fila de acción sea activable
+        row, action_item = dialog._rows[0]
+        self.assertTrue(row.get_activatable())
+
+        # Probar selección de acción mediante activación de la fila (señal 'activated')
+        row.emit("activated")
+        self.assertIsNotNone(selected_action)
+        self.assertEqual(selected_action.action_id, "act_melee")
+
+        # Probar selección de acción mediante handler directo del botón
         handler = dialog._make_select_handler(categories["Combate"][0])
         handler()
         self.assertEqual(selected_action.action_id, "act_melee")
@@ -206,6 +228,8 @@ class TestGuiLogic(unittest.TestCase):
             on_profile_created=callback,
         )
         self.assertIsNotNone(dialog)
+        # Blindaje preventivo de modalidad en diálogo de creación
+        self.assertTrue(dialog.get_modal())
 
         # Simular cambio de texto y clic en Crear
         dialog._entry_row.set_text("Warframe Eidolon Hunt")
