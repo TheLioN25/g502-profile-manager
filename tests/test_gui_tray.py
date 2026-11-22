@@ -11,7 +11,9 @@ src_path = Path(__file__).resolve().parent.parent / "src"
 if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
 
-from gui.tray import TrayIndicator
+from gi.repository import Gio
+
+from gui.tray import SNI_INTROSPECTION_XML, TrayIndicator
 
 
 class TestGuiTray(unittest.TestCase):
@@ -141,6 +143,17 @@ class TestGuiTray(unittest.TestCase):
             self.assertIn("Auto: Active", unpacked[3])
         finally:
             set_language("es", persist=False)
+
+    def test_sni_introspection_xml_validity(self):
+        """[M-01] Verifica que la introspección XML de SNI sea válida y contenga la propiedad Category."""
+        node_info = Gio.DBusNodeInfo.new_for_xml(SNI_INTROSPECTION_XML)
+        self.assertIsNotNone(node_info)
+        iface = node_info.lookup_interface("org.kde.StatusNotifierItem")
+        self.assertIsNotNone(iface)
+        prop = iface.lookup_property("Category")
+        self.assertIsNotNone(prop)
+        self.assertEqual(prop.signature, "s")
+
 
 if __name__ == "__main__":
     unittest.main()

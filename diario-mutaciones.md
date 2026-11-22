@@ -64,11 +64,8 @@
 ### ~~14. `src/gui/mouse_diagram.py`~~ ✅ BLINDADO (Score: 40.0% → 100% — 3/3 eliminados)
 > Resuelto — Tests `test_diagram_initial_properties` (aniquilación de M-01 validando `get_hexpand()=False` y M-02 comprobando `get_vexpand()=True`) y `test_set_led_color` (aniquilación de M-03 validando parseo RGB con códigos hex válidos de 6 dígitos e invariancia ante longitudes inválidas).
 
-### 15. `src/gui/tray.py` (Score: 80.0% — 1 superviviente(s))
-* **[M-01] Línea 23:** Inversión menor estricto (< por >)
-  * **Original:** `<property name="Category" type="s" access="read"/>`
-  * **Mutado:**   `>property name="Category" type="s" access="read"/>`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
+### ~~15. `src/gui/tray.py`~~ ✅ BLINDADO (Score: 80.0% → 100% — 3/3 eliminados)
+> Resuelto — Test `test_sni_introspection_xml_validity` en `tests/test_gui_tray.py` (aniquilación de M-01 validando el parseo XML sin errores y la existencia de la propiedad `Category` de tipo `s` en la interfaz `org.kde.StatusNotifierItem`).
 
 ### 16. `src/gui/window.py` (Score: 80.0% — 1 superviviente(s))
 * **[M-01] Línea 111:** Inversión booleana (True por False)
