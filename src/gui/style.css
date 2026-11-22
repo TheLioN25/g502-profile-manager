@@ -29,14 +29,20 @@ headerbar {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
 }
 
+/* Cabecera del sidebar: sin borde inferior azul residual ni sombra para que mande el separador láser rojo */
+headerbar.sidebar-header {
+    border-bottom: none;
+    box-shadow: none;
+}
+
 /* Líneas Divisorias de Energía Láser Carmesí Horizontales (Sidebar y Debajo de Pestañas) */
 separator.laser-divider {
     min-height: 2px;
     background-color: var(--energy-crimson);
     border-top: 1px solid var(--energy-crimson-core);
     box-shadow: 0 0 10px var(--energy-crimson-glow), 0 0 2px var(--energy-crimson);
-    margin-top: 2px;
-    margin-bottom: 2px;
+    margin-top: 0;
+    margin-bottom: 0;
 }
 
 /* Paneles Laterales: Fondo uniforme obsidiana para descanso visual y máximo contraste */
@@ -46,19 +52,34 @@ scrolledwindow > viewport {
     background-color: var(--chassis-obsidian);
 }
 
-/* Juntas de Energía Láser Carmesí en los Separadores de Paneles (Iron Man) */
+/* Juntas de Energía Láser Carmesí en los Separadores de Paneles (Verticales y Horizontales) */
 paned > separator {
-    min-width: 2px;
     background-color: var(--energy-crimson);
-    border-left: 1px solid var(--energy-crimson-core);
     box-shadow: 0 0 10px var(--energy-crimson-glow), 0 0 2px var(--energy-crimson);
     transition: all 0.2s ease-in-out;
 }
 
+paned.horizontal > separator {
+    min-width: 2px;
+    border-left: 1px solid var(--energy-crimson-core);
+}
+
+paned.vertical > separator {
+    min-height: 2px;
+    border-top: 1px solid var(--energy-crimson-core);
+}
+
 paned > separator:hover {
-    min-width: 3px;
     background-color: var(--energy-crimson-core);
     box-shadow: 0 0 14px rgba(255, 77, 109, 0.75);
+}
+
+paned.horizontal > separator:hover {
+    min-width: 3px;
+}
+
+paned.vertical > separator:hover {
+    min-height: 3px;
 }
 
 /* Tarjetas y Grupos de Preferencias */

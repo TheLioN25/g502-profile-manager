@@ -175,8 +175,9 @@ class MainWindow(Adw.ApplicationWindow):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         box.set_size_request(300, -1)
 
-        # Cabecera de la barra lateral
+        # Cabecera de la barra lateral (sin borde azul residual)
         sidebar_header = Adw.HeaderBar()
+        sidebar_header.add_css_class("sidebar-header")
         sidebar_header.set_show_end_title_buttons(False)
         self._sidebar_title = Adw.WindowTitle(title=_("Mis Juegos y Apps"), subtitle=_("Instalados en el sistema"))
         title = self._sidebar_title
@@ -193,37 +194,42 @@ class MainWindow(Adw.ApplicationWindow):
         sidebar_top_sep.add_css_class("laser-divider")
         box.append(sidebar_top_sep)
 
-        # 1. Sección Superior: Perfiles Configurados
+        # Divisor interactivo vertical (Paned) para redimensionar la caja de juegos configurados
+        sidebar_paned = Gtk.Paned(orientation=Gtk.Orientation.VERTICAL)
+        sidebar_paned.set_vexpand(True)
+        sidebar_paned.set_hexpand(True)
+        sidebar_paned.set_position(260)  # Posición inicial cómoda, arrastrable libremente con la línea roja
+        sidebar_paned.set_shrink_start_child(False)
+        sidebar_paned.set_shrink_end_child(False)
+        sidebar_paned.set_resize_start_child(True)
+        sidebar_paned.set_resize_end_child(True)
+
+        # 1. Sección Superior: Perfiles Configurados (hijo superior redimensionable)
         configured_scrolled = Gtk.ScrolledWindow()
-        configured_scrolled.set_propagate_natural_height(True)
-        configured_scrolled.set_max_content_height(240)
+        configured_scrolled.set_vexpand(True)
         configured_scrolled.set_hexpand(True)
 
         self._configured_list_box = Gtk.ListBox()
         self._configured_list_box.add_css_class("navigation-sidebar")
         self._configured_list_box.connect("row-selected", self._on_configured_row_selected)
         configured_scrolled.set_child(self._configured_list_box)
-        box.append(configured_scrolled)
+        sidebar_paned.set_start_child(configured_scrolled)
 
-        # 2. Línea separadora
-        separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
-        separator.set_margin_top(4)
-        separator.set_margin_bottom(4)
-        separator.add_css_class("laser-divider")
-        box.append(separator)
+        # 2. Sección Inferior: Buscador y aplicaciones no configuradas
+        lower_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
         # 3. Buscador de aplicaciones disponibles
         search_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         search_box.set_margin_start(12)
         search_box.set_margin_end(12)
-        search_box.set_margin_top(2)
+        search_box.set_margin_top(6)
         search_box.set_margin_bottom(6)
 
         self._app_search_entry = Gtk.SearchEntry(placeholder_text=_("Buscar juego o app..."))
         self._app_search_entry.set_hexpand(True)
         self._app_search_entry.connect("search-changed", self._on_app_search_changed)
         search_box.append(self._app_search_entry)
-        box.append(search_box)
+        lower_box.append(search_box)
 
         # 4. Sección Inferior: Aplicaciones no configuradas
         unconfigured_scrolled = Gtk.ScrolledWindow()
@@ -234,7 +240,10 @@ class MainWindow(Adw.ApplicationWindow):
         self._unconfigured_list_box.add_css_class("navigation-sidebar")
         self._unconfigured_list_box.connect("row-selected", self._on_unconfigured_row_selected)
         unconfigured_scrolled.set_child(self._unconfigured_list_box)
-        box.append(unconfigured_scrolled)
+        lower_box.append(unconfigured_scrolled)
+
+        sidebar_paned.set_end_child(lower_box)
+        box.append(sidebar_paned)
 
         # Mantener referencia por compatibilidad
         self._app_list_box = self._configured_list_box
