@@ -103,31 +103,14 @@ class G502MouseDiagram(Gtk.DrawingArea):
     def _draw_func(self, _area, cr: cairo.Context, width: int, height: int):
         self._hit_targets.clear()
 
-        # Fondo estilizado con degradado radial zafiro metálico (Tema Stark Tech v1.0.0)
-        bg = cairo.RadialGradient(width * 0.5, height * 0.5, 60, width * 0.5, height * 0.5, max(width, height) * 0.72)
-        bg.add_color_stop_rgb(0.0, 0.10, 0.35, 0.76)   # Núcleo zafiro luminoso (#1a58c3)
-        bg.add_color_stop_rgb(0.55, 0.05, 0.18, 0.45)  # Zona intermedia azul metálico (#0d2e73)
-        bg.add_color_stop_rgb(1.0, 0.02, 0.05, 0.13)   # Bordes obsidiana navy profundo (#050e22)
+        # Fondo estilizado con degradado radial zafiro metálico profundo (Tema Stark Tech v1.0.0)
+        bg = cairo.RadialGradient(width * 0.5, height * 0.5, 30, width * 0.5, height * 0.5, max(width, height) * 0.65)
+        bg.add_color_stop_rgb(0.0, 0.06, 0.16, 0.36)   # Núcleo zafiro sutil y profundo
+        bg.add_color_stop_rgb(0.35, 0.03, 0.08, 0.18)  # Caída rápida a azul oscuro
+        bg.add_color_stop_rgb(0.70, 0.015, 0.035, 0.08) # Azul marino obsidiana
+        bg.add_color_stop_rgb(1.0, 0.01, 0.02, 0.04)   # Bordes perimetrales oscuros
         cr.set_source(bg)
         cr.paint()
-
-        # Resplandor rojo carmesí Iron Man en los bordes superior e inferior
-        glow_h = 45.0
-        # Borde superior (hacia abajo)
-        top_glow = cairo.LinearGradient(0, 0, 0, glow_h)
-        top_glow.add_color_stop_rgba(0.0, 0.85, 0.11, 0.18, 0.38)
-        top_glow.add_color_stop_rgba(1.0, 0.85, 0.11, 0.18, 0.0)
-        cr.set_source(top_glow)
-        cr.rectangle(0, 0, width, glow_h)
-        cr.fill()
-
-        # Borde inferior (hacia arriba)
-        bot_glow = cairo.LinearGradient(0, height, 0, height - glow_h)
-        bot_glow.add_color_stop_rgba(0.0, 0.85, 0.11, 0.18, 0.38)
-        bot_glow.add_color_stop_rgba(1.0, 0.85, 0.11, 0.18, 0.0)
-        cr.set_source(bot_glow)
-        cr.rectangle(0, height - glow_h, width, glow_h)
-        cr.fill()
 
         # Cuadrícula sutil de precisión estilo CAD / Blueprint
         cr.set_line_width(0.5)

@@ -12,14 +12,14 @@
     --chassis-border: rgba(45, 125, 210, 0.35);
 
     /* Encabezado: Degradado Azul Metálico Vertical */
-    --header-blue-top: #1852b9;
-    --header-blue-mid: #0d2e73;
-    --header-blue-bot: #060e22;
+    --header-blue-top: #12336e;
+    --header-blue-mid: #0a1f44;
+    --header-blue-bot: #050e20;
 
     /* Juntas de Energía Láser Carmesí Iron Man */
     --energy-crimson-core: #ff6b8b;
     --energy-crimson: #e11d48;
-    --energy-crimson-glow: rgba(225, 29, 72, 0.45);
+    --energy-crimson-glow: rgba(225, 29, 72, 0.3);
 }
 
 /* Encabezado de Ventana y de Sidebar */
@@ -38,17 +38,17 @@ scrolledwindow > viewport {
 
 /* Juntas de Energía Láser Carmesí en los Separadores de Paneles */
 paned > separator {
-    min-width: 2px;
-    background-color: var(--energy-crimson);
-    border-left: 1px solid var(--energy-crimson-core);
-    box-shadow: 0 0 10px var(--energy-crimson-glow), 0 0 2px var(--energy-crimson);
+    min-width: 1px;
+    background-color: rgba(225, 29, 72, 0.4);
+    box-shadow: 0 0 6px var(--energy-crimson-glow);
+    border: none;
     transition: all 0.2s ease-in-out;
 }
 
 paned > separator:hover {
-    min-width: 3px;
+    min-width: 2px;
     background-color: var(--energy-crimson-core);
-    box-shadow: 0 0 14px rgba(255, 77, 109, 0.75);
+    box-shadow: 0 0 10px rgba(255, 77, 109, 0.6);
 }
 
 /* Tarjetas y Grupos de Preferencias */
