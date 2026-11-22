@@ -46,15 +46,8 @@
 ### ~~8. `src/cli.py`~~ ✅ BLINDADO (Score: 0.0% → 100% — 3/3 eliminados)
 > Resuelto — Suite unitaria dedicada `tests/test_cli_commands.py` (5 tests): `test_cli_bootstraps_sys_path` (M-01), `test_cmd_profiles_empty_repository_hint` (M-02, M-03), `test_cmd_profiles_default_tag_accuracy` (M-04), `test_cmd_presets_branching_list_vs_detail` (M-05) y `test_cmd_create_success`.
 
-### 9. `src/domain/application.py` (Score: 60.0% — 2 superviviente(s))
-* **[M-01] Línea 11:** Inversión booleana (True por False)
-  * **Original:** `@dataclass(frozen=True)`
-  * **Mutado:**   `@dataclass(frozen=False)`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
-* **[M-02] Línea 42:** Inversión lógica (and por or)
-  * **Original:** `if isinstance(self.binding_type, str) and self.binding_type.strip()`
-  * **Mutado:**   `if isinstance(self.binding_type, str) or self.binding_type.strip()`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
+### ~~9. `src/domain/application.py`~~ ✅ BLINDADO (Score: 60.0% → 100% — 3/3 eliminados)
+> Resuelto — Tests: `test_action_is_immutable` (aniquilación de M-01 validando inmutabilidad con `FrozenInstanceError`) y `test_action_binding_type_and_category_fallbacks` (aniquilación de M-02 validando conjunción `and` ante valores vacíos o no-string).
 
 ### 10. `src/domain/device.py` (Score: 20.0% — 4 superviviente(s))
 * **[M-01] Línea 11:** Inversión booleana (True por False)

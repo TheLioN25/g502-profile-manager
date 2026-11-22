@@ -2,8 +2,9 @@
 Pruebas unitarias para la entidad Application.
 """
 
-import sys
+from dataclasses import FrozenInstanceError
 from pathlib import Path
+import sys
 import unittest
 
 src_path = Path(__file__).resolve().parent.parent / "src"
@@ -65,6 +66,57 @@ class TestDomainApplication(unittest.TestCase):
         app = Application(application_id="steam:230410", name="Warframe")
         with self.assertRaises(TypeError):
             app.add_action("invalido")  # type: ignore
+
+    def test_action_is_immutable(self) -> None:
+        """[M-01] Verifica que Action sea una dataclass inmutable (frozen=True)."""
+        act = Action(
+            action_id="attack",
+            name="Ataque Primario",
+            application_id="steam:230410",
+        )
+        with self.assertRaises(FrozenInstanceError):
+            act.name = "Modificado"  # type: ignore
+
+    def test_action_binding_type_and_category_fallbacks(self) -> None:
+        """
+        [M-02] Verifica que un binding_type vacío o no-string haga fallback seguro a 'key'
+        (evaluando estrictamente la conjunción 'isinstance and strip()', evitando pop o asignaciones vacías por 'or').
+        """
+        # Cadena vacía debe hacer fallback a 'key'
+        act_empty = Action(
+            action_id="test_empty",
+            name="Test Empty",
+            application_id="app_1",
+            binding_type="",
+        )
+        self.assertEqual(act_empty.binding_type, "key")
+
+        # Cadena de solo espacios debe hacer fallback a 'key'
+        act_spaces = Action(
+            action_id="test_spaces",
+            name="Test Spaces",
+            application_id="app_1",
+            binding_type="   ",
+        )
+        self.assertEqual(act_spaces.binding_type, "key")
+
+        # Tipo no-string (None) debe hacer fallback seguro a 'key' sin lanzar AttributeError
+        act_none = Action(
+            action_id="test_none",
+            name="Test None",
+            application_id="app_1",
+            binding_type=None,  # type: ignore
+        )
+        self.assertEqual(act_none.binding_type, "key")
+
+        # Fallback de categoría vacía hacia 'General'
+        act_cat = Action(
+            action_id="test_cat",
+            name="Test Cat",
+            application_id="app_1",
+            category="   ",
+        )
+        self.assertEqual(act_cat.category, "General")
 
 
 if __name__ == "__main__":
