@@ -57,6 +57,24 @@ class TestI18n(unittest.TestCase):
         self.assertEqual(_("Iluminación LED"), "LED Lighting")
         self.assertEqual(_("Dar Feedback / Reportar"), "Give Feedback / Report")
 
+        # [M-01, M-02, M-03, M-04] Validar cadenas bilingües con conjunciones 'or'
+        self.assertEqual(
+            _("Conmutación automática de perfiles según el juego o aplicación activa"),
+            "Automatic profile switching based on active game or application",
+        )
+        self.assertEqual(
+            _("Duración de cada pulsación o ciclo de color"),
+            "Duration of each pulse or color cycle",
+        )
+        self.assertEqual(
+            _("Avanzar a la siguiente pestaña en navegador o IDE (Ctrl+Tab)"),
+            "Advance to next tab in browser or IDE (Ctrl+Tab)",
+        )
+        self.assertEqual(
+            _("Alternar reproducción de música o video"),
+            "Toggle music or video playback",
+        )
+
     def test_untranslated_key_returns_original(self):
         set_language("en", persist=False)
         unknown = "Texto sin traducción alguna"

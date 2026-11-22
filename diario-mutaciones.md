@@ -70,23 +70,8 @@
 ### ~~16. `src/gui/window.py`~~ ✅ BLINDADO (Score: 80.0% → 100% — 3/3 eliminados)
 > Resuelto — Test `test_main_window_default_notifications_enabled_when_manager_lacks_method` en `tests/test_gui_window_logic.py` (aniquilación de M-01 comprobando que `initial_notif` sea `True` por defecto cuando el gestor carece del método `get_notifications_enabled`).
 
-### 17. `src/i18n.py` (Score: 20.0% — 4 superviviente(s))
-* **[M-01] Línea 39:** Inversión lógica (or por and)
-  * **Original:** `"Conmutación automática de perfiles según el juego o aplicación activa": "Automatic profile switching based on active game or application",`
-  * **Mutado:**   `"Conmutación automática de perfiles según el juego o aplicación activa": "Automatic profile switching based on active game and application",`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
-* **[M-02] Línea 79:** Inversión lógica (or por and)
-  * **Original:** `"Duración de cada pulsación o ciclo de color": "Duration of each pulse or color cycle",`
-  * **Mutado:**   `"Duración de cada pulsación o ciclo de color": "Duration of each pulse and color cycle",`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
-* **[M-03] Línea 113:** Inversión lógica (or por and)
-  * **Original:** `"Avanzar a la siguiente pestaña en navegador o IDE (Ctrl+Tab)": "Advance to next tab in browser or IDE (Ctrl+Tab)",`
-  * **Mutado:**   `"Avanzar a la siguiente pestaña en navegador o IDE (Ctrl+Tab)": "Advance to next tab in browser and IDE (Ctrl+Tab)",`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
-* **[M-04] Línea 121:** Inversión lógica (or por and)
-  * **Original:** `"Alternar reproducción de música o video": "Toggle music or video playback",`
-  * **Mutado:**   `"Alternar reproducción de música o video": "Toggle music and video playback",`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
+### ~~17. `src/i18n.py`~~ ✅ BLINDADO (Score: 20.0% → 100% — 3/3 eliminados)
+> Resuelto — Test `test_translation_to_english` en `tests/test_i18n.py` (aniquilación de M-01, M-02, M-03 y M-04 comprobando las traducciones exactas de cadenas que contienen conjunciones lógicas 'or' al inglés sin degradación a español ni distorsión por 'and').
 
 ### 18. `src/services/action_catalog.py` (Score: 60.0% — 2 superviviente(s))
 * **[M-01] Línea 129:** Inversión lógica (or por and)
