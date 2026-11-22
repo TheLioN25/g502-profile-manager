@@ -29,6 +29,22 @@ headerbar {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
 }
 
+/* Borde inferior del encabezado principal (Línea Láser Carmesí de izquierda a derecha) */
+headerbar.main-header-laser {
+    border-bottom: 2px solid var(--energy-crimson);
+    box-shadow: 0 1px 8px var(--energy-crimson-glow), 0 2px 10px rgba(0, 0, 0, 0.45);
+}
+
+/* Líneas Divisorias de Energía Láser Carmesí Horizontales (Sidebar y Debajo de Pestañas) */
+separator.laser-divider {
+    min-height: 2px;
+    background-color: var(--energy-crimson);
+    border-top: 1px solid var(--energy-crimson-core);
+    box-shadow: 0 0 10px var(--energy-crimson-glow), 0 0 2px var(--energy-crimson);
+    margin-top: 2px;
+    margin-bottom: 2px;
+}
+
 /* Paneles Laterales: Fondo uniforme obsidiana para descanso visual y máximo contraste */
 .navigation-sidebar,
 window,

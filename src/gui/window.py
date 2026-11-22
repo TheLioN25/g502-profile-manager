@@ -204,6 +204,7 @@ class MainWindow(Adw.ApplicationWindow):
         separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
         separator.set_margin_top(4)
         separator.set_margin_bottom(4)
+        separator.add_css_class("laser-divider")
         box.append(separator)
 
         # 3. Buscador de aplicaciones disponibles
@@ -243,6 +244,7 @@ class MainWindow(Adw.ApplicationWindow):
 
         # HeaderBar del panel principal
         self._main_header = Adw.HeaderBar()
+        self._main_header.add_css_class("main-header-laser")
         self._window_title = Adw.WindowTitle(title=_("G502 Profile Manager"), subtitle=_("Selecciona una aplicación"))
         self._main_header.set_title_widget(self._window_title)
 
@@ -387,6 +389,11 @@ class MainWindow(Adw.ApplicationWindow):
         switcher_bar.set_margin_top(6)
         switcher_bar.set_margin_bottom(6)
         box.append(switcher_bar)
+
+        # Separador láser horizontal debajo del bloque de pestañas
+        switcher_sep = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+        switcher_sep.add_css_class("laser-divider")
+        box.append(switcher_sep)
 
         # 1. Vista de Botones
         buttons_view = self._build_buttons_view()
