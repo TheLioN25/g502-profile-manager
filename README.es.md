@@ -25,11 +25,9 @@ Permite configurar visualmente los botones, macros, sensibilidades (DPI) y zonas
 | :---: | :---: |
 | <img src="docs/images/02_multi_profiles.png" alt="Soporte Multi-Perfil" width="400" /> | <img src="docs/images/03_profile_options.png" alt="Gestión de Perfiles" width="400" /> |
 | *Múltiples perfiles por juego según tu especialización o personaje.* | *Marca tu perfil favorito como predeterminado con ⭐ para carga reactiva.* |
-
-<p align="center">
-  <img src="docs/images/04_action_assignment.png" alt="Selector de Acciones y Mapeo de Teclas" width="550" /><br/>
-  <em><b>Selector de Acciones:</b> Atajos categorizados (Portapapeles, Navegación, Multimedia) y mapeo directo de cualquier tecla del teclado.</em>
-</p>
+| **Selector de Acciones y Mapeo de Teclas (AION 2)** | **Selector de Acento de Energía Dual (Stark Tech / J.A.R.V.I.S.)** |
+| <img src="docs/images/04_action_assignment.png" alt="Selector de Acciones y Mapeo de Teclas" width="400" /> | <img src="docs/images/05_energy_accents.png" alt="Selector de Acento de Energía Dual" width="400" /> |
+| *Atajos categorizados (Combate, Habilidades, Macros) y asignación libre de teclas.* | *Conmutación en caliente entre 🔴 Carmesí Iron Man y 🌐 Cian J.A.R.V.I.S.* |
 
 ---
 

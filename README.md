@@ -25,11 +25,9 @@ Visually configure buttons, macros, DPI sensitivity stages, and LIGHTSYNC RGB li
 | :---: | :---: |
 | <img src="docs/images/02_multi_profiles.png" alt="Multi-Profile Support" width="400" /> | <img src="docs/images/03_profile_options.png" alt="Profile Management" width="400" /> |
 | *Multiple profiles per game according to your build, character, or role.* | *Mark your favorite profile with ⭐ as default for reactive switching.* |
-
-<p align="center">
-  <img src="docs/images/04_action_assignment.png" alt="Action Picker & Key Mapping" width="550" /><br/>
-  <em><b>Action Picker:</b> Categorized shortcuts (Combat, Skills, Clipboard, Multimedia) and direct keyboard key mapping.</em>
-</p>
+| **Action Picker & Custom Key Mapping (AION 2)** | **Dual Energy Accent Switcher (Stark Tech / J.A.R.V.I.S.)** |
+| <img src="docs/images/04_action_assignment.png" alt="Action Picker & Key Mapping" width="400" /> | <img src="docs/images/05_energy_accents.png" alt="Dual Energy Accent Switcher" width="400" /> |
+| *Categorized shortcuts (Combat, Skills, Macros) and direct key binding.* | *Hot-swappable toggle between 🔴 Iron Man Crimson and 🌐 J.A.R.V.I.S. Cyan.* |
 
 ---
 
