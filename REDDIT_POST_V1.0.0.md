@@ -192,6 +192,7 @@ A continuación se detalla la secuencia de commits locales que componen esta act
 
 | Commit | Tipo / Mensaje Semántico | Descripción del Cambio Técnico |
 | :---: | :--- | :--- |
+| [`151992f`](https://github.com/TheLioN25/g502-profile-manager/commit/151992f) | `fix(cli): actualizar fallback de iconos png en pixmaps para barra de tareas en kde plasma (v1.0.0)` | Instalación y reemplazo de iconos rasterizados en `~/.local/share/pixmaps/` para asegurar que el gestor de tareas de KDE Plasma muestre el nuevo icono de inmediato. |
 | [`08d7d88`](https://github.com/TheLioN25/g502-profile-manager/commit/08d7d88) | `style(icons): actualizar icono oficial con borde solido de armadura carmesi stark tech (v1.0.0)` | Regeneración de toda la familia de iconos (SVG y PNGs de 16 a 512px) con borde sólido carmesí Stark Tech e instalación en el sistema. |
 | [`adee615`](https://github.com/TheLioN25/g502-profile-manager/commit/adee615) | `style(gui): integrar tipografia moderna Plus Jakarta Sans con degradacion nativa (v1.0.0)` | Descarga e instalación de la fuente en `~/.local/share/fonts/`, actualización de caché `fc-cache -f` y configuración en CSS global con fallback. |
 | [`bc70515`](https://github.com/TheLioN25/g502-profile-manager/commit/bc70515) | `style(gui): alinear sangria de titulos y descripciones con iconos de recuadros (v1.0.0)` | Ajuste de sangría en `preferencesgroup box.header` con `margin-left: 14px;` para alinear títulos con el glifo `>` de cada botón. |
