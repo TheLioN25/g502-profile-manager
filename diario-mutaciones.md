@@ -3,13 +3,13 @@
 **Fecha del escaneo:** 2026-11-16 23:35:42  
 **Ruta del proyecto:** `/home/thelion/SSD/Proyectos/g502-profile-manager`  
 **Total módulos analizados:** 28  
-**Módulos 100% blindados:** 8  
-**Módulos con deuda de mutación:** 20  
-**Score global de mutación:** 43.9% (47/107 mutantes eliminados)
+**Módulos 100% blindados:** 28 / 28  
+**Módulos con deuda de mutación:** 0 (Completado)  
+**Score global de mutación:** 100.0% (107/107 mutantes eliminados)
 
 ---
 
-## 🟢 Módulos Blindados (100% Mutantes Eliminados)
+## 🟢 Módulos Blindados Inicialmente (100% Mutantes Eliminados)
 - [x] `src/adapters/__init__.py` (Sin operadores de mutación aplicables)
 - [x] `src/adapters/action_presets.py` (Sin operadores de mutación aplicables)
 - [x] `src/adapters/application_resolver.py` (5/5 eliminados)
@@ -21,7 +21,7 @@
 
 ---
 
-## 🔴 Módulos con Puntos Ciegos (Pendientes de Blindaje)
+## 🟢 Módulos Blindados en esta Campaña (100% Mutantes Eliminados — 20/20)
 ### ~~1. `src/adapters/application_discovery_adapter.py`~~ ✅ BLINDADO (Score: 40% → 100% — 3/3 eliminados)
 > Resuelto en commit `2d07037` — Tests: `test_discover_steam_guard_skips_default_reader_when_file_missing`, aserción `is_game` en Steam, `test_discover_epic_applications_mocked`.
 
