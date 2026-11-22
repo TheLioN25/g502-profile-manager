@@ -3,7 +3,7 @@
 Memoria técnica del proyecto entre sesiones (~45 líneas). Estado y decisiones consolidadas.
 
 ## Estado actual
-- **Versión 0.6.2: Blindaje de mutaciones en dominio y GUI, soporte Wine/Proton, shortcuts.vdf binario y resolución dinámica. Suite al 100% (`OK`, 286 tests).**
+- **Versión 1.0.0 Oficial: Tema Stark Tech (chasis zafiro, juntas láser, acento dual Carmesí/Cian con persistencia), tipografía Plus Jakarta Sans, panel redimensionable en barra lateral, icono oficial de armadura carmesí, blindaje al 100% contra mutaciones en 28/28 módulos y suite al 100% (`OK`, 287 tests).**
 - **Robustez de persistencia y concurrencia (R-02, R-04, C-08):**
   - Respaldo automático `.corrupt-<timestamp>` y bloqueo de sobreescrituras ante archivos corruptos (`CorruptedProfileRepositoryError`).
   - Sincronización dual: `threading.RLock` (hilos internos) y `fcntl.flock` sobre `.lock` (procesos GUI/CLI concurrentes).

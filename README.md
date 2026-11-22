@@ -5,7 +5,7 @@
 </p>
 
 [![CI Pipeline](https://github.com/TheLioN25/g502-profile-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/TheLioN25/g502-profile-manager/actions/workflows/ci.yml)
-[![Unit Tests](https://img.shields.io/badge/tests-286%20passed-brightgreen.svg)](tests/)
+[![Unit Tests](https://img.shields.io/badge/tests-287%20passed-brightgreen.svg)](tests/)
 [![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](pyproject.toml)
 
@@ -82,8 +82,8 @@ Visually configure buttons, macros, DPI sensitivity stages, and LIGHTSYNC RGB li
 * 🧩 **Modular Catalogs & Presets (`presets/`):**
   * Extensible JSON presets for titles like **Warframe**, **Soulframe**, **Guild Wars 2**, and **AION 2** (including profession F1–F5 keys and custom actions), plus desktop productivity shortcuts.
 
-* 🧪 **Exhaustive Test Suite (286 Tests):**
-  * **286 automated unit tests** passing at 100% (`OK`) covering domain logic, atomic storage, hardware adapters, binary VDF parsing, launcher resolution, anti-flapping, GUI presentation, system tray D-Bus, i18n, bilingual packaging, desktop packaging, and systemd integration (`python3 -m unittest discover -s tests`).
+* 🧪 **Exhaustive Test Suite (287 Tests):**
+  * **287 automated unit tests** passing at 100% (`OK`) covering domain logic, atomic storage, hardware adapters, binary VDF parsing, launcher resolution, anti-flapping, GUI presentation, system tray D-Bus, i18n, bilingual packaging, desktop packaging, and systemd integration (`python3 -m unittest discover -s tests`).
 
 ---
 

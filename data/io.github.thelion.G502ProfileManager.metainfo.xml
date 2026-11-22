@@ -32,6 +32,11 @@
   </categories>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.0.0" date="2026-11-22">
+      <description>
+        <p>Lanzamiento oficial v1.0.0: Rediseño visual futurista Stark Tech con doble acento de energía intercambiable (Carmesí Iron Man / Cian J.A.R.V.I.S.) y persistencia atómica en disco, blindaje al 100% de la arquitectura contra mutaciones (28/28 módulos y 287 pruebas unitarias), tipografía moderna Plus Jakarta Sans con degradación nativa, panel divisor redimensionable en barra lateral, nuevo icono oficial de armadura carmesí e integración pulida en escritorio KDE Plasma / GNOME.</p>
+      </description>
+    </release>
     <release version="0.6.2" date="2026-11-22">
       <description>
         <p>Blindaje exhaustivo contra mutaciones en entidades de dominio (Action, DeviceCapabilities, DpiConfiguration, Assignment) y módulos de interfaz gráfica (ciclo do_activate, ActionPickerDialog y NewProfileDialog), alcanzando 277 pruebas unitarias automatizadas al 100% OK.</p>
