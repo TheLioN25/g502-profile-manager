@@ -658,6 +658,27 @@ class TestGuiLogic(unittest.TestCase):
             self.assertEqual(mock_window_cls.call_count, 1)
             self.assertEqual(mock_win.present.call_count, 2)
 
+    def test_main_window_default_notifications_enabled_when_manager_lacks_method(self):
+        """[M-01] Verifica que initial_notif sea True por defecto cuando profile_manager no tiene get_notifications_enabled."""
+        class NoNotifManager:
+            def __init__(self, inner):
+                self._inner = inner
+            def __getattr__(self, name):
+                if name == "get_notifications_enabled":
+                    raise AttributeError(name)
+                return getattr(self._inner, name)
+
+        win = MainWindow(
+            app=self.app,
+            profile_manager=NoNotifManager(self.profile_manager),
+            catalog_service=self.catalog_service,
+            discovery_adapter=self.mock_discovery,
+            ratbag_adapter=self.mock_ratbag,
+        )
+        self.assertTrue(win._notification_adapter.enabled)
+
+
+
 
 
 if __name__ == "__main__":

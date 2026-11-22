@@ -67,11 +67,8 @@
 ### ~~15. `src/gui/tray.py`~~ ✅ BLINDADO (Score: 80.0% → 100% — 3/3 eliminados)
 > Resuelto — Test `test_sni_introspection_xml_validity` en `tests/test_gui_tray.py` (aniquilación de M-01 validando el parseo XML sin errores y la existencia de la propiedad `Category` de tipo `s` en la interfaz `org.kde.StatusNotifierItem`).
 
-### 16. `src/gui/window.py` (Score: 80.0% — 1 superviviente(s))
-* **[M-01] Línea 111:** Inversión booleana (True por False)
-  * **Original:** `initial_notif = True`
-  * **Mutado:**   `initial_notif = False`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
+### ~~16. `src/gui/window.py`~~ ✅ BLINDADO (Score: 80.0% → 100% — 3/3 eliminados)
+> Resuelto — Test `test_main_window_default_notifications_enabled_when_manager_lacks_method` en `tests/test_gui_window_logic.py` (aniquilación de M-01 comprobando que `initial_notif` sea `True` por defecto cuando el gestor carece del método `get_notifications_enabled`).
 
 ### 17. `src/i18n.py` (Score: 20.0% — 4 superviviente(s))
 * **[M-01] Línea 39:** Inversión lógica (or por and)
