@@ -103,12 +103,12 @@ class G502MouseDiagram(Gtk.DrawingArea):
     def _draw_func(self, _area, cr: cairo.Context, width: int, height: int):
         self._hit_targets.clear()
 
-        # Fondo estilizado con degradado radial zafiro metálico profundo (Tema Stark Tech v1.0.0)
-        bg = cairo.RadialGradient(width * 0.5, height * 0.5, 30, width * 0.5, height * 0.5, max(width, height) * 0.65)
-        bg.add_color_stop_rgb(0.0, 0.06, 0.16, 0.36)   # Núcleo zafiro sutil y profundo
-        bg.add_color_stop_rgb(0.35, 0.03, 0.08, 0.18)  # Caída rápida a azul oscuro
-        bg.add_color_stop_rgb(0.70, 0.015, 0.035, 0.08) # Azul marino obsidiana
-        bg.add_color_stop_rgb(1.0, 0.01, 0.02, 0.04)   # Bordes perimetrales oscuros
+        # Fondo estilizado con degradado radial zafiro metálico equilibrado (Punto Medio v1.0.0)
+        bg = cairo.RadialGradient(width * 0.5, height * 0.5, 40, width * 0.5, height * 0.5, max(width, height) * 0.68)
+        bg.add_color_stop_rgb(0.0, 0.08, 0.25, 0.54)   # Núcleo zafiro metálico con presencia y brillo (#16489c)
+        bg.add_color_stop_rgb(0.45, 0.04, 0.12, 0.28)  # Transición intermedia a azul marino
+        bg.add_color_stop_rgb(0.78, 0.02, 0.05, 0.12)  # Azul obsidiana profundo
+        bg.add_color_stop_rgb(1.0, 0.01, 0.025, 0.06)  # Bordes perimetrales oscuros
         cr.set_source(bg)
         cr.paint()
 
