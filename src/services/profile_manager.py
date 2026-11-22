@@ -43,6 +43,17 @@ class ProfileManager:
         if hasattr(self._repository, "set_notifications_enabled"):
             self._repository.set_notifications_enabled(enabled)
 
+    def get_theme_accent(self) -> str:
+        """Consulta el acento de color de la interfaz en la persistencia."""
+        if hasattr(self._repository, "get_theme_accent"):
+            return self._repository.get_theme_accent()
+        return "crimson"
+
+    def set_theme_accent(self, accent: str) -> None:
+        """Persiste la preferencia de acento de color de la interfaz."""
+        if hasattr(self._repository, "set_theme_accent"):
+            self._repository.set_theme_accent(accent)
+
     def create_profile(
         self,
         name: str,

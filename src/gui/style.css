@@ -16,10 +16,28 @@
     --header-blue-mid: #0a1f44;
     --header-blue-bot: #050e20;
 
-    /* Juntas de Energía Láser Carmesí Iron Man */
-    --energy-crimson-core: #ff6b8b;
-    --energy-crimson: #e11d48;
-    --energy-crimson-glow: rgba(225, 29, 72, 0.3);
+    /* Acento de Energía 1: Carmesí Iron Man (Predeterminado) */
+    --energy-laser-core: #ff6b8b;
+    --energy-laser: #e11d48;
+    --energy-laser-glow: rgba(225, 29, 72, 0.3);
+    --energy-laser-hover-glow: rgba(255, 77, 109, 0.75);
+}
+
+/* Paleta de Acento de Energía 1: Carmesí Iron Man (Predeterminado / Clase Explícita) */
+window,
+window.theme-crimson {
+    --energy-laser-core: #ff6b8b;
+    --energy-laser: #e11d48;
+    --energy-laser-glow: rgba(225, 29, 72, 0.3);
+    --energy-laser-hover-glow: rgba(255, 77, 109, 0.75);
+}
+
+/* Paleta de Acento de Energía 2: Cian J.A.R.V.I.S. (Cyberpunk Neón) */
+window.theme-cyan {
+    --energy-laser-core: #a5f3fc;
+    --energy-laser: #00e5ff;
+    --energy-laser-glow: rgba(0, 229, 255, 0.45);
+    --energy-laser-hover-glow: rgba(0, 229, 255, 0.85);
 }
 
 /* Encabezado de Ventana y de Sidebar */
@@ -29,18 +47,18 @@ headerbar {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
 }
 
-/* Cabecera del sidebar: sin borde inferior azul residual ni sombra para que mande el separador láser rojo */
+/* Cabecera del sidebar: sin borde inferior azul residual ni sombra para que mande el separador láser */
 headerbar.sidebar-header {
     border-bottom: none;
     box-shadow: none;
 }
 
-/* Líneas Divisorias de Energía Láser Carmesí Horizontales (Sidebar y Debajo de Pestañas) */
+/* Líneas Divisorias de Energía Láser Horizontales (Sidebar y Debajo de Pestañas) */
 separator.laser-divider {
     min-height: 2px;
-    background-color: var(--energy-crimson);
-    border-top: 1px solid var(--energy-crimson-core);
-    box-shadow: 0 0 10px var(--energy-crimson-glow), 0 0 2px var(--energy-crimson);
+    background-color: var(--energy-laser);
+    border-top: 1px solid var(--energy-laser-core);
+    box-shadow: 0 0 10px var(--energy-laser-glow), 0 0 2px var(--energy-laser);
     margin-top: 0;
     margin-bottom: 0;
 }
@@ -52,26 +70,26 @@ scrolledwindow > viewport {
     background-color: var(--chassis-obsidian);
 }
 
-/* Juntas de Energía Láser Carmesí en los Separadores de Paneles (Verticales y Horizontales) */
+/* Juntas de Energía Láser en los Separadores de Paneles (Verticales y Horizontales) */
 paned > separator {
-    background-color: var(--energy-crimson);
-    box-shadow: 0 0 10px var(--energy-crimson-glow), 0 0 2px var(--energy-crimson);
+    background-color: var(--energy-laser);
+    box-shadow: 0 0 10px var(--energy-laser-glow), 0 0 2px var(--energy-laser);
     transition: all 0.2s ease-in-out;
 }
 
 paned.horizontal > separator {
     min-width: 2px;
-    border-left: 1px solid var(--energy-crimson-core);
+    border-left: 1px solid var(--energy-laser-core);
 }
 
 paned.vertical > separator {
     min-height: 2px;
-    border-top: 1px solid var(--energy-crimson-core);
+    border-top: 1px solid var(--energy-laser-core);
 }
 
 paned > separator:hover {
-    background-color: var(--energy-crimson-core);
-    box-shadow: 0 0 14px rgba(255, 77, 109, 0.75);
+    background-color: var(--energy-laser-core);
+    box-shadow: 0 0 14px var(--energy-laser-hover-glow);
 }
 
 paned.horizontal > separator:hover {
@@ -80,6 +98,27 @@ paned.horizontal > separator:hover {
 
 paned.vertical > separator:hover {
     min-height: 3px;
+}
+
+/* Reglas explícitas de conmutación para compatibilidad total de renderizado GTK4 */
+window.theme-cyan separator.laser-divider,
+window.theme-cyan paned > separator {
+    background-color: #00e5ff;
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.45), 0 0 2px #00e5ff;
+}
+
+window.theme-cyan separator.laser-divider,
+window.theme-cyan paned.vertical > separator {
+    border-top: 1px solid #a5f3fc;
+}
+
+window.theme-cyan paned.horizontal > separator {
+    border-left: 1px solid #a5f3fc;
+}
+
+window.theme-cyan paned > separator:hover {
+    background-color: #a5f3fc;
+    box-shadow: 0 0 14px rgba(0, 229, 255, 0.85);
 }
 
 /* Tarjetas y Grupos de Preferencias */

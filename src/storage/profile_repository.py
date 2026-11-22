@@ -81,6 +81,14 @@ class ProfileRepository(Protocol):
         """Establece y persiste si las notificaciones OSD están habilitadas."""
         ...
 
+    def get_theme_accent(self) -> str:
+        """Indica el acento de color de la interfaz ('crimson' o 'cyan')."""
+        ...
+
+    def set_theme_accent(self, accent: str) -> None:
+        """Establece y persiste el acento de color de la interfaz ('crimson' o 'cyan')."""
+        ...
+
 
 def get_default_profiles_file() -> Path:
     """Fuente canónica y dinámica del archivo de perfiles en disco."""
@@ -104,7 +112,7 @@ class JsonProfileRepository:
         self._file_path = Path(file_path).expanduser().resolve()
         self._profiles: dict[str, Profile] = {}
         self._default_profiles: dict[str, str] = {}  # application_id -> profile_id
-        self._settings: dict[str, bool] = {"notifications_enabled": True}
+        self._settings: dict[str, Any] = {"notifications_enabled": True, "theme_accent": "crimson"}
         self._last_mtime: float = 0.0
         self._lock = threading.RLock()
         self._is_corrupted: bool = False
@@ -481,14 +489,15 @@ class JsonProfileRepository:
                 if isinstance(app_id, str) and isinstance(prof_id, str):
                     self._default_profiles[app_id.casefold()] = prof_id
 
-        # Cargar configuración global (notificaciones OSD, etc.)
+        # Cargar configuración global (notificaciones OSD, acento de tema, etc.)
         settings = data.get("settings", {})
         if isinstance(settings, dict):
             self._settings = {
-                "notifications_enabled": bool(settings.get("notifications_enabled", True))
+                "notifications_enabled": bool(settings.get("notifications_enabled", True)),
+                "theme_accent": "cyan" if str(settings.get("theme_accent", "crimson")).lower() == "cyan" else "crimson",
             }
         else:
-            self._settings = {"notifications_enabled": True}
+            self._settings = {"notifications_enabled": True, "theme_accent": "crimson"}
 
     def get_notifications_enabled(self) -> bool:
         """Indica si las notificaciones OSD están habilitadas en la configuración."""
@@ -515,6 +524,35 @@ class JsonProfileRepository:
                     self._flush()
                 except Exception:
                     self._settings["notifications_enabled"] = previous
+                    raise
+
+    def get_theme_accent(self) -> str:
+        """Indica el acento de color de la interfaz ('crimson' o 'cyan')."""
+        with self._lock:
+            self._reload_if_needed()
+            val = str(self._settings.get("theme_accent", "crimson")).lower()
+            return "cyan" if val == "cyan" else "crimson"
+
+    def set_theme_accent(self, accent: str) -> None:
+        """Establece y persiste el acento de color de la interfaz ('crimson' o 'cyan')."""
+        clean_accent = "cyan" if str(accent).lower() == "cyan" else "crimson"
+        with self._lock:
+            with self._file_lock():
+                self._reload_if_needed()
+                if self._is_corrupted:
+                    msg = (
+                        f"El archivo de perfiles está corrupto y no puede sobrescribirse. "
+                        f"Se preservó el archivo original en '{self._corrupt_backup_path}'."
+                        if self._corrupt_backup_path
+                        else "El archivo de perfiles está corrupto y no puede sobrescribirse para preservar el original."
+                    )
+                    raise CorruptedProfileRepositoryError(msg)
+                previous = self._settings.get("theme_accent", "crimson")
+                self._settings["theme_accent"] = clean_accent
+                try:
+                    self._flush()
+                except Exception:
+                    self._settings["theme_accent"] = previous
                     raise
 
     def _flush(self) -> None:

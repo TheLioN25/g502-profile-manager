@@ -363,6 +363,22 @@ class TestJsonProfileRepository(unittest.TestCase):
         new_repo = JsonProfileRepository(self.repo.file_path)
         self.assertFalse(new_repo.get_notifications_enabled())
 
+    def test_theme_accent_persistence(self):
+        # 1. Por defecto debe ser 'crimson'
+        self.assertEqual(self.repo.get_theme_accent(), "crimson")
+
+        # 2. Modificar y persistir 'cyan'
+        self.repo.set_theme_accent("cyan")
+        self.assertEqual(self.repo.get_theme_accent(), "cyan")
+
+        # 3. Validar recarga desde una nueva instancia independiente
+        new_repo = JsonProfileRepository(self.repo.file_path)
+        self.assertEqual(new_repo.get_theme_accent(), "cyan")
+
+        # 4. Volver a 'crimson'
+        self.repo.set_theme_accent("crimson")
+        self.assertEqual(self.repo.get_theme_accent(), "crimson")
+
         # 4. Reactivar
         new_repo.set_notifications_enabled(True)
         self.assertTrue(new_repo.get_notifications_enabled())

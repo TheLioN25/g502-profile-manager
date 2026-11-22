@@ -133,6 +133,15 @@ class MainWindow(Adw.ApplicationWindow):
         self._button_pref_groups: list[tuple[Adw.PreferencesGroup, str]] = []
         self._button_row_widgets: dict[str, tuple[Adw.ActionRow, Gtk.Label, Gtk.Button, str]] = {}
 
+        # Inicializar acento de interfaz (Carmesí Iron Man / Cian J.A.R.V.I.S.)
+        self._current_theme_accent: str = "crimson"
+        if hasattr(self._profile_manager, "get_theme_accent"):
+            self._current_theme_accent = self._profile_manager.get_theme_accent()
+        if self._current_theme_accent == "cyan":
+            self.add_css_class("theme-cyan")
+        else:
+            self.add_css_class("theme-crimson")
+
         # Inicializar indicador de bandeja del sistema (System Tray)
         try:
             self._tray = TrayIndicator(
@@ -371,6 +380,31 @@ class MainWindow(Adw.ApplicationWindow):
         self._lang_popover.set_child(lang_box)
         self._lang_menu_btn.set_popover(self._lang_popover)
 
+        # Selector de Tema / Acento de Interfaz (Carmesí Iron Man / Cian J.A.R.V.I.S.)
+        self._theme_menu_btn = Gtk.MenuButton(
+            icon_name="color-select-symbolic",
+            tooltip_text=_("Acento de Interfaz / Energía"),
+        )
+        self._theme_popover = Gtk.Popover()
+        theme_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        theme_box.set_margin_top(6)
+        theme_box.set_margin_bottom(6)
+        theme_box.set_margin_start(6)
+        theme_box.set_margin_end(6)
+
+        crimson_btn = Gtk.Button(label=_("🔴 Carmesí Iron Man"))
+        crimson_btn.add_css_class("flat")
+        crimson_btn.connect("clicked", lambda _: self._on_change_theme_accent("crimson"))
+        theme_box.append(crimson_btn)
+
+        cyan_btn = Gtk.Button(label=_("🌐 Cian J.A.R.V.I.S."))
+        cyan_btn.add_css_class("flat")
+        cyan_btn.connect("clicked", lambda _: self._on_change_theme_accent("cyan"))
+        theme_box.append(cyan_btn)
+
+        self._theme_popover.set_child(theme_box)
+        self._theme_menu_btn.set_popover(self._theme_popover)
+
         # Botón de Notificaciones OSD (Activar / Silenciar)
         self._notif_btn = Gtk.ToggleButton()
         self._notif_btn.add_css_class("flat")
@@ -380,6 +414,7 @@ class MainWindow(Adw.ApplicationWindow):
         self._notif_btn.connect("toggled", self._on_notif_btn_toggled)
 
         self._main_header.pack_end(self._lang_menu_btn)
+        self._main_header.pack_end(self._theme_menu_btn)
         self._main_header.pack_end(self._notif_btn)
         self._main_header.pack_end(self._apply_mouse_btn)
         self._main_header.pack_end(self._save_btn)
@@ -1523,6 +1558,30 @@ class MainWindow(Adw.ApplicationWindow):
             self._load_applications(select_app_id="desktop:general")
         self._update_ui_texts()
         self._show_toast(_("Idioma cambiado exitosamente."))
+
+    def _on_change_theme_accent(self, accent: str) -> None:
+        """Cambia el acento de color de la interfaz en caliente y lo persiste."""
+        if hasattr(self, "_theme_popover") and self._theme_popover:
+            self._theme_popover.popdown()
+        clean_accent = "cyan" if accent == "cyan" else "crimson"
+        if self._current_theme_accent == clean_accent:
+            return
+
+        self._current_theme_accent = clean_accent
+        if clean_accent == "cyan":
+            self.remove_css_class("theme-crimson")
+            self.add_css_class("theme-cyan")
+            self._show_toast(_("Acento de energía: Cian J.A.R.V.I.S."))
+        else:
+            self.remove_css_class("theme-cyan")
+            self.add_css_class("theme-crimson")
+            self._show_toast(_("Acento de energía: Carmesí Iron Man"))
+
+        if hasattr(self._profile_manager, "set_theme_accent"):
+            try:
+                self._profile_manager.set_theme_accent(clean_accent)
+            except Exception as e:
+                logger.warning(f"No se pudo persistir el acento de interfaz: {e}")
 
     def _update_ui_texts(self) -> None:
         # Títulos de ventana y cabecera
