@@ -21,11 +21,11 @@ Visually configure buttons, macros, DPI sensitivity stages, and LIGHTSYNC RGB li
 
 ## 📸 Interface & Features Gallery
 
-| Multi-Profile Support per Game (Guild Wars 2) | Profile Management & Default Profile (Guild Wars 2) |
+| Multi-Profile Support per Game | Profile Management & Default Profile |
 | :---: | :---: |
 | <img src="docs/images/02_multi_profiles.png?v=1.0.0" alt="Multi-Profile Support" width="400" /> | <img src="docs/images/03_profile_options.png?v=1.0.0" alt="Profile Management" width="400" /> |
 | *Multiple profiles per game according to your build, character, or role.* | *Mark your favorite profile with ⭐ as default for reactive switching.* |
-| **Action Picker & Custom Key Mapping (AION 2)** | **Dual Energy Accent Switcher (Stark Tech)** |
+| **Action Picker & Custom Key Mapping** | **Dual Energy Accent Switcher (Stark Tech)** |
 | <img src="docs/images/04_action_assignment.png?v=1.0.0" alt="Action Picker & Key Mapping" width="400" /> | <img src="docs/images/05_energy_accents.png?v=1.0.0" alt="Dual Energy Accent Switcher" width="400" /> |
 | *Thematic action catalogs (Combat, Skills, Macros) and direct key binding.* | *Hot-swappable toggle between 🔴 Iron Man Crimson and 🌐 J.A.R.V.I.S. Cyan.* |
 
