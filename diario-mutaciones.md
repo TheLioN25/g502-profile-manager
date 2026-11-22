@@ -79,19 +79,8 @@
 ### ~~19. `src/services/profile_manager.py`~~ ✅ BLINDADO (Score: 40.0% → 100% — 3/3 eliminados)
 > Resuelto — Tests `test_profile_manager_defaults_when_repository_lacks_features` (aniquilación de M-01 validando `is_corrupted=False` y M-02 comprobando `get_notifications_enabled=True` ante repositorios con capacidades limitadas) y `test_get_target_profile_for_app_desktop_fallback_without_colon` (aniquilación de M-03 comprobando la resolución reactiva de apps de escritorio con prefijo implícito `desktop:`).
 
-### 20. `src/storage/profile_repository.py` (Score: 40.0% — 3 superviviente(s))
-* **[M-01] Línea 72:** Inversión booleana (False por True)
-  * **Original:** `def import_data(self, data: dict, overwrite: bool = False) -> tuple[int, int]:`
-  * **Mutado:**   `def import_data(self, data: dict, overwrite: bool = True) -> tuple[int, int]:`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
-* **[M-02] Línea 135:** Inversión booleana (True por False)
-  * **Original:** `lock_path.parent.mkdir(parents=True, exist_ok=True)`
-  * **Mutado:**   `lock_path.parent.mkdir(parents=False, exist_ok=True)`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
-* **[M-03] Línea 165:** Inversión booleana (False por True)
-  * **Original:** `backup_created = False`
-  * **Mutado:**   `backup_created = True`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
+### ~~20. `src/storage/profile_repository.py`~~ ✅ BLINDADO (Score: 40.0% → 100% — 3/3 eliminados)
+> Resuelto — Tests `test_profile_repository_import_data_signature_defaults_to_overwrite_false` (aniquilación de M-01 comprobando por introspección que `overwrite=False` sea el valor por defecto en `ProfileRepository`), `test_file_lock_creates_nested_parent_directories` (aniquilación de M-02 comprobando creación recursiva de directorios padres en `_file_lock`) y `test_handle_corrupted_file_when_copy_fails_sets_backup_created_false` (aniquilación de M-03 comprobando manejo resiliente si la copia de respaldo falla por I/O).
 
 ---
 _Reporte generado automáticamente por HARNESS: Sistema de Revisión en 5 Capas._

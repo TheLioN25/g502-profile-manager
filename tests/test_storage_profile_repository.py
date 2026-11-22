@@ -379,6 +379,32 @@ class TestJsonProfileRepository(unittest.TestCase):
         # Debe conservar el valor previo en memoria tras el fallo de escritura
         self.assertTrue(self.repo.get_notifications_enabled())
 
+    def test_profile_repository_import_data_signature_defaults_to_overwrite_false(self):
+        """[M-01] Verifica que el protocolo ProfileRepository y JsonProfileRepository tengan overwrite=False por defecto."""
+        import inspect
+        from storage.profile_repository import ProfileRepository
+        sig_proto = inspect.signature(ProfileRepository.import_data)
+        self.assertFalse(sig_proto.parameters["overwrite"].default)
+        sig_impl = inspect.signature(JsonProfileRepository.import_data)
+        self.assertFalse(sig_impl.parameters["overwrite"].default)
+
+    def test_file_lock_creates_nested_parent_directories(self):
+        """[M-02] Verifica que _file_lock cree directorios padres recursivamente (parents=True)."""
+        nested_path = Path(self.temp_dir.name) / "deep" / "nested" / "dir" / "profiles.json"
+        repo = JsonProfileRepository(nested_path)
+        p = Profile("Test Nested", "app:nested", 1000)
+        repo.save(p)
+        self.assertTrue(nested_path.exists())
+
+    def test_handle_corrupted_file_when_copy_fails_sets_backup_created_false(self):
+        """[M-03] Verifica que si shutil.copy2 falla durante _handle_corrupted_file, backup_path sea None."""
+        from unittest.mock import patch
+        with patch("shutil.copy2", side_effect=OSError("Read-only filesystem")):
+            self.repo._handle_corrupted_file(ValueError("JSON corrupto"))
+            self.assertTrue(self.repo.is_corrupted)
+            self.assertIsNone(self.repo.corrupt_backup_path)
+
+
 
 if __name__ == "__main__":
     unittest.main()
