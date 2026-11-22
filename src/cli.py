@@ -465,17 +465,20 @@ def cmd_install_desktop(args):
 
     # 2. Instalar icono SVG vectorial en scalable, ~/.local/share/icons y pixmaps
     src_icon = repo_root / "data" / "icons" / "io.github.thelion.G502ProfileManager.svg"
+    src_png_512 = repo_root / "data" / "icons" / "io.github.thelion.G502ProfileManager_512x512.png"
     dest_icon = icons_dest_dir / "io.github.thelion.G502ProfileManager.svg"
+    loose_icons = Path.home() / ".local/share/icons"
+    pixmaps_dir = Path.home() / ".local/share/pixmaps"
+    loose_icons.mkdir(parents=True, exist_ok=True)
+    pixmaps_dir.mkdir(parents=True, exist_ok=True)
     if src_icon.exists():
         shutil.copy2(src_icon, dest_icon)
-        # Copiar también a rutas estándar de fallback en el entorno de escritorio
-        loose_icons = Path.home() / ".local/share/icons"
-        pixmaps_dir = Path.home() / ".local/share/pixmaps"
-        loose_icons.mkdir(parents=True, exist_ok=True)
-        pixmaps_dir.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src_icon, loose_icons / "io.github.thelion.G502ProfileManager.svg")
         shutil.copy2(src_icon, pixmaps_dir / "io.github.thelion.G502ProfileManager.svg")
         print(f"• Icono SVG instalado: {dest_icon}")
+    if src_png_512.exists():
+        shutil.copy2(src_png_512, loose_icons / "io.github.thelion.G502ProfileManager.png")
+        shutil.copy2(src_png_512, pixmaps_dir / "io.github.thelion.G502ProfileManager.png")
 
     # 3. Instalar versiones rasterizadas PNG multi-resolución para barras de tareas (KDE Plasma, GNOME, XFCE)
     sizes = [16, 22, 24, 32, 48, 64, 128, 256, 512]
@@ -540,7 +543,9 @@ def cmd_uninstall_desktop(args):
     desktop_file = Path.home() / ".local/share/applications/io.github.thelion.G502ProfileManager.desktop"
     icon_file = Path.home() / ".local/share/icons/hicolor/scalable/apps/io.github.thelion.G502ProfileManager.svg"
     loose_icon = Path.home() / ".local/share/icons/io.github.thelion.G502ProfileManager.svg"
+    loose_png = Path.home() / ".local/share/icons/io.github.thelion.G502ProfileManager.png"
     pixmaps_icon = Path.home() / ".local/share/pixmaps/io.github.thelion.G502ProfileManager.svg"
+    pixmaps_png = Path.home() / ".local/share/pixmaps/io.github.thelion.G502ProfileManager.png"
 
     removed = False
     if desktop_file.exists():
@@ -554,8 +559,14 @@ def cmd_uninstall_desktop(args):
     if loose_icon.exists():
         loose_icon.unlink()
         removed = True
+    if loose_png.exists():
+        loose_png.unlink()
+        removed = True
     if pixmaps_icon.exists():
         pixmaps_icon.unlink()
+        removed = True
+    if pixmaps_png.exists():
+        pixmaps_png.unlink()
         removed = True
 
     # Eliminar iconos rasterizados PNG
