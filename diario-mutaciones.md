@@ -73,15 +73,8 @@
 ### ~~17. `src/i18n.py`~~ ✅ BLINDADO (Score: 20.0% → 100% — 3/3 eliminados)
 > Resuelto — Test `test_translation_to_english` en `tests/test_i18n.py` (aniquilación de M-01, M-02, M-03 y M-04 comprobando las traducciones exactas de cadenas que contienen conjunciones lógicas 'or' al inglés sin degradación a español ni distorsión por 'and').
 
-### 18. `src/services/action_catalog.py` (Score: 60.0% — 2 superviviente(s))
-* **[M-01] Línea 129:** Inversión lógica (or por and)
-  * **Original:** `if not isinstance(app_id, str) or not app_id.strip():`
-  * **Mutado:**   `if not isinstance(app_id, str) and not app_id.strip():`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
-* **[M-02] Línea 144:** Inversión de desigualdad (!= por ==)
-  * **Original:** `if app_name and app_name != app_id:`
-  * **Mutado:**   `if app_name and app_name == app_id:`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
+### ~~18. `src/services/action_catalog.py`~~ ✅ BLINDADO (Score: 60.0% → 100% — 3/3 eliminados)
+> Resuelto — Tests `test_parse_and_register_manifest_invalid_application_id_safely_ignored` (aniquilación de M-01 comprobando el rechazo seguro ante IDs no-string o vacíos mediante conjunción 'or') y `test_parse_and_register_manifest_updates_name_when_distinct_from_id` (aniquilación de M-02 comprobando la actualización a nombres legibles cuando `name != id`).
 
 ### 19. `src/services/profile_manager.py` (Score: 40.0% — 3 superviviente(s))
 * **[M-01] Línea 28:** Inversión booleana (False por True)

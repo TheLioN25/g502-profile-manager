@@ -231,6 +231,27 @@ class TestActionCatalogService(unittest.TestCase):
         self.assertGreater(len(actions), 0)
         self.assertTrue(all(a.action_id.startswith("game_") for a in actions))
 
+    def test_parse_and_register_manifest_invalid_application_id_safely_ignored(self):
+        """[M-01] Verifica que IDs inválidos (None o espacios vacíos) se descarten sin error ni inserción corrupta."""
+        service = ActionCatalogService(search_paths=[])
+        service._parse_and_register_manifest({"application_id": None})
+        service._parse_and_register_manifest({"application_id": "   "})
+        service._parse_and_register_manifest("no es un dict")  # type: ignore
+        self.assertNotIn("", service._catalogs)
+        self.assertNotIn("none", service._catalogs)
+
+    def test_parse_and_register_manifest_updates_name_when_distinct_from_id(self):
+        """[M-02] Verifica que si llega un manifiesto con un nombre legible (name != id), actualice el catálogo."""
+        service = ActionCatalogService(search_paths=[])
+        # Primero registrar con name igual a application_id
+        service._parse_and_register_manifest({"application_id": "game:test", "name": "game:test"})
+        self.assertEqual(service._catalogs["game:test"]["name"], "game:test")
+
+        # Segundo registro con nombre humano legible distinto de application_id
+        service._parse_and_register_manifest({"application_id": "game:test", "name": "Juego Legendario"})
+        self.assertEqual(service._catalogs["game:test"]["name"], "Juego Legendario")
+
+
 
 
 if __name__ == "__main__":
