@@ -131,18 +131,31 @@ preferencesgroup > box {
 }
 
 /* Títulos y Descripciones de Grupos de Preferencias (Laterales, Rendimiento, Iluminación) */
+preferencesgroup box.header,
+preferencesgroup > label,
+preferencesgroup .title {
+    margin-left: 14px;
+    margin-bottom: 6px;
+}
+
+preferencesgroup box.header label.heading,
 preferencesgroup > label,
 preferencesgroup .title {
     color: #93c5fd;
     font-weight: 700;
     font-size: 0.95rem;
     letter-spacing: 0.3px;
-    margin-bottom: 6px;
 }
 
+preferencesgroup box.header label.heading {
+    margin-left: 0;
+}
+
+preferencesgroup box.header label.dimmed,
 preferencesgroup .description {
     color: #7e9bbd;
     font-size: 0.82rem;
+    margin-bottom: 8px;
 }
 
 /* Filas de Asignación y Control (Botones, DPI, LED) - Paneles Metálicos Blindados */
