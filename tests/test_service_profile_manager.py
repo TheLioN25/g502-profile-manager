@@ -6,6 +6,7 @@ import sys
 import tempfile
 from pathlib import Path
 import unittest
+from unittest.mock import MagicMock
 
 src_path = Path(__file__).resolve().parent.parent / "src"
 if str(src_path) not in sys.path:
@@ -171,6 +172,27 @@ class TestProfileManager(unittest.TestCase):
         self.assertFalse(self.manager.get_notifications_enabled())
         self.manager.set_notifications_enabled(True)
         self.assertTrue(self.manager.get_notifications_enabled())
+
+    def test_profile_manager_defaults_when_repository_lacks_features(self):
+        """[M-01, M-02] Verifica que is_corrupted sea False y get_notifications_enabled sea True si el repo no los tiene."""
+        mock_repo = MagicMock(spec=["get_all", "get_by_id", "save", "delete"])
+        mgr = ProfileManager(mock_repo)
+        # M-01: getattr(self._repository, "is_corrupted", False)
+        self.assertFalse(mgr.is_corrupted)
+        # M-02: return True por defecto si el repo no tiene get_notifications_enabled
+        self.assertTrue(mgr.get_notifications_enabled())
+
+    def test_get_target_profile_for_app_desktop_fallback_without_colon(self):
+        """[M-03] Verifica que un application_id sin dos puntos resuelva como desktop:<app>."""
+        # Crear perfil para 'desktop:vlc'
+        prof = self.manager.create_profile("VLC Profile", "desktop:vlc", 1600)
+        self.manager.set_default_profile("desktop:vlc", prof.id)
+
+        # Consultar usando solo "vlc" sin dos puntos
+        resolved = self.manager.get_active_profile_for_application("vlc")
+        self.assertIsNotNone(resolved)
+        self.assertEqual(resolved.id, prof.id)
+
 
 
 if __name__ == "__main__":

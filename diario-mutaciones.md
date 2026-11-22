@@ -76,19 +76,8 @@
 ### ~~18. `src/services/action_catalog.py`~~ ✅ BLINDADO (Score: 60.0% → 100% — 3/3 eliminados)
 > Resuelto — Tests `test_parse_and_register_manifest_invalid_application_id_safely_ignored` (aniquilación de M-01 comprobando el rechazo seguro ante IDs no-string o vacíos mediante conjunción 'or') y `test_parse_and_register_manifest_updates_name_when_distinct_from_id` (aniquilación de M-02 comprobando la actualización a nombres legibles cuando `name != id`).
 
-### 19. `src/services/profile_manager.py` (Score: 40.0% — 3 superviviente(s))
-* **[M-01] Línea 28:** Inversión booleana (False por True)
-  * **Original:** `return getattr(self._repository, "is_corrupted", False)`
-  * **Mutado:**   `return getattr(self._repository, "is_corrupted", True)`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
-* **[M-02] Línea 39:** Inversión booleana (True por False)
-  * **Original:** `return True`
-  * **Mutado:**   `return False`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
-* **[M-03] Línea 253:** Inversión de pertenencia (not in por in)
-  * **Original:** `elif ":" not in application_id:`
-  * **Mutado:**   `elif ":" in application_id:`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
+### ~~19. `src/services/profile_manager.py`~~ ✅ BLINDADO (Score: 40.0% → 100% — 3/3 eliminados)
+> Resuelto — Tests `test_profile_manager_defaults_when_repository_lacks_features` (aniquilación de M-01 validando `is_corrupted=False` y M-02 comprobando `get_notifications_enabled=True` ante repositorios con capacidades limitadas) y `test_get_target_profile_for_app_desktop_fallback_without_colon` (aniquilación de M-03 comprobando la resolución reactiva de apps de escritorio con prefijo implícito `desktop:`).
 
 ### 20. `src/storage/profile_repository.py` (Score: 40.0% — 3 superviviente(s))
 * **[M-01] Línea 72:** Inversión booleana (False por True)
