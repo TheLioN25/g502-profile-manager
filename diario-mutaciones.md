@@ -61,19 +61,8 @@
 ### ~~13. `src/gui/dialogs.py`~~ ✅ BLINDADO (Score: 0.0% → 100% — 3/3 eliminados)
 > Resuelto — Test `test_action_picker_dialog` en `tests/test_gui_window_logic.py` (aniquilación de M-01 validando `get_modal()`, M-02 comprobando `get_hexpand()` en buscador, M-03 y M-04 comprobando `get_vexpand()` y `get_hexpand()` en ScrolledWindow contenedor vía Viewport, M-05 comprobando `get_activatable()` y activación funcional por señal `activated`, más blindaje de modalidad preventivo en `NewProfileDialog`).
 
-### 14. `src/gui/mouse_diagram.py` (Score: 40.0% — 3 superviviente(s))
-* **[M-01] Línea 49:** Inversión booleana (False por True)
-  * **Original:** `self.set_hexpand(False)`
-  * **Mutado:**   `self.set_hexpand(True)`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
-* **[M-02] Línea 50:** Inversión booleana (True por False)
-  * **Original:** `self.set_vexpand(True)`
-  * **Mutado:**   `self.set_vexpand(False)`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
-* **[M-03] Línea 84:** Inversión de igualdad (== por !=)
-  * **Original:** `if len(clean) == 6:`
-  * **Mutado:**   `if len(clean) != 6:`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
+### ~~14. `src/gui/mouse_diagram.py`~~ ✅ BLINDADO (Score: 40.0% → 100% — 3/3 eliminados)
+> Resuelto — Tests `test_diagram_initial_properties` (aniquilación de M-01 validando `get_hexpand()=False` y M-02 comprobando `get_vexpand()=True`) y `test_set_led_color` (aniquilación de M-03 validando parseo RGB con códigos hex válidos de 6 dígitos e invariancia ante longitudes inválidas).
 
 ### 15. `src/gui/tray.py` (Score: 80.0% — 1 superviviente(s))
 * **[M-01] Línea 23:** Inversión menor estricto (< por >)

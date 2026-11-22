@@ -35,6 +35,9 @@ class TestG502MouseDiagram(unittest.TestCase):
         self.assertIsNotNone(self.diagram)
         self.assertEqual(self.diagram.get_content_width(), 440)
         self.assertEqual(self.diagram.get_content_height(), 580)
+        # [M-01, M-02] Restricción de expansión horizontal y expansión vertical
+        self.assertFalse(self.diagram.get_hexpand())
+        self.assertTrue(self.diagram.get_vexpand())
         # 11 botones soportados
         self.assertEqual(len(BUTTON_METADATA), 11)
         self.assertIn("G5", BUTTON_METADATA)
@@ -45,11 +48,26 @@ class TestG502MouseDiagram(unittest.TestCase):
         self.assertIn("G9", BUTTON_METADATA)
 
     def test_set_led_color(self):
+        # Color cian por defecto (#00E5FF)
         self.diagram.set_led_color("#00E5FF")
         r, g, b = self.diagram._led_color_rgb
         self.assertAlmostEqual(r, 0.0, places=2)
         self.assertAlmostEqual(g, 0.898, places=2)
         self.assertAlmostEqual(b, 1.0, places=2)
+
+        # [M-03] Color válido de 6 dígitos actualiza la tupla RGB
+        self.diagram.set_led_color("#FF0000")
+        r, g, b = self.diagram._led_color_rgb
+        self.assertAlmostEqual(r, 1.0, places=2)
+        self.assertAlmostEqual(g, 0.0, places=2)
+        self.assertAlmostEqual(b, 0.0, places=2)
+
+        # Longitud inválida (ej. 3 o 7 caracteres): debe ignorarse y preservar el color anterior
+        self.diagram.set_led_color("#FFF")
+        self.assertEqual(self.diagram._led_color_rgb, (1.0, 0.0, 0.0))
+
+        self.diagram.set_led_color("#1234567")
+        self.assertEqual(self.diagram._led_color_rgb, (1.0, 0.0, 0.0))
 
     def test_highlight_button(self):
         self.diagram.highlight_button("G5")
