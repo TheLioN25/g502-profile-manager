@@ -14,20 +14,20 @@ Administrador avanzado de perfiles y automatización en tiempo real para el rat�
 Permite configurar visualmente los botones, macros, sensibilidades (DPI) y zonas de iluminación LED del ratón, además de conmutar automáticamente los perfiles de hardware según el videojuego o aplicación activa en el sistema mediante [`ratbagctl`](https://github.com/libratbag/libratbag) (`libratbag`).
 
 <p align="center">
-  <img src="docs/images/01_main_window.png" alt="Logitech G502 Family Profile Manager - Interfaz GTK4" width="850" />
+  <img src="docs/images/01_main_window.png" alt="Logitech G502 Family Profile Manager - Interfaz GTK4 Stark Tech" width="850" />
 </p>
 
 ---
 
 ## 📸 Galería de Interfaz y Funcionalidades
 
-| Soporte Multi-Perfil por Juego (Guild Wars 2) | Gestión y Perfil Predeterminado (Warframe) |
+| Soporte Multi-Perfil por Juego (Guild Wars 2) | Gestión y Perfil Predeterminado (Guild Wars 2) |
 | :---: | :---: |
 | <img src="docs/images/02_multi_profiles.png" alt="Soporte Multi-Perfil" width="400" /> | <img src="docs/images/03_profile_options.png" alt="Gestión de Perfiles" width="400" /> |
-| *Múltiples perfiles por juego según tu especialización o personaje.* | *Marca tu perfil favorito como predeterminado con ⭐ para carga reactiva.* |
-| **Selector de Acciones y Mapeo de Teclas (AION 2)** | **Selector de Acento de Energía Dual (Stark Tech / J.A.R.V.I.S.)** |
+| *Múltiples perfiles por juego según tu especialización, rol o personaje.* | *Marca tu perfil favorito como predeterminado con ⭐ para carga reactiva.* |
+| **Selector de Acciones y Mapeo Libre de Teclas (AION 2)** | **Selector de Acento de Energía Dual (Stark Tech)** |
 | <img src="docs/images/04_action_assignment.png" alt="Selector de Acciones y Mapeo de Teclas" width="400" /> | <img src="docs/images/05_energy_accents.png" alt="Selector de Acento de Energía Dual" width="400" /> |
-| *Atajos categorizados (Combate, Habilidades, Macros) y asignación libre de teclas.* | *Conmutación en caliente entre 🔴 Carmesí Iron Man y 🌐 Cian J.A.R.V.I.S.* |
+| *Atajos temáticos (Combate, Habilidades, Macros) y asignación libre de teclas.* | *Conmutación en caliente entre 🔴 Carmesí Iron Man y 🌐 Cian J.A.R.V.I.S.* |
 
 ---
 
