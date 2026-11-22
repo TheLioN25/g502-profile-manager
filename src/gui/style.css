@@ -26,6 +26,7 @@
 /* Paleta de Acento de Energía 1: Carmesí Iron Man (Predeterminado / Clase Explícita) */
 window,
 window.theme-crimson {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     --energy-laser-core: #ff6b8b;
     --energy-laser: #e11d48;
     --energy-laser-glow: rgba(225, 29, 72, 0.3);
@@ -34,6 +35,7 @@ window.theme-crimson {
 
 /* Paleta de Acento de Energía 2: Cian J.A.R.V.I.S. (Cyberpunk Neón) */
 window.theme-cyan {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     --energy-laser-core: #a5f3fc;
     --energy-laser: #00e5ff;
     --energy-laser-glow: rgba(0, 229, 255, 0.45);
