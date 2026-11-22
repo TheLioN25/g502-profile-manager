@@ -16,7 +16,7 @@ Memoria técnica del proyecto entre sesiones (~45 líneas). Estado y decisiones 
   - Reintento de sesión Gio D-Bus tras enfriamiento real de 30s (`_dbus_retry_cooldown_sec`).
   - Fallback `notify-send` acotado a 1.0s con hint booleano canónico (`boolean:transient:true`).
   - Contrato formal verificado para llamada D-Bus `Notify` y Kill-Switch persistente en HeaderBar.
-- **Suite de pruebas unitarias automatizadas** pasando al 100% (`OK`, 286 tests) en local y mutantes eliminados al 100% en Capa 2 (Harness). Todos los 20 módulos blindados.
+- **Suite de pruebas unitarias automatizadas** pasando al 100% (`OK`, 287 tests) en local y mutantes eliminados al 100% en Capa 2 (Harness). Todos los 28 módulos blindados.
 - **Resolución reactiva de perfiles:** Prioriza perfiles con asignaciones sobre vacíos en resolución canónica (`_resolve_target_profile_for_app`), previene secuestros por subcadenas difusas y ordena videojuegos antes que utilidades de fondo (`ActiveApplication.is_game`).
 - **Soporte Non-Steam Games y Juegos Wine/Proton (Hitos 1, 2 y 3):**
   - Decodificación pura de `shortcuts.vdf` binario Valve en `steam_discovery.py` sanitizando comillas en rutas.
@@ -34,6 +34,6 @@ Memoria técnica del proyecto entre sesiones (~45 líneas). Estado y decisiones 
   - Alfanuméricas y símbolos: `action set macro <KEY>` (`↕KEY`) para Wine/Proton/UE5. Rechazo estricto con `ValueError` para símbolos no soportados.
 
 ## Próximos pasos y Hoja de Ruta Prioritaria
-- Re-revisión y validación de cierre por OpenCode con `response.md` (C-01…C-08 sobre R-14…R-22).
-- Petición de datos reales de `g502 status` a dueños de G502 X LIGHTSPEED en notas de release.
-- Hito dedicado de deuda técnica (R-12): modularizar `MainWindow` introduciendo `typing.Protocol` para adaptadores.
+- Publicación comunitaria oficial de la versión v1.0.0 en Reddit (`r/linux`, `r/linuxgaming`, `r/LogitechG`).
+- Empaquetado oficial para Arch Linux (AUR) y Flatpak (`io.github.thelion.G502ProfileManager`).
+- Petición de datos reales de `g502 status` a usuarios de G502 LIGHTSPEED y G502 X en notas de release.

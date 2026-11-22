@@ -36,11 +36,11 @@ Permite configurar visualmente los botones, macros, sensibilidades (DPI) y zonas
 ## 🌟 Características Principales
 
 * 🎨 **Interfaz Gráfica Moderna (GTK4 + Libadwaita):**
-  * Diseño nativo para Linux con soporte de tema oscuro automático.
-  * **Barra lateral con gestor de aplicaciones en dos secciones:**
-    * **Sección Superior (Configuradas):** Acceso rápido y prioritario a las aplicaciones que ya tienen perfiles configurados (ej. *Escritorio / Sistema*, *Warframe*, *Guild Wars 2*).
-    * **Línea divisoria y buscador reactivo:** Barra de búsqueda ubicada estratégicamente sobre las aplicaciones pendientes de configuración.
-    * **Sección Inferior (No configuradas):** Catálogo de juegos y aplicaciones instaladas en el sistema, filtrables al vuelo para configurar nuevos títulos.
+  * **Tema Futurista "Stark Tech":** Chasis en aleación azul zafiro oscuro con juntas láser de energía, paneles 3D metálicos y efectos sutiles de hover reactivo.
+  * **Selector de Acento de Energía Dual:** Conmutación en caliente entre 🔴 **Carmesí Iron Man** y 🌐 **Cian J.A.R.V.I.S.** con persistencia atómica en disco (`settings.theme_accent`).
+  * **Tipografía Moderna y Alineación Geométrica:** Integración de **Plus Jakarta Sans** con degradación nativa al sistema y sangría perfecta de títulos con los glifos indicadores.
+  * **Barra Lateral Redimensionable:** Divisor interactivo `Gtk.Paned` para ajustar al vuelo la proporción entre perfiles configurados y catálogo general de apps.
+  * **Icono Oficial de Armadura:** Icono del sistema remasterizado con moldura carmesí sólida en todas las resoluciones XDG y pixmaps.
   * **Interruptor Auto-Perfil (⚡) en la cabecera (HeaderBar):** Permite encender o apagar la auto-detección reactiva directamente desde la interfaz gráfica, manteniendo la GUI 100% fluida en un hilo secundario y mostrando el juego activo y sus DPI en tiempo real en la cabecera.
   * **🔔 Indicador en la Bandeja del Sistema (StatusNotifierItem / System Tray):**
     * Integración nativa con la barra de tareas de KDE Plasma y GNOME mediante D-Bus de sesión puro (sin dependencias obsoletas de GTK 3.0 como `AppIndicator3`).

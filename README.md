@@ -36,11 +36,11 @@ Visually configure buttons, macros, DPI sensitivity stages, and LIGHTSYNC RGB li
 ## 🌟 Key Features
 
 * 🎨 **Modern Graphical Interface (GTK4 + Libadwaita):**
-  * Native Linux design with automatic Dark Mode support.
-  * **Two-tier application sidebar:**
-    * **Top Section (Configured):** Priority quick access to applications with configured profiles (e.g., *Desktop / System*, *Warframe*, *Guild Wars 2*).
-    * **Divider & Reactive Search Bar:** Search bar positioned strategically above unconfigured applications.
-    * **Bottom Section (Unconfigured):** Catalog of installed games and apps, searchable on the fly to configure new profiles.
+  * **Futuristic "Stark Tech" Theme:** Dark sapphire alloy chassis with laser energy seams, metallic 3D action panels, and interactive hover glow.
+  * **Dual Energy Accent Switcher:** Hot-swappable toggle between 🔴 **Iron Man Crimson** and 🌐 **J.A.R.V.I.S. Cyan** with atomic disk persistence (`settings.theme_accent`).
+  * **Modern Typography & Pixel Alignment:** Crisp **Plus Jakarta Sans** font rendering with graceful system fallback, featuring geometrically aligned section headers.
+  * **Resizable Two-Tier Application Sidebar:** Dynamic `Gtk.Paned` divider to smoothly scale configured game profiles against the installed applications catalog.
+  * **Armored App Icon:** Official desktop icon refined with a solid crimson armor border across all standard XDG and pixmap resolutions.
   * **HeaderBar Auto-Profile Switch (⚡):** Toggle real-time background process detection directly from the GUI, keeping the interface 100% fluid in a secondary thread while displaying active title and DPI.
   * **🔔 Native System Tray Indicator (StatusNotifierItem / SNI):**
     * Native integration with KDE Plasma and GNOME taskbars over pure session D-Bus (zero legacy GTK 3 `AppIndicator3` conflicts).
