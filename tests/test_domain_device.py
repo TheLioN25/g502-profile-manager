@@ -3,6 +3,7 @@ Pruebas unitarias para la entidad Device, Button, DeviceCapabilities y DeviceVar
 """
 
 import sys
+from dataclasses import FrozenInstanceError
 from pathlib import Path
 import unittest
 
@@ -148,6 +149,39 @@ class TestDomainDevice(unittest.TestCase):
         )
         self.assertEqual(dev.variant, core_variant)
         self.assertEqual(dev.variant.capabilities.max_dpi, 12000)
+
+    def test_device_capabilities_defaults_and_immutability(self) -> None:
+        """
+        [M-01, M-02, M-03, M-04] Verifica valores por defecto e inmutabilidad de DeviceCapabilities.
+        """
+        caps = DeviceCapabilities()
+
+        # M-02: Iluminación habilitada por defecto
+        self.assertTrue(caps.has_lighting)
+
+        # M-03: RGB habilitado por defecto
+        self.assertTrue(caps.has_rgb)
+
+        # M-04: Batería desactivada por defecto (cableado)
+        self.assertFalse(caps.has_battery)
+
+        # Valores canónicos base adicionales
+        self.assertEqual(caps.max_dpi, 25600)
+        self.assertEqual(caps.led_zones, 2)
+
+        # M-01: Inmutabilidad (frozen=True)
+        with self.assertRaises(FrozenInstanceError):
+            caps.max_dpi = 12000  # type: ignore
+
+        with self.assertRaises(FrozenInstanceError):
+            caps.has_lighting = False  # type: ignore
+
+    def test_button_immutability(self) -> None:
+        """Verifica que Button sea una dataclass inmutable (frozen=True)."""
+        btn = Button(button_id="G5", name="Botón Adelante")
+        with self.assertRaises(FrozenInstanceError):
+            btn.name = "Modificado"  # type: ignore
+
 
 
 if __name__ == "__main__":

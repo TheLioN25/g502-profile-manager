@@ -49,23 +49,8 @@
 ### ~~9. `src/domain/application.py`~~ ✅ BLINDADO (Score: 60.0% → 100% — 3/3 eliminados)
 > Resuelto — Tests: `test_action_is_immutable` (aniquilación de M-01 validando inmutabilidad con `FrozenInstanceError`) y `test_action_binding_type_and_category_fallbacks` (aniquilación de M-02 validando conjunción `and` ante valores vacíos o no-string).
 
-### 10. `src/domain/device.py` (Score: 20.0% — 4 superviviente(s))
-* **[M-01] Línea 11:** Inversión booleana (True por False)
-  * **Original:** `@dataclass(frozen=True)`
-  * **Mutado:**   `@dataclass(frozen=False)`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
-* **[M-02] Línea 20:** Inversión booleana (True por False)
-  * **Original:** `has_lighting: bool = True`
-  * **Mutado:**   `has_lighting: bool = False`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
-* **[M-03] Línea 22:** Inversión booleana (True por False)
-  * **Original:** `has_rgb: bool = True`
-  * **Mutado:**   `has_rgb: bool = False`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
-* **[M-04] Línea 23:** Inversión booleana (False por True)
-  * **Original:** `has_battery: bool = False`
-  * **Mutado:**   `has_battery: bool = True`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
+### ~~10. `src/domain/device.py`~~ ✅ BLINDADO (Score: 20.0% → 100% — 3/3 eliminados)
+> Resuelto — Tests: `test_device_capabilities_defaults_and_immutability` (aniquilación de M-01 validando `FrozenInstanceError`, M-02 comprobando `has_lighting=True`, M-03 comprobando `has_rgb=True` y M-04 comprobando `has_battery=False`) y `test_button_immutability` (inmutabilidad estricta de Button).
 
 ### 11. `src/domain/profile.py` (Score: 80.0% — 1 superviviente(s))
 * **[M-01] Línea 19:** Inversión booleana (True por False)
