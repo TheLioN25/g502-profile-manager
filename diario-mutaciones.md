@@ -52,11 +52,8 @@
 ### ~~10. `src/domain/device.py`~~ ✅ BLINDADO (Score: 20.0% → 100% — 3/3 eliminados)
 > Resuelto — Tests: `test_device_capabilities_defaults_and_immutability` (aniquilación de M-01 validando `FrozenInstanceError`, M-02 comprobando `has_lighting=True`, M-03 comprobando `has_rgb=True` y M-04 comprobando `has_battery=False`) y `test_button_immutability` (inmutabilidad estricta de Button).
 
-### 11. `src/domain/profile.py` (Score: 80.0% — 1 superviviente(s))
-* **[M-01] Línea 19:** Inversión booleana (True por False)
-  * **Original:** `@dataclass(frozen=True)`
-  * **Mutado:**   `@dataclass(frozen=False)`
-  * **Diagnóstico:** La suite de pruebas no detectó esta mutación. Se requiere una aserción unitaria que verifique esta bifurcación.
+### ~~11. `src/domain/profile.py`~~ ✅ BLINDADO (Score: 80.0% → 100% — 3/3 eliminados)
+> Resuelto — Tests: `test_dpi_configuration_is_immutable` (aniquilación de M-01 validando `FrozenInstanceError` al mutar `dpi` o `shift_dpi`), y suite dedicada `TestDomainAssignment` verificando creación, tipado estricto e inmutabilidad (`FrozenInstanceError`) para `Assignment`.
 
 ### 12. `src/gui/app.py` (Score: 50.0% — 1 superviviente(s))
 * **[M-01] Línea 109:** Inversión booleana (True por False)

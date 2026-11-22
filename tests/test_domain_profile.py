@@ -2,8 +2,9 @@
 Pruebas unitarias para la capa de dominio de Profile y sus invariantes.
 """
 
-import sys
+from dataclasses import FrozenInstanceError
 from pathlib import Path
+import sys
 import unittest
 
 # Asegurar que 'src' esté en el path de Python
@@ -77,6 +78,42 @@ class TestDomainDpiConfiguration(unittest.TestCase):
             DpiConfiguration("1600")  # type: ignore
         with self.assertRaises(TypeError):
             DpiConfiguration(True)  # type: ignore
+
+    def test_dpi_configuration_is_immutable(self) -> None:
+        """[M-01] Verifica que DpiConfiguration sea una dataclass inmutable (frozen=True)."""
+        dpi = DpiConfiguration(1600, shift_dpi=400)
+        with self.assertRaises(FrozenInstanceError):
+            dpi.dpi = 800  # type: ignore
+        with self.assertRaises(FrozenInstanceError):
+            dpi.shift_dpi = 200  # type: ignore
+
+
+class TestDomainAssignment(unittest.TestCase):
+    def test_valid_assignment_creation(self):
+        btn = Button(button_id="G5", name="G5")
+        act = Action(action_id="act_1", name="Act 1", application_id="app_1")
+        assignment = Assignment(button=btn, action=act)
+        self.assertEqual(assignment.button, btn)
+        self.assertEqual(assignment.action, act)
+
+    def test_assignment_invalid_types_raise_error(self):
+        btn = Button(button_id="G5", name="G5")
+        act = Action(action_id="act_1", name="Act 1", application_id="app_1")
+        with self.assertRaises(TypeError):
+            Assignment(button="no_es_un_boton", action=act)  # type: ignore
+        with self.assertRaises(TypeError):
+            Assignment(button=btn, action="no_es_una_accion")  # type: ignore
+
+    def test_assignment_is_immutable(self) -> None:
+        """Verifica que Assignment sea una dataclass inmutable (frozen=True)."""
+        btn = Button(button_id="G5", name="G5")
+        act = Action(action_id="act_1", name="Act 1", application_id="app_1")
+        assignment = Assignment(button=btn, action=act)
+        with self.assertRaises(FrozenInstanceError):
+            assignment.button = Button(button_id="G4", name="G4")  # type: ignore
+        with self.assertRaises(FrozenInstanceError):
+            assignment.action = Action(action_id="act_2", name="Act 2", application_id="app_1")  # type: ignore
+
 
 
 class TestDomainProfile(unittest.TestCase):
