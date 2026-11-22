@@ -1,9 +1,61 @@
 /* Estilos modernos para G502 Profile Manager (GTK4 + Libadwaita) */
+/* Tema: Stark Tech / Iron Man & Sapphire Blue (v1.0.0) */
 
 :root {
     --accent-cyan: #00e5ff;
     --accent-cyan-hover: #33ebff;
     --accent-cyan-dim: rgba(0, 229, 255, 0.15);
+
+    /* Chasis Obsidiana y Acabados Metálicos */
+    --chassis-obsidian: #0a1224;
+    --chassis-obsidian-card: #0e172c;
+    --chassis-border: rgba(45, 125, 210, 0.35);
+
+    /* Encabezado: Degradado Azul Metálico Vertical */
+    --header-blue-top: #1852b9;
+    --header-blue-mid: #0d2e73;
+    --header-blue-bot: #060e22;
+
+    /* Juntas de Energía Láser Carmesí Iron Man */
+    --energy-crimson-core: #ff6b8b;
+    --energy-crimson: #e11d48;
+    --energy-crimson-glow: rgba(225, 29, 72, 0.45);
+}
+
+/* Encabezado de Ventana y de Sidebar */
+headerbar {
+    background: linear-gradient(180deg, var(--header-blue-top) 0%, var(--header-blue-mid) 52%, var(--header-blue-bot) 100%);
+    border-bottom: 1px solid var(--chassis-border);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+}
+
+/* Paneles Laterales: Fondo uniforme obsidiana para descanso visual y máximo contraste */
+.navigation-sidebar,
+window,
+scrolledwindow > viewport {
+    background-color: var(--chassis-obsidian);
+}
+
+/* Juntas de Energía Láser Carmesí en los Separadores de Paneles */
+paned > separator {
+    min-width: 2px;
+    background-color: var(--energy-crimson);
+    border-left: 1px solid var(--energy-crimson-core);
+    box-shadow: 0 0 10px var(--energy-crimson-glow), 0 0 2px var(--energy-crimson);
+    transition: all 0.2s ease-in-out;
+}
+
+paned > separator:hover {
+    min-width: 3px;
+    background-color: var(--energy-crimson-core);
+    box-shadow: 0 0 14px rgba(255, 77, 109, 0.75);
+}
+
+/* Tarjetas y Grupos de Preferencias */
+.card,
+preferencesgroup > box {
+    background-color: var(--chassis-obsidian-card);
+    border-color: var(--chassis-border);
 }
 
 .mouse-status-connected {
@@ -105,9 +157,9 @@
 /* Tarjeta de soporte comunitario en la vista de botones */
 banner.community-banner-card {
     border-radius: 12px;
-    background: linear-gradient(135deg, rgba(0, 229, 255, 0.08) 0%, rgba(53, 132, 228, 0.08) 100%);
-    border: 1px solid rgba(0, 229, 255, 0.25);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    background: linear-gradient(135deg, rgba(24, 82, 185, 0.18) 0%, rgba(6, 14, 34, 0.85) 100%);
+    border: 1px solid rgba(45, 125, 210, 0.45);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
     margin: 4px 0;
 }
 
