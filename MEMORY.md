@@ -3,7 +3,7 @@
 Memoria técnica del proyecto entre sesiones (~45 líneas). Estado y decisiones consolidadas.
 
 ## Estado actual
-- **Versión 0.6.1: Soporte Wine/Proton, shortcuts.vdf binario de Steam, preset Soulframe y resolución de procesos dinámicos con anti-flapping. Suite al 100% (`OK`, 277 tests).**
+- **Versión 0.6.2: Blindaje de mutaciones en dominio y GUI, soporte Wine/Proton, shortcuts.vdf binario y resolución dinámica. Suite al 100% (`OK`, 277 tests).**
 - **Robustez de persistencia y concurrencia (R-02, R-04, C-08):**
   - Respaldo automático `.corrupt-<timestamp>` y bloqueo de sobreescrituras ante archivos corruptos (`CorruptedProfileRepositoryError`).
   - Sincronización dual: `threading.RLock` (hilos internos) y `fcntl.flock` sobre `.lock` (procesos GUI/CLI concurrentes).

@@ -32,6 +32,11 @@
   </categories>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.6.2" date="2026-11-22">
+      <description>
+        <p>Blindaje exhaustivo contra mutaciones en entidades de dominio (Action, DeviceCapabilities, DpiConfiguration, Assignment) y módulos de interfaz gráfica (ciclo do_activate, ActionPickerDialog y NewProfileDialog), alcanzando 277 pruebas unitarias automatizadas al 100% OK.</p>
+      </description>
+    </release>
     <release version="0.6.1" date="2026-11-19">
       <description>
         <p>Soporte Wine/Proton avanzado (preset Soulframe y resolución de ejecutables secundarios), parser binario de accesos directos de Steam (shortcuts.vdf), mitigación de parpadeos con ventana anti-flapping y blindaje exhaustivo de adaptadores mediante pruebas de mutación (100% score).</p>
