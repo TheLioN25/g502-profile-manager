@@ -16,7 +16,7 @@ depends=(
     'hicolor-icon-theme'
 )
 source=("$pkgname-$pkgver.tar.gz::https://github.com/TheLioN25/g502-profile-manager/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('4d724aceb02991cf03af37dc5fa42068641360c36a1c27e7a7cf29aa44c9e1eb')
+sha256sums=('70eca5505f3eda638a9cd7eac1fcbdae85fb8ac7b0c1175c2bd84e579173c234')
 
 package() {
     cd "$pkgname-$pkgver"
