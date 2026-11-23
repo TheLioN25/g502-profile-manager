@@ -1,6 +1,6 @@
 # Maintainer: TheLioN25 <https://github.com/TheLioN25>
 pkgname=g502-profile-manager
-pkgver=0.5.0
+pkgver=1.0.0
 pkgrel=1
 pkgdesc="Gestor avanzado de perfiles y automatización en tiempo real para Logitech G502 HERO en Linux (GTK4 / Libadwaita)"
 arch=('any')
@@ -16,7 +16,7 @@ depends=(
     'hicolor-icon-theme'
 )
 source=("$pkgname-$pkgver.tar.gz::https://github.com/TheLioN25/g502-profile-manager/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('d120e7ba4e20a4acfeb1a3b103192503ea2777066b31e277bbc9f9324dd5e700')
+sha256sums=('4d724aceb02991cf03af37dc5fa42068641360c36a1c27e7a7cf29aa44c9e1eb')
 
 package() {
     cd "$pkgname-$pkgver"
