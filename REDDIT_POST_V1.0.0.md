@@ -6,10 +6,11 @@
 
 ## 🎯 Subreddits Recomendados & Flairs
 
-1. **r/linuxgaming** — Flair: `Release` / `Project` *(Audiencia principal: jugadores en Linux con Wine/Proton/Steam)*
-2. **r/linux** — Flair: `Software` / `Release` *(Entusiastas del escritorio Linux y aplicaciones GTK4/Libadwaita)*
-3. **r/LogitechG** — Flair: `Software` / `Discussion` *(Comunidad de Logitech que usa Linux y sufre la falta de G-HUB nativo)*
-4. **r/unixporn** — Flair: `Tool` / `Workflow` *(Por el diseño futurista Stark Tech / Libadwaita y la integración visual)*
+1. **r/G502Masterrace** — Flair: `Software` / `Discussion` *(Comunidad dedicada y apasionada exclusivamente por el Logitech G502)*
+2. **r/LogitechG** — Flair: `Software` / `Discussion` *(Comunidad de Logitech que usa Linux y sufre la falta de G-HUB nativo)*
+3. **r/linuxgaming** — Flair: `Release` / `Project` *(Audiencia de jugadores en Linux con Wine/Proton/Steam)*
+4. **r/linux** — Flair: `Software` / `Release` *(Entusiastas del escritorio Linux y aplicaciones GTK4/Libadwaita)*
+5. **r/unixporn** — Flair: `Tool` / `Workflow` *(Por el diseño futurista Stark Tech / Libadwaita y la integración visual)*
 
 ---
 
@@ -37,13 +38,21 @@ If you've ever missed Logitech G-HUB's automatic game profile switching or wante
 
 ### 🌟 What is this project?
 
-It's a native **GTK4 + Libadwaita** application built with Clean Architecture, Domain-Driven Design (DDD), and powered by `libratbag` (`ratbagctl`). It allows full hardware-level button remapping, DPI stages, RGB LIGHTSYNC control, and background game detection with **zero desktop stutter**.
+It's a native **GTK4 + Libadwaita** application built with Clean Architecture, Domain-Driven Design (DDD), and powered by the standard Linux driver `libratbag` (`ratbagctl`). It allows full hardware-level button remapping, DPI stages, RGB LIGHTSYNC control, and background game detection with **zero desktop stutter**.
+
+* **📅 Project Maturity & Timeline:**
+  * Initial development started in **July 2026**.
+  * Publicly released on GitHub on **September 12, 2026**.
+  * Reached the milestone **v1.0.0 official release on November 22, 2026** after months of active dogfooding and architecture hardening.
 
 ---
 
 ### 🔥 What's New in v1.0.0?
 
-#### 1. 🛡️ Futuristic "Stark Tech" Visual Overhaul (v1.0.0)
+#### 1. 🛡️ Futuristic "Stark Tech" Visual Overhaul & Original Cairo Blueprints
+* **100% Original Vector Mouse Blueprint (Legal & DMCA-Safe):**
+  * Rather than copying Logitech's proprietary diagrams, renders, or marketing assets (which are strictly Logitech's intellectual property and would create copyright/DMCA liability), we proactively designed and coded an **original 2D vector technical blueprint from scratch** directly in Python using the **Cairo graphics engine** (`src/gui/mouse_diagram.py`).
+  * Features real-time reactive RGB illumination, dynamic DPI indicators, interactive hover hitboxes, and button binding callouts.
 * **Official App Icon Redesign:** The classic application icon now wears a sharp Stark Tech crimson armor trim, perfectly matching the desktop chasis and theme aesthetics across all resolutions (from 512px down to 16px).
 * **Metallic 3D Alloy Panels:** Redesigned Action Rows, Combo Rows, and Preference Groups with subtle laser chamfers, metallic sapphire gradients, and interactive hover glow.
 * **Dual Energy Accent Switcher (Hot-Swappable):**
@@ -131,12 +140,20 @@ Para quienes extrañan la conmutación automática de perfiles de Logitech G-HUB
 
 Es una aplicación nativa en **GTK4 + Libadwaita** diseñada bajo arquitectura limpia (Clean Architecture / DDD) y apoyada en el demonio estándar de Linux `libratbag` (`ratbagctl`). Permite configurar botones, macros, niveles de DPI, iluminación RGB LIGHTSYNC y detección automática de juegos en segundo plano con **cero tirones en el escritorio**.
 
+* **📅 Cronología y Madurez del Proyecto:**
+  * Desarrollo iniciado a principios de **julio de 2026**.
+  * Publicado en GitHub el **12 de septiembre de 2026**.
+  * Versión oficial **v1.0.0 lanzada el 22 de noviembre de 2026** tras meses de pruebas reales y endurecimiento arquitectónico.
+
 ---
 
 ### 🔥 Novedades de la versión v1.0.0
 
-1. **Diseño Visual "Stark Tech":**
-   - **Nuevo icono oficial:** El icono de la aplicación se viste con una moldura de armadura carmesí sólida Stark Tech en todas sus resoluciones (desde 512px hasta 16px y SVG).
+1. **Diseño Visual "Stark Tech" y Plano Vectorial Original (Cairo):**
+   * **Plano Vectorial 100% Original (Blindado contra reclamos legales / DMCA):**
+     * En lugar de copiar los esquemas o renders propietarios de Logitech (los cuales son propiedad intelectual exclusiva de Logitech Corporation y acarrearían infracciones de copyright o disputas legales), diseñé y programé de manera proactiva un **plano técnico vectorial 2D desde cero** directamente en código Python utilizando el motor gráfico **Cairo** (`src/gui/mouse_diagram.py`).
+     * Soporta renderizado de iluminación RGB dinámica en vivo, selector reactivo de DPI, áreas interactivas al pasar el cursor y visualización directa de asignaciones por botón.
+   * **Nuevo icono oficial:** El icono de la aplicación se viste con una moldura de armadura carmesí sólida Stark Tech en todas sus resoluciones (desde 512px hasta 16px y SVG).
    - Chasis con degradado azul zafiro oscuro y biseles metálicos con estética de armadura 3D.
    - **Sistema de Acento de Energía Dual (Intercambiable en caliente):**
      - 🔴 **Carmesí Iron Man (Stark Tech):** Líneas de división láser en rojo carmesí neón.
