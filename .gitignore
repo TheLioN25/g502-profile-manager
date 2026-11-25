@@ -9,3 +9,9 @@ spec.md
 docs/specs/
 harness-report.json
 *.harness_bak
+
+# Documentos internos de trabajo y borradores locales
+hitos-faltantes.md
+diario-mutaciones.md
+REDDIT_*.md
+docs/ROADMAP_MULTI_DEVICE_ARCHITECTURE.md
